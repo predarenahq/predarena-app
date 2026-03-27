@@ -844,16 +844,16 @@ function Footer() {
             <div className="mt-3 space-y-2 text-sm" style={{ color: COLORS.textSoft }}>
               <a href="#arena" className="block transition hover:text-white">Arena</a>
               <a href="#news-anchor" className="block transition hover:text-white">Market News</a>
-              <a id="waitlist-link" href="#" className="block transition hover:text-white">Waitlist Page</a>
+              <a id="waitlist-link" href="#waitlist-link" className="block transition hover:text-white">Waitlist Page</a>
               <a href="#leaderboard" className="block transition hover:text-white">Leader Board</a>
             </div>
           </div>
           <div>
             <p className="text-sm font-medium text-white">Support</p>
             <div className="mt-3 space-y-2 text-sm" style={{ color: COLORS.textSoft }}>
-              <a id="how-to-play" href="#" className="block transition hover:text-white">How to Play</a>
-              <a id="help" href="#" className="block transition hover:text-white">Help</a>
-              <a id="contact" href="#" className="block transition hover:text-white">Contact Us</a>
+              <a id="how-to-play" href="#how-to-play" className="block transition hover:text-white">How to Play</a>
+              <a id="help" href="#help" className="block transition hover:text-white">Help</a>
+              <a id="contact" href="#contact" className="block transition hover:text-white">Contact Us</a>
             </div>
           </div>
         </div>
