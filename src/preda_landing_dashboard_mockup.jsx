@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, \useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -22,7 +22,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-
+import { connectWallet, placeTicketOnChain } from "./lib/predaProgram";
 const COLORS = {
   bg: "#050805",
   panel: "#091009",
@@ -760,7 +760,6 @@ function SlipDrawer({ open, count, items, stake, setStake, onRemove }) {
                 </button>
               ))}
             </div>
-
             <div className="mt-4 space-y-2 text-sm">
               <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
                 <span>Total Odds</span>
@@ -777,11 +776,16 @@ function SlipDrawer({ open, count, items, stake, setStake, onRemove }) {
                 </span>
               </div>
             </div>
-
-            <button disabled={!items.length} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40" style={{ background: COLORS.accent }}>
-              <Lock className="h-4 w-4" />
-              Place Ticket
-            </button>
+   
+              <button
+                disabled={loading || !items.length}
+                onClick={handlePlaceTicket}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ background: COLORS.accent }}
+              >
+                <Lock className="h-4 w-4" />
+                {loading ? "Processing..." : "Place Ticket"}
+             </button>
           </div>
 
           <div id="leaderboard" className="border-t px-4 py-4" style={{ borderColor: COLORS.line }}>
@@ -864,7 +868,7 @@ function Footer() {
 }
 
 export default function PredaLandingDashboardMockup() {
-  const [loading, setLoading] = useState(true);
+  const [loading, SsetLoading] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("signup");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
@@ -927,6 +931,31 @@ export default function PredaLandingDashboardMockup() {
       return next;
     });
   };
+
+ const handlePlaceTicket = async () => {
+   try {
+    setLoading(true);
+
+    await connectWallet();
+
+    const picks = JSON.stringify(ticketItems);
+
+    const result = await placeTicketOnChain({
+      picks,
+      stake: Number(stake),
+      combinedOdds: Math.floor(combinedOdds * 100),
+    });
+
+    alert("✅ Ticket placed successfully!");
+    console.log("TX:", result);
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "❌ Transaction failed");
+  } finally {
+    setLoading(false);
+  }
+}; 
 
   return (
     <div className="min-h-screen" style={{ background: COLORS.bg }}>
