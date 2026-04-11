@@ -59,6 +59,19 @@ type SlipSelection = {
   duration: MatchDuration;
 };
 
+interface ActiveBet {
+  id: string;
+  battleAddress: string;
+  betAddress: string;
+  picks: SlipSelection[];
+  stake: number;
+  combinedOdds: number;
+  potentialWin: number;
+  timestamp: number;
+  status: "pending" | "running" | "won" | "lost" | "void";
+  signature?: string;
+}
+
 const COLORS = {
   bg: "#050805",
   panel: "#091009",
@@ -1328,7 +1341,13 @@ export default function PredaLandingDashboardMockup() {
   const [selectedClass, setSelectedClass] = useState("All");
   const [stake, setStake] = useState("100");
   const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
+  const [activeBets, setActiveBets] = useState<ActiveBet[]>([]);
+  const [runningBets, setRunningBets] = useState<ActiveBet[]>([]);
+  const [betHistory, setBetHistory] = useState<ActiveBet[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
+
+  ...
+}
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
