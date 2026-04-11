@@ -74,14 +74,14 @@ interface ActiveBet {
 }
 
 const COLORS = {
-  bg: "#050805",
-  panel: "#091009",
-  line: "rgba(145,255,90,0.14)",
-  lineStrong: "rgba(145,255,90,0.26)",
-  accent: "#8dff4f",
-  accentSoft: "rgba(141,255,79,0.12)",
-  accentGlow: "rgba(141,255,79,0.16)",
-  textSoft: "#91a28d",
+  bg: "#04080d",
+  panel: "#060d12",
+  line: "rgba(0,212,255,0.10)",
+  lineStrong: "rgba(0,212,255,0.22)",
+  accent: "#00d4ff",
+  accentSoft: "rgba(0,212,255,0.10)",
+  accentGlow: "rgba(0,212,255,0.14)",
+  textSoft: "#7ab8c8",
 };
 
 const boardTabs: MatchBoard[] = ["Live", "Upcoming"];
@@ -678,7 +678,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
       <div className="relative overflow-hidden rounded-[28px] border bg-[linear-gradient(135deg,rgba(11,33,11,0.96),rgba(5,12,5,0.98))] px-6 py-7 sm:px-8" style={{ borderColor: COLORS.lineStrong }}>
-        <div className="absolute inset-y-0 left-0 w-32 bg-[radial-gradient(circle_at_left,rgba(141,255,79,0.12),transparent_62%)]" />
+        <div className="absolute inset-y-0 left-0 w-32 bg-[radial-gradient(circle_at_left,rgba(0,212,255,0.10),transparent_62%)]" />
         <div className="absolute inset-y-0 right-0 w-32 bg-[radial-gradient(circle_at_right,rgba(141,255,79,0.10),transparent_62%)]" />
 
         <div className="relative flex items-center justify-between gap-6">
@@ -1190,7 +1190,7 @@ const handleFetchBattles = async () => {
       {!authenticated ? (
         <button
           onClick={login}
-          className="px-4 py-2 bg-green-500 rounded-lg text-black font-medium"
+          className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
         >
           Login with X
         </button>
@@ -1205,14 +1205,14 @@ const handleFetchBattles = async () => {
 
       <button
         onClick={handleCreateTestBattle}
-        className="bg-red-500 text-white px-4 py-2 rounded"
+        className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
       >
         TEST ON-CHAIN BATTLE
       </button>
 
       <button
         onClick={handleFetchBattles}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
+        className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
      >
         FETCH BATTLES
       </button>
@@ -1240,7 +1240,7 @@ const handleFetchBattles = async () => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _PredaAuthControls({
-  accentColor = "#8dff4f",
+  accentColor = "#00d4ff",
 }: {
   accentColor?: string;
 }) {
@@ -1305,7 +1305,7 @@ function _PredaAuthControls({
 
       <button
         onClick={handleCreateTestBattle}
-        className="bg-red-500 text-white px-4 py-2 rounded"
+        className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
       >
         TEST ON-CHAIN BATTLE
       </button>
