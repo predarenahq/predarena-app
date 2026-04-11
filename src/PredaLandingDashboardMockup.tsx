@@ -59,6 +59,7 @@ type SlipSelection = {
   duration: MatchDuration;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ActiveBet {
   id: string;
   battleAddress: string;
