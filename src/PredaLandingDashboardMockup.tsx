@@ -465,7 +465,7 @@ function DesktopHeader({
   onLogoClick: () => void;
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#060906]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#04080d]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
       <div className="flex h-full items-center justify-between">
         <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
           <motion.div
@@ -482,7 +482,7 @@ function DesktopHeader({
           {expanded && <span className="text-lg font-semibold text-white">PREDA</span>}
         </button>
 
-        <div className="flex items-center gap-3 px-5">
+        <div className="flex items-center flex-1 px-5">
           <AuthSection />
         </div>
       </div>
@@ -613,7 +613,7 @@ function MobileShell({
 }) {
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#060906]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
+      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#04080d]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
         <button onClick={() => setOpen(true)} className="rounded-xl border p-2 text-white" style={{ borderColor: COLORS.line }}>
           <Menu className="h-5 w-5" />
         </button>
@@ -1185,7 +1185,7 @@ const handleFetchBattles = async () => {
   };
 
   return (
-    <div className="flex items-center justify-between w-full">
+    <div className="flex items-center justify-between w-full px-2">
       {/* LEFT GROUP */}
       <div className="flex items-center gap-2">
         {!authenticated ? (
@@ -1231,12 +1231,12 @@ const handleFetchBattles = async () => {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
-        {connected && publicKey && (
+        {connected {connected {connected && publicKey && ({connected && publicKey && ( publicKey {connected && publicKey && ({connected && publicKey && ( false && ({connected && publicKey && ( publicKey {connected && publicKey && ({connected && publicKey && ( false && (
           <div className="text-xs" style={{ color: "#7ab8c8" }}>
             {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
           </div>
         )}
-        <WalletMultiButton />
+        <WalletMultiButton style={{ borderRadius: "9999px", background: "#00d4ff", color: "#000", fontWeight: 600, fontSize: "14px" }} />
       </div>
     </div>
   );
@@ -1305,7 +1305,7 @@ function _PredaAuthControls({
         </div>
       )}
 
-      <WalletMultiButton />
+      <WalletMultiButton style={{ borderRadius: "9999px", background: "#00d4ff", color: "#000", fontWeight: 600, fontSize: "14px" }} />
 
       <button
         onClick={handleCreateTestBattle}
