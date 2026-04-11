@@ -1237,6 +1237,7 @@ const handleFetchBattles = async () => {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _PredaAuthControls({
   accentColor = "#8dff4f",
 }: {
@@ -1341,9 +1342,6 @@ export default function PredaLandingDashboardMockup() {
   const [selectedClass, setSelectedClass] = useState("All");
   const [stake, setStake] = useState("100");
   const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
-  const [_activeBets, _setActiveBets] = useState<ActiveBet[]>([]);
-  const [_runningBets, _setRunningBets] = useState<ActiveBet[]>([]);
-  const [_betHistory, _setBetHistory] = useState<ActiveBet[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
 
   useEffect(() => {
@@ -1413,19 +1411,19 @@ export default function PredaLandingDashboardMockup() {
     }
   }, [slipOpen, slipSelections]);
 
-  const routeDurationMap: Record<string, MatchDuration> = {
-    "/markets/5m": "5m",
-    "/markets/15m": "15m",
-    "/markets/30m": "30m",
-    "/markets/1h": "1h",
-    "/markets/4h": "4h",
-    "/markets/1d": "1D",
-    "/markets/1w": "1W",
-    "/markets/1m": "1M",
-    "/markets/1y": "1Y",
-  };
 
   const visibleMatches = useMemo(() => {
+    const routeDurationMap: Record<string, string> = {
+      "/markets/5m": "5m",
+      "/markets/15m": "15m",
+      "/markets/30m": "30m",
+      "/markets/1h": "1h",
+      "/markets/4h": "4h",
+      "/markets/1d": "1D",
+      "/markets/1w": "1W",
+      "/markets/1m": "1M",
+      "/markets/1y": "1Y",
+    };
     return liveMatches.filter((match) => {
       const boardMatch = match.board === selectedBoard;
       const classMatch = selectedClass === "All" || match.category === selectedClass;
@@ -1434,7 +1432,7 @@ export default function PredaLandingDashboardMockup() {
 
       return boardMatch && classMatch && durationMatch;
     });
-  }, [liveMatches, selectedBoard, selectedClass, location.pathname, routeDurationMap]);
+  }, [liveMatches, selectedBoard, selectedClass, location.pathname]);
 
   const handlePick = (match: Match, side: Side) => {
     let oddsAtPick = 0;
