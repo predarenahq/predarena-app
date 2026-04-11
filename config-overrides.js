@@ -13,11 +13,13 @@ module.exports = function override(config) {
     url: require.resolve("url"),
     buffer: require.resolve("buffer"),
     process: require.resolve("process/browser.js"),
+    vm: false,
   };
 
   config.resolve.alias = {
     ...(config.resolve.alias || {}),
     "process/browser": require.resolve("process/browser.js"),
+    "@farcaster/mini-app-solana": false,
   };
 
   config.module.rules.push({
