@@ -1237,7 +1237,7 @@ const handleFetchBattles = async () => {
   );
 }
 
-function PredaAuthControls({
+function _PredaAuthControls({
   accentColor = "#8dff4f",
 }: {
   accentColor?: string;
@@ -1341,9 +1341,9 @@ export default function PredaLandingDashboardMockup() {
   const [selectedClass, setSelectedClass] = useState("All");
   const [stake, setStake] = useState("100");
   const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
-  const [activeBets, setActiveBets] = useState<ActiveBet[]>([]);
-  const [runningBets, setRunningBets] = useState<ActiveBet[]>([]);
-  const [betHistory, setBetHistory] = useState<ActiveBet[]>([]);
+  const [_activeBets, _setActiveBets] = useState<ActiveBet[]>([]);
+  const [_runningBets, _setRunningBets] = useState<ActiveBet[]>([]);
+  const [_betHistory, _setBetHistory] = useState<ActiveBet[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
 
   useEffect(() => {
@@ -1434,7 +1434,7 @@ export default function PredaLandingDashboardMockup() {
 
       return boardMatch && classMatch && durationMatch;
     });
-  }, [liveMatches, selectedBoard, selectedClass, location.pathname]);
+  }, [liveMatches, selectedBoard, selectedClass, location.pathname, routeDurationMap]);
 
   const handlePick = (match: Match, side: Side) => {
     let oddsAtPick = 0;
