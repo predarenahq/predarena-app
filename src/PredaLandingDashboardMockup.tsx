@@ -1346,9 +1346,6 @@ export default function PredaLandingDashboardMockup() {
   const [betHistory, setBetHistory] = useState<ActiveBet[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
 
-  ...
-}
-
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(timer);
