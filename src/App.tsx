@@ -45,7 +45,7 @@ function App() {
         loginMethods: ["twitter"],
         appearance: {
           theme: "dark",
-          accentColor: "#8dff4f",
+          accentColor: "#00d4ff",
         },
       }}
     >

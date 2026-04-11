@@ -617,7 +617,7 @@ function MobileShell({
         <button onClick={() => setOpen(true)} className="rounded-xl border p-2 text-white" style={{ borderColor: COLORS.line }}>
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between w-full gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-[16px] border text-sm font-bold" style={{ borderColor: COLORS.lineStrong, background: COLORS.accentSoft, color: COLORS.accent }}>
             P
           </div>
@@ -633,7 +633,7 @@ function MobileShell({
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 lg:hidden">
             <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-[#070b07]" style={{ borderColor: COLORS.lineStrong }}>
               <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: COLORS.line }}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between w-full gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-[16px] border text-sm font-bold" style={{ borderColor: COLORS.lineStrong, background: COLORS.accentSoft, color: COLORS.accent }}>
                     P
                   </div>
@@ -772,7 +772,7 @@ function SelectionButton({
   return (
     <motion.div whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.16 }} className={cx("rounded-[20px] border px-3 py-3 text-left transition", active ? "ring-1" : "")} style={{ borderColor: active ? COLORS.lineStrong : COLORS.line, background: active ? COLORS.accentSoft : "rgba(255,255,255,0.03)", boxShadow: active ? `0 0 0 1px ${COLORS.accentGlow} inset` : "none" }}>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between w-full gap-3">
           {ticker === "DRAW" ? (
             <div className="flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold text-white" style={{ borderColor: COLORS.line }}>
               D
@@ -1185,55 +1185,59 @@ const handleFetchBattles = async () => {
   };
 
   return (
-    <div className="flex items-center gap-3">
-      {/* X LOGIN */}
-      {!authenticated ? (
+    <div className="flex items-center justify-between w-full">
+      {/* LEFT GROUP */}
+      <div className="flex items-center gap-2">
+        {!authenticated ? (
+          <button
+            onClick={login}
+            className="px-5 py-2 rounded-full text-black font-semibold text-sm transition-opacity hover:opacity-80"
+            style={{ background: "#00d4ff" }}
+          >
+            Login with X
+          </button>
+        ) : (
+          <div className="text-cyan-400 text-sm font-medium">
+            @{user?.twitter?.username || "User"}
+          </div>
+        )}
+
         <button
-          onClick={login}
-          className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
+          onClick={handleCreateTestBattle}
+          className="px-5 py-2 rounded-full text-black font-semibold text-sm transition-opacity hover:opacity-80"
+          style={{ background: "#00d4ff" }}
         >
-          Login with X
+          Test Battle
         </button>
-      ) : (
-        <div className="text-white text-sm">
-          {user?.twitter?.username || "User"}
-        </div>
-      )}
 
-      {/* WALLET */}
-      <WalletMultiButton />
-
-      <button
-        onClick={handleCreateTestBattle}
-        className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
-      >
-        TEST ON-CHAIN BATTLE
-      </button>
-
-      <button
-        onClick={handleFetchBattles}
-        className="px-4 py-2 rounded-lg text-black font-semibold text-sm" style={{ background: "#00d4ff" }}
-     >
-        FETCH BATTLES
-      </button>
-
-      {/* WALLET ADDRESS */}
-      {connected && publicKey && (
-        <div className="text-xs text-gray-400">
-          {publicKey.toBase58().slice(0, 4)}...
-          {publicKey.toBase58().slice(-4)}
-        </div>
-      )}
-
-      {/* LOGOUT */}
-      {authenticated && (
         <button
-          onClick={logout}
-          className="px-3 py-1 border border-green-500 rounded text-green-400 text-sm"
+          onClick={handleFetchBattles}
+          className="px-5 py-2 rounded-full font-semibold text-sm transition-opacity hover:opacity-80"
+          style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.3)" }}
         >
-          Logout
+          Fetch Battles
         </button>
-      )}
+
+        {authenticated && (
+          <button
+            onClick={logout}
+            className="px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ background: "rgba(0,212,255,0.08)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}
+          >
+            Logout
+          </button>
+        )}
+      </div>
+
+      {/* RIGHT GROUP */}
+      <div className="flex items-center gap-3">
+        {connected && publicKey && (
+          <div className="text-xs" style={{ color: "#7ab8c8" }}>
+            {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
+          </div>
+        )}
+        <WalletMultiButton />
+      </div>
     </div>
   );
 }
@@ -1286,7 +1290,7 @@ function _PredaAuthControls({
 };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between w-full gap-3">
       {!authenticated ? (
         <button
           onClick={() => login()}
