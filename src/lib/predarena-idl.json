@@ -53,6 +53,7 @@
           "type": "i64"
         }
       ]
+<<<<<<< HEAD
     },
     {
       "name": "place_ticket",
@@ -96,6 +97,8 @@
           "type": "u64"
         }
       ]
+=======
+>>>>>>> efdfbf0 (Update PREDA demo app and contract integration files)
     }
   ],
   "accounts": [
@@ -111,6 +114,7 @@
         116,
         24
       ]
+<<<<<<< HEAD
     },
     {
       "name": "Ticket",
@@ -124,6 +128,8 @@
         235,
         200
       ]
+=======
+>>>>>>> efdfbf0 (Update PREDA demo app and contract integration files)
     }
   ],
   "errors": [
@@ -169,6 +175,7 @@
           }
         ]
       }
+<<<<<<< HEAD
     },
     {
       "name": "Ticket",
@@ -201,6 +208,8 @@
           }
         ]
       }
+=======
+>>>>>>> efdfbf0 (Update PREDA demo app and contract integration files)
     }
   ],
   "constants": [

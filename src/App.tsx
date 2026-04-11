@@ -1,5 +1,67 @@
-import PredaLandingDashboardMockup from "./preda_landing_dashboard_mockup";
+import React, { useMemo } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { clusterApiUrl } from "@solana/web3.js";
+import PredaLandingDashboardMockup from "./PredaLandingDashboardMockup";
+import "@solana/wallet-adapter-react-ui/styles.css";
 
-export default function App() {
-  return <PredaLandingDashboardMockup />;
+function App() {
+  const network = WalletAdapterNetwork.Devnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+
+  const wallets = useMemo(
+    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    []
+  );
+
+  const privyAppId = process.env.REACT_APP_PRIVY_APP_ID;
+
+  if (!privyAppId) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#050805",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+        }}
+      >
+        Missing REACT_APP_PRIVY_APP_ID in .env
+      </div>
+    );
+  }
+
+  return (
+    <PrivyProvider
+      appId={privyAppId}
+      config={{
+        loginMethods: ["twitter"],
+        appearance: {
+          theme: "dark",
+          accentColor: "#8dff4f",
+        },
+      }}
+    >
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={wallets} autoConnect={false}>
+          <WalletModalProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="*" element={<PredaLandingDashboardMockup />} />
+              </Routes>
+            </BrowserRouter>
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </PrivyProvider>
+  );
 }
+
+export default App;
