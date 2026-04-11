@@ -1231,11 +1231,6 @@ const handleFetchBattles = async () => {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
-        {connected {connected {connected && publicKey && ({connected && publicKey && ( publicKey {connected && publicKey && ({connected && publicKey && ( false && ({connected && publicKey && ( publicKey {connected && publicKey && ({connected && publicKey && ( false && (
-          <div className="text-xs" style={{ color: "#7ab8c8" }}>
-            {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
-          </div>
-        )}
         <WalletMultiButton style={{ borderRadius: "9999px", background: "#00d4ff", color: "#000", fontWeight: 600, fontSize: "14px" }} />
       </div>
     </div>
