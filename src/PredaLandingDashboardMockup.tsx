@@ -1,3 +1,4 @@
+import { useBattles } from "./hooks/useBattles";
 import { createBattle, fetchBattles } from "./lib/predaProgram";
 import { usePrivy } from "@privy-io/react-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -1342,7 +1343,14 @@ export default function PredaLandingDashboardMockup() {
   const [selectedClass, setSelectedClass] = useState("All");
   const [stake, setStake] = useState("100");
   const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
+  const { matches: supabaseMatches, loading: battlesLoading } = useBattles();
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
+
+  useEffect(() => {
+    if (supabaseMatches.length > 0) {
+      setLiveMatches(supabaseMatches)
+    }
+  }, [supabaseMatches]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
