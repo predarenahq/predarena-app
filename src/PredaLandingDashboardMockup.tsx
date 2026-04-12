@@ -1412,6 +1412,7 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 function AuthSection() {
   const { login, authenticated, user, logout } = usePrivy();
   const wallet = useWallet();
+  const { publicKey, connected } = wallet;
 
 
 
@@ -1463,6 +1464,7 @@ function _PredaAuthControls({
 }) {
   const { login, authenticated, user, logout } = usePrivy();
   const wallet = useWallet();
+  const { publicKey, connected } = wallet;
 
 
   const walletAddress = connected && publicKey ? publicKey.toBase58() : "";
@@ -1761,6 +1763,7 @@ export default function PredaLandingDashboardMockup() {
   const { matches: supabaseMatches } = useBattles();
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
   const wallet = useWallet();
+  const { publicKey, connected } = wallet;
 
 
   useEffect(() => {
