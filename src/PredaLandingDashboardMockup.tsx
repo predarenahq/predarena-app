@@ -573,6 +573,20 @@ function UserBalancePanel() {
 
   const walletAddr = publicKey?.toBase58() || ''
 
+  const fetchBalance = React.useCallback(async () => {
+    try {
+      const { supabase } = await import('./lib/supabase')
+      const { data } = await supabase
+        .from('user_balances')
+        .select('balance_lamports')
+        .eq('wallet_address', walletAddr)
+        .single()
+      if (data) setBalance(data.balance_lamports)
+    } catch (err) {
+      console.error('Failed to fetch balance:', err)
+    }
+  }, [walletAddr])
+
   React.useEffect(() => {
     if (!walletAddr) return
     fetchBalance()
@@ -591,20 +605,6 @@ function UserBalancePanel() {
       console.error('Failed to fetch SOL price:', err)
     }
   }
-
-  const fetchBalance = React.useCallback(async () => {
-    try {
-      const { supabase } = await import('./lib/supabase')
-      const { data } = await supabase
-        .from('user_balances')
-        .select('balance_lamports')
-        .eq('wallet_address', walletAddr)
-        .single()
-      if (data) setBalance(data.balance_lamports)
-    } catch (err) {
-      console.error('Failed to fetch balance:', err)
-    }
-  }, [walletAddr])
 
   async function handleDeposit() {
     if (!connected || !publicKey || !depositAmount) return
