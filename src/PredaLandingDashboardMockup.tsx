@@ -1,5 +1,6 @@
 import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { useBattles } from "./hooks/useBattles";
+import PriceChartModal from "./components/PriceChartModal";
 import { supabase } from "./lib/supabase";
 
 import { usePrivy } from "@privy-io/react-auth";
@@ -1082,7 +1083,18 @@ function MarketCard({
   selectedSide: Side | null;
   onPick: (match: Match, side: Side) => void;
 }) {
+  const [chartOpen, setChartOpen] = React.useState(false)
   return (
+    <>
+    <PriceChartModal
+      open={chartOpen}
+      onClose={() => setChartOpen(false)}
+      coinA={match.left.ticker}
+      coinB={match.right.ticker}
+      startTime={match.startTime}
+      startPriceA={match.startPriceA}
+      startPriceB={match.startPriceB}
+    />
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3 }} transition={{ duration: 0.18 }} className="rounded-[24px] border bg-[#0b110b] p-5" style={{ borderColor: COLORS.lineStrong }}>
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
@@ -1125,8 +1137,12 @@ function MarketCard({
             <SelectionButton active={selectedSide === "right"} label={match.right.ticker} odds={match.right.odds} meta={match.right.change} ticker={match.right.ticker} />
           </button>
         </div>
+        <button onClick={() => setChartOpen(true)} className="w-full mt-1 rounded-xl py-2 text-xs font-medium flex items-center justify-center gap-2" style={{ border: `1px solid rgba(0,240,255,0.2)`, color: "#00f0ff", background: "rgba(0,240,255,0.05)" }}>
+          📈 View Settlement Chart
+        </button>
       </div>
     </motion.div>
+    </>
   );
 }
 
