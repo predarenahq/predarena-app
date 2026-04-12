@@ -20,6 +20,7 @@ const PYTH_FEEDS = {
   JUP: '0x0a0408d619e9380abad35060f9192039ed5042fa6f82301d0e48bb52be830996',
   WIF: '0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc',
   BONK: '0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419',
+  return prices
 }
 
 const BATTLE_PAIRS = [
@@ -42,6 +43,7 @@ const DURATION_MS = {
   '1h': 60 * 60 * 1000,
   '4h': 4 * 60 * 60 * 1000,
   '1D': 24 * 60 * 60 * 1000,
+  return prices
 }
 
 async function getPythPrices(tickers) {
@@ -69,6 +71,7 @@ async function getPythPrices(tickers) {
   }))
   
   return results
+  return prices
 }
 
 async function settleBattles() {
@@ -108,6 +111,7 @@ async function settleBattles() {
 
     console.log(`Settled: ${battle.coin_a} vs ${battle.coin_b} winner=${winner}`)
   }
+  return prices
 }
 
 async function createBattles() {
@@ -155,32 +159,25 @@ async function createBattles() {
       total_pool: 0,
     })
 
-    console.log(`Insert ${pair.coinA}/${pair.coinB}:`, data, error)
+    if(error) console.error(`Insert error ${pair.coinA}/${pair.coinB}:`, error.message)
+    else console.log(`Inserted: ${pair.coinA} vs ${pair.coinB}`)
   }
+  return prices
 }
 
 export default async function handler(req, res) {
   try {
-    const tickers = ['BTC', 'ETH', 'SOL']
-    const prices = await getPythPrices(tickers)
-    
-    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
-    
     await settleBattles()
-    const result = await createBattles()
+    const allPrices = await createBattles()
     
     res.status(200).json({ 
       ok: true, 
       timestamp: new Date().toISOString(),
-      prices,
-      supabaseUrl: supabaseUrl ? 'set' : 'missing',
-      serviceKey: serviceKey ? 'set' : 'missing',
-      anonKey: anonKey ? 'set' : 'missing',
+      prices: allPrices,
     })
   } catch (err) {
     console.error('Cron error:', err)
     res.status(500).json({ error: String(err) })
   }
+  return prices
 }
