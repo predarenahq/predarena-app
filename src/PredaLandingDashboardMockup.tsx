@@ -128,9 +128,14 @@ const sidebarSections = [
     ],
   },
   {
+    title: "NEWS",
+    items: [
+      { label: "Crypto News", path: "/news" },
+    ],
+  },
+  {
     title: "PRODUCT",
     items: [
-      { label: "News", path: "/news" },
       { label: "Leaderboard", path: "/leaderboard" },
       { label: "How to Play", path: "/how-to-play" },
       { label: "Support", path: "/support" },
