@@ -443,12 +443,12 @@ function BreakingNewsPopup() {
   useEffect(() => {
     async function fetchNews() {
       try {
-        const res = await fetch('https://cryptopanic.com/api/free/v1/posts/?auth_token=public&filter=hot&currencies=BTC,ETH,SOL&public=true')
+        const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=BTC,ETH,SOL&sortOrder=latest')
         const data = await res.json()
-        if (data?.results?.length) {
-          setAllNews(data.results)
-          const first = data.results[0]
-          setNews({ title: first.title, source: first.source?.title || 'CryptoPanic', url: first.url })
+        if (data?.Data?.length) {
+          setAllNews(data.Data)
+          const first = data.Data[0]
+          setNews({ title: first.title, source: first.source_info?.name || 'Crypto News', url: first.url })
           setOpen(true)
         }
       } catch {
@@ -466,7 +466,7 @@ function BreakingNewsPopup() {
     const timer = setTimeout(() => {
       const next = (newsIndex + 1) % allNews.length
       const item = allNews[next]
-      setNews({ title: item.title, source: item.source?.title || 'CryptoPanic', url: item.url })
+      setNews({ title: item.title, source: item.source_info?.name || 'Crypto News', url: item.url })
       setNewsIndex(next)
     }, 9000)
     return () => clearTimeout(timer)
@@ -487,7 +487,7 @@ function BreakingNewsPopup() {
                 <p className="text-xs uppercase tracking-[0.18em]" style={{ color: COLORS.accent }}>
                   {news.source}
                 </p>
-                <a href={news.url} target="_blank" rel="noreferrer" className="mt-1 text-sm font-medium text-white hover:underline line-clamp-2 block">
+                <a href={news.url} target="_blank" rel="noreferrer" onClick={(e) => { e.preventDefault(); if(news.url !== '#') window.open(news.url, '_blank') }} className="mt-1 text-sm font-medium text-white hover:underline line-clamp-2 block cursor-pointer">
                   {news.title}
                 </a>
               </div>
