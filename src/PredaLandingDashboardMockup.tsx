@@ -577,7 +577,7 @@ function UserBalancePanel() {
     if (!walletAddr) return
     fetchBalance()
     fetchSolPrice()
-  }, [walletAddr])
+  }, [walletAddr, fetchBalance])
 
   async function fetchSolPrice() {
     try {
