@@ -600,6 +600,12 @@ function UserBalancePanel() {
     fetchSolPrice()
   }, [walletAddr, fetchBalance])
 
+  React.useEffect(() => {
+    const handler = () => fetchBalance()
+    window.addEventListener('balance-refresh', handler)
+    return () => window.removeEventListener('balance-refresh', handler)
+  }, [fetchBalance])
+
   async function fetchSolPrice() {
     try {
       const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
@@ -1709,6 +1715,8 @@ export default function PredaLandingDashboardMockup() {
       "/economy": "ARENA",
       "/sports": "ARENA",
       "/fanduel": "ARENA",
+      "/running": "MY BETS",
+      "/history": "MY BETS",
       "/news": "PRODUCT",
       "/leaderboard": "PRODUCT",
       "/how-to-play": "PRODUCT",
@@ -1898,6 +1906,15 @@ export default function PredaLandingDashboardMockup() {
     try {
       const { supabase } = await import('./lib/supabase')
 
+      // Fetch real SOL price
+      let solPriceUsd = 100
+      try {
+        const priceRes = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
+        const priceData = await priceRes.json()
+        const parsed = priceData?.parsed?.[0]
+        if (parsed) solPriceUsd = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
+      } catch(e) {}
+
       // Check balance
       const { data: balData } = await supabase
         .from('user_balances')
@@ -1905,11 +1922,10 @@ export default function PredaLandingDashboardMockup() {
         .eq('wallet_address', walletAddr)
         .single()
 
-      const solPrice = 150 // fallback
-      const stakeInLamports = Math.floor((totalStake / solPrice) * 1_000_000_000)
+      const stakeInLamports = Math.floor((totalStake / solPriceUsd) * 1_000_000_000)
 
       if (!balData || balData.balance_lamports < stakeInLamports) {
-        alert('Insufficient balance. Please deposit first.')
+        alert(`Insufficient balance. You need $${totalStake} but only have $${((balData?.balance_lamports || 0) / 1_000_000_000 * solPriceUsd).toFixed(2)}`)
         return
       }
 
@@ -1935,6 +1951,7 @@ export default function PredaLandingDashboardMockup() {
 
       alert('Ticket placed successfully!')
       setSlipSelections([])
+      window.dispatchEvent(new Event('balance-refresh'))
     } catch (err: any) {
       console.error('Failed to place ticket:', err)
       alert('Failed: ' + (err.message || err))
