@@ -50,7 +50,7 @@ function battleToMatch(battle: Battle): Match {
 
   return {
     id: battle.id,
-    category: battle.league,
+    category: battle.league as any,
     board: battle.status === 'upcoming' ? 'Upcoming' : 'Live',
     duration: battle.duration,
     league: battle.league,
