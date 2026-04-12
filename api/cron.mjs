@@ -152,7 +152,7 @@ async function createBattles() {
       end_time: endTime.toISOString(),
       start_price_a: startPriceA,
       start_price_b: startPriceB,
-      status: 'upcoming',
+      status: 'live',
       side_a_pool: 0,
       side_b_pool: 0,
       draw_pool: 0,
@@ -179,5 +179,4 @@ export default async function handler(req, res) {
     console.error('Cron error:', err)
     res.status(500).json({ error: String(err) })
   }
-  return prices
 }
