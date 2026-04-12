@@ -114,6 +114,13 @@ const sidebarSections = [
     ],
   },
   {
+    title: "MY BETS",
+    items: [
+      { label: "Running Bets", path: "/running" },
+      { label: "History", path: "/history" },
+    ],
+  },
+  {
     title: "PRODUCT",
     items: [
       { label: "News", path: "/news" },
