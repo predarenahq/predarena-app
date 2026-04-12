@@ -1545,24 +1545,92 @@ export default function PredaLandingDashboardMockup() {
 
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
-    const walletAddr = connected && publicKey ? publicKey.toBase58() : 'unknown'
-    
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet first')
+      return
+    }
+
+    const walletAddr = publicKey.toBase58()
+
     try {
       const { supabase } = await import('./lib/supabase')
+      const { Connection, PublicKey, SystemProgram } = await import('@solana/web3.js')
+      const { Program, AnchorProvider, BN } = await import('@coral-xyz/anchor')
+      const idl = await import('./lib/predarena-idl.json')
+
+      const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
+      
+      const provider = new AnchorProvider(
+        connection,
+        wallet as any,
+        { commitment: 'confirmed' }
+      )
+
+      const program = new Program(idl as any, provider)
+      const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
+
       for (const selection of slipSelections) {
-        await supabase.from('tickets').insert({
-          battle_id: selection.matchId,
-          wallet_address: walletAddr,
-          side: selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3,
-          stake: Number(stake),
-          odds: selection.oddsAtPick,
-        })
+        const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
+        const stakeAmount = Number(stake) * 1_000_000_000 // convert SOL to lamports
+
+        // Find battle PDA
+        const battlePubkey = new PublicKey(selection.matchId.length === 44 ? selection.matchId : selection.matchId)
+
+        // Derive ticket PDA
+        const [ticketPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('ticket'), battlePubkey.toBuffer(), publicKey.toBuffer()],
+          PROGRAM_ID
+        )
+
+        // Derive vault PDA
+        const [vaultPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from('vault'), battlePubkey.toBuffer()],
+          PROGRAM_ID
+        )
+
+        try {
+          const tx = await (program.methods as any)
+            .placeTicket(side, new BN(stakeAmount))
+            .accounts({
+              ticket: ticketPda,
+              battle: battlePubkey,
+              bettor: publicKey,
+              vault: vaultPda,
+              systemProgram: SystemProgram.programId,
+            })
+            .rpc()
+
+          console.log('TX:', tx)
+
+          // Record in Supabase
+          await supabase.from('tickets').insert({
+            battle_id: selection.matchId,
+            wallet_address: walletAddr,
+            side,
+            stake: Number(stake),
+            odds: selection.oddsAtPick,
+            on_chain_tx: tx,
+          })
+
+          // Update battle pool
+          await supabase.from('battles')
+            .update({ 
+              total_pool: liveMatches.find(m => m.id === selection.matchId)?.pool || 0 + Number(stake),
+              [`side_${side === 1 ? 'a' : side === 2 ? 'b' : 'draw'}_pool`]: Number(stake)
+            })
+            .eq('id', selection.matchId)
+
+        } catch (txErr: any) {
+          console.error('TX error:', txErr)
+          throw new Error(txErr.message || 'Transaction failed')
+        }
       }
+
       alert('Ticket placed successfully!')
       setSlipSelections([])
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to place ticket:', err)
-      alert('Failed to place ticket. Try again.')
+      alert('Failed to place ticket: ' + (err.message || err))
     }
   }
 
