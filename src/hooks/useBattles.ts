@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, Battle } from '../lib/supabase'
+import { getStartingOdds, getInPlayOdds, OddsResult } from '../services/oddsEngine'
 
 type MatchCategory = "Major" | "Altcoins" | "L1" | "L2" | "DeFi" | "Meme" | "AI"
 
@@ -25,6 +26,9 @@ function calculateOdds(sidePool: number, totalPool: number): number {
   return Math.round((totalPool / sidePool) * 100) / 100
 }
 
+// Cache for starting odds per battle
+const oddsCache: Record<string, OddsResult> = {}
+
 function getTimer(battle: Battle): string {
   const now = new Date()
   const end = new Date(battle.end_time)
@@ -44,11 +48,11 @@ function getTimer(battle: Battle): string {
   return `${mins}m left`
 }
 
-function battleToMatch(battle: Battle): Match {
+function battleToMatch(battle: Battle, odds?: OddsResult): Match {
   const total = battle.total_pool || 0
-  const oddsA = calculateOdds(battle.side_a_pool, total)
-  const oddsB = calculateOdds(battle.side_b_pool, total)
-  const oddsDraw = calculateOdds(battle.draw_pool, total)
+  const oddsA = odds?.oddsA ?? calculateOdds(battle.side_a_pool, total)
+  const oddsB = odds?.oddsB ?? calculateOdds(battle.side_b_pool, total)
+  const oddsDraw = odds?.oddsDraw ?? calculateOdds(battle.draw_pool, total)
 
   return {
     id: battle.id,
@@ -97,10 +101,37 @@ export function useBattles() {
       return
     }
 
-    setMatches((data as any[]).map(b => ({
-      ...battleToMatch(b as Battle),
-      entries: b.tickets?.[0]?.count || 0
-    })))
+    const matchesWithOdds = await Promise.all((data as any[]).map(async (b) => {
+      // Use engine odds for live battles
+      let odds: OddsResult | undefined
+      if (b.status === 'live') {
+        if (!oddsCache[b.id]) {
+          // Seed starting odds from 24h momentum
+          oddsCache[b.id] = await getStartingOdds(b.coin_a, b.coin_b)
+        }
+        const base = oddsCache[b.id]
+        // If we have live prices, compute in-play odds
+        if (b.start_price_a && b.start_price_b) {
+          const currentA = b.final_price_a || b.start_price_a
+          const currentB = b.final_price_b || b.start_price_b
+          odds = getInPlayOdds(
+            b.coin_a, b.coin_b,
+            currentA, currentB,
+            b.start_price_a, b.start_price_b,
+            new Date(b.start_time).getTime(),
+            new Date(b.end_time).getTime(),
+            base
+          )
+        } else {
+          odds = base
+        }
+      }
+      return {
+        ...battleToMatch(b as Battle, odds),
+        entries: b.tickets?.[0]?.count || 0
+      }
+    }))
+    setMatches(matchesWithOdds)
     setLoading(false)
   }
 
