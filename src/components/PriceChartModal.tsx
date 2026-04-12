@@ -184,7 +184,7 @@ export default function PriceChartModal({
                   <Tooltip
                     contentStyle={{ background: COLORS.bg, border: `1px solid ${COLORS.lineStrong}`, borderRadius: 12 }}
                     labelStyle={{ color: COLORS.textSoft, fontSize: 11 }}
-                    formatter={(value: any, name: string) => [`${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(4)}%`, name]}
+                    formatter={(value: any, name: any) => [`${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(4)}%`, String(name)]}
                   />
                   <ReferenceLine y={0} stroke={COLORS.entryLine} strokeDasharray="4 4" />
                   <Line type="monotone" dataKey={coinA} stroke={COLORS.coinA} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
