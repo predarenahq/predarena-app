@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { PriceServiceConnection } from '@pythnetwork/price-service-client'
+import pkg from '@pythnetwork/price-service-client'
+const { PriceServiceConnection } = pkg
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
