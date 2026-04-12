@@ -1,4 +1,6 @@
+import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { useBattles } from "./hooks/useBattles";
+import { supabase } from "./lib/supabase";
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -651,9 +653,6 @@ function UserBalancePanel() {
     if (!connected || !publicKey || !depositAmount) return
     setLoading(true)
     try {
-      const { Connection, PublicKey, SystemProgram, Transaction } = await import('@solana/web3.js')
-      const { supabase } = await import('./lib/supabase')
-      
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
       const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
       
@@ -699,9 +698,9 @@ function UserBalancePanel() {
       setBalance(prev => prev + lamports)
       setDepositAmount('')
       setShowDeposit(false)
-      alert('Deposit successful!')
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '✅ Deposit successful!', type: 'success' } }))
     } catch (err: any) {
-      alert('Deposit failed: ' + err.message)
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '❌ Deposit failed: ' + err.message, type: 'error' } }))
     } finally {
       setLoading(false)
     }
