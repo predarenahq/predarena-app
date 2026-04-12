@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import pkg from '@pythnetwork/price-service-client'
-const { PriceServiceConnection } = pkg
+
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
@@ -46,33 +45,31 @@ const DURATION_MS = {
 }
 
 async function getPythPrices(tickers) {
-  const connection = new PriceServiceConnection('https://hermes.pyth.network', {
-    priceFeedRequestConfig: { binary: false }
-  })
-
-  const feedIds = tickers.map(t => PYTH_FEEDS[t]).filter(Boolean)
   const results = {}
-
-  try {
-    const feeds = await connection.getLatestPriceFeeds(feedIds)
-    if (!feeds) return results
-
-    for (const feed of feeds) {
-      const price = feed.getPriceNoOlderThan(60)
-      if (!price) continue
-
-      const feedIdClean = feed.id.replace('0x', '')
-      const ticker = Object.keys(PYTH_FEEDS).find(
-        k => PYTH_FEEDS[k].replace('0x', '') === feedIdClean
-      )
-      if (ticker) {
-        results[ticker] = Number(price.price) * Math.pow(10, price.expo)
+  
+  // Fetch one at a time to avoid batch failures
+  for (const ticker of tickers) {
+    const feedId = PYTH_FEEDS[ticker]
+    if (!feedId) continue
+    
+    try {
+      const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        console.log(`Pyth 404 for ${ticker}: ${feedId}`)
+        continue
       }
+      const data = await res.json()
+      const parsed = data?.parsed?.[0]
+      if (!parsed) continue
+      
+      const price = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
+      results[ticker] = price
+    } catch (err) {
+      console.error(`Pyth error for ${ticker}:`, err.message)
     }
-  } catch (err) {
-    console.error('Pyth error:', err)
   }
-
+  
   return results
 }
 
