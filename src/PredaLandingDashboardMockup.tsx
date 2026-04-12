@@ -560,6 +560,241 @@ function SidebarAccordion({
   );
 }
 
+function UserBalancePanel() {
+  const { publicKey, connected, sendTransaction } = useWallet()
+  const [balance, setBalance] = React.useState<number>(0)
+  const [solPrice, setSolPrice] = React.useState<number>(150)
+  const [depositAmount, setDepositAmount] = React.useState('')
+  const [withdrawAmount, setWithdrawAmount] = React.useState('')
+  const [showDeposit, setShowDeposit] = React.useState(false)
+  const [showWithdraw, setShowWithdraw] = React.useState(false)
+  const [currency, setCurrency] = React.useState<'SOL' | 'USD'>('USD')
+  const [loading, setLoading] = React.useState(false)
+
+  const walletAddr = publicKey?.toBase58() || ''
+
+  React.useEffect(() => {
+    if (!walletAddr) return
+    fetchBalance()
+    fetchSolPrice()
+  }, [walletAddr])
+
+  async function fetchSolPrice() {
+    try {
+      const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
+      const data = await res.json()
+      const parsed = data?.parsed?.[0]
+      if (parsed) {
+        setSolPrice(Number(parsed.price.price) * Math.pow(10, parsed.price.expo))
+      }
+    } catch (err) {
+      console.error('Failed to fetch SOL price:', err)
+    }
+  }
+
+  async function fetchBalance() {
+    try {
+      const { supabase } = await import('./lib/supabase')
+      const { data } = await supabase
+        .from('user_balances')
+        .select('balance_lamports')
+        .eq('wallet_address', walletAddr)
+        .single()
+      if (data) setBalance(data.balance_lamports)
+    } catch (err) {
+      console.error('Failed to fetch balance:', err)
+    }
+  }
+
+  async function handleDeposit() {
+    if (!connected || !publicKey || !depositAmount) return
+    setLoading(true)
+    try {
+      const { Connection, PublicKey, SystemProgram, Transaction } = await import('@solana/web3.js')
+      const { supabase } = await import('./lib/supabase')
+      
+      const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
+      const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
+      
+      const [vaultPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('platform_vault')],
+        PROGRAM_ID
+      )
+
+      const lamports = Math.floor(Number(depositAmount) * 1_000_000_000)
+      
+      const tx = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: vaultPda,
+          lamports,
+        })
+      )
+
+      const sig = await sendTransaction(tx, connection)
+      await connection.confirmTransaction(sig, 'confirmed')
+
+      // Update Supabase balance
+      const { data: existing } = await supabase
+        .from('user_balances')
+        .select('id, balance_lamports, total_deposited')
+        .eq('wallet_address', walletAddr)
+        .single()
+
+      if (existing) {
+        await supabase.from('user_balances').update({
+          balance_lamports: existing.balance_lamports + lamports,
+          total_deposited: existing.total_deposited + lamports,
+          updated_at: new Date().toISOString(),
+        }).eq('wallet_address', walletAddr)
+      } else {
+        await supabase.from('user_balances').insert({
+          wallet_address: walletAddr,
+          balance_lamports: lamports,
+          total_deposited: lamports,
+        })
+      }
+
+      setBalance(prev => prev + lamports)
+      setDepositAmount('')
+      setShowDeposit(false)
+      alert('Deposit successful!')
+    } catch (err: any) {
+      alert('Deposit failed: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!connected || !publicKey || !withdrawAmount) return
+    setLoading(true)
+    try {
+      const { supabase } = await import('./lib/supabase')
+      const lamports = Math.floor(Number(withdrawAmount) * 1_000_000_000)
+      
+      if (lamports > balance) {
+        alert('Insufficient balance')
+        return
+      }
+
+      // Update balance in Supabase (actual on-chain withdrawal would need backend signing)
+      await supabase.from('user_balances').update({
+        balance_lamports: balance - lamports,
+        total_withdrawn: lamports,
+        updated_at: new Date().toISOString(),
+      }).eq('wallet_address', walletAddr)
+
+      setBalance(prev => prev - lamports)
+      setWithdrawAmount('')
+      setShowWithdraw(false)
+      alert('Withdrawal processed!')
+    } catch (err: any) {
+      alert('Withdrawal failed: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const balanceSol = balance / 1_000_000_000
+  const balanceUsd = balanceSol * solPrice
+
+  if (!connected) {
+    return (
+      <div className="rounded-2xl border p-3" style={{ borderColor: COLORS.line }}>
+        <p className="text-sm font-medium text-white">User Profile</p>
+        <p className="mt-1 text-xs" style={{ color: COLORS.textSoft }}>Connect wallet to see balance</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: COLORS.line }}>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-white">User Profile</p>
+        <button
+          onClick={() => setCurrency(currency === 'USD' ? 'SOL' : 'USD')}
+          className="text-xs px-2 py-1 rounded-full"
+          style={{ background: COLORS.accentSoft, color: COLORS.accent }}
+        >
+          {currency}
+        </button>
+      </div>
+      <p className="text-xs" style={{ color: COLORS.textSoft }}>
+        {walletAddr.slice(0, 4)}...{walletAddr.slice(-4)}
+      </p>
+      <div className="rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
+        <p className="text-xs" style={{ color: COLORS.textSoft }}>Balance</p>
+        <p className="text-lg font-bold" style={{ color: COLORS.accent }}>
+          {currency === 'USD' ? `$${balanceUsd.toFixed(2)}` : `${balanceSol.toFixed(4)} SOL`}
+        </p>
+        <p className="text-xs" style={{ color: COLORS.textSoft }}>
+          {currency === 'USD' ? `${balanceSol.toFixed(4)} SOL` : `$${balanceUsd.toFixed(2)}`}
+        </p>
+      </div>
+
+      {showDeposit && (
+        <div className="space-y-2">
+          <input
+            type="number"
+            placeholder="Amount in SOL"
+            value={depositAmount}
+            onChange={e => setDepositAmount(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
+            style={{ background: COLORS.panel, border: `1px solid ${COLORS.line}` }}
+          />
+          <button
+            onClick={handleDeposit}
+            disabled={loading}
+            className="w-full rounded-xl py-2 text-sm font-semibold text-black"
+            style={{ background: COLORS.accent }}
+          >
+            {loading ? 'Processing...' : 'Confirm Deposit'}
+          </button>
+        </div>
+      )}
+
+      {showWithdraw && (
+        <div className="space-y-2">
+          <input
+            type="number"
+            placeholder="Amount in SOL"
+            value={withdrawAmount}
+            onChange={e => setWithdrawAmount(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
+            style={{ background: COLORS.panel, border: `1px solid ${COLORS.line}` }}
+          />
+          <button
+            onClick={handleWithdraw}
+            disabled={loading}
+            className="w-full rounded-xl py-2 text-sm font-semibold text-black"
+            style={{ background: COLORS.accent }}
+          >
+            {loading ? 'Processing...' : 'Confirm Withdraw'}
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => { setShowDeposit(!showDeposit); setShowWithdraw(false) }}
+          className="rounded-xl py-2 text-xs font-semibold text-black"
+          style={{ background: COLORS.accent }}
+        >
+          Deposit
+        </button>
+        <button
+          onClick={() => { setShowWithdraw(!showWithdraw); setShowDeposit(false) }}
+          className="rounded-xl py-2 text-xs font-semibold"
+          style={{ background: COLORS.accentSoft, color: COLORS.accent, border: `1px solid ${COLORS.lineStrong}` }}
+        >
+          Withdraw
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function DesktopSidebar({
   expanded,
   openSection,
@@ -582,12 +817,7 @@ function DesktopSidebar({
 
         <div className="space-y-3 border-t pt-4" style={{ borderColor: COLORS.line }}>
           {expanded ? (
-            <div className="rounded-2xl border p-3" style={{ borderColor: COLORS.line }}>
-              <p className="text-sm font-medium text-white">User Profile</p>
-              <p className="mt-1 text-xs" style={{ color: COLORS.textSoft }}>
-                Wallet: 0x1234...
-              </p>
-            </div>
+            <UserBalancePanel />
           ) : null}
         </div>
       </div>
