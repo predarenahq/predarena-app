@@ -150,7 +150,7 @@ export default function NewsPage() {
                   <p className="text-sm leading-relaxed line-clamp-6" style={{ color: COLORS.textSoft }}>
                     {item.body?.replace(/<[^>]*>/g, '').substring(0, 400)}...
                   </p>
-                  
+                  <a
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
