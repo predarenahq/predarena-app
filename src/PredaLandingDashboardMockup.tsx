@@ -1569,27 +1569,24 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
       setLoading(false)
       return
     }
+    async function fetchTickets() {
+      try {
+        const { supabase } = await import('./lib/supabase')
+        const { data } = await supabase
+          .from('tickets')
+          .select('*, battles(*)')
+          .eq('wallet_address', walletAddress)
+          .order('created_at', { ascending: false })
+        setTickets(data || [])
+      } catch (err) {
+        console.error('Failed to fetch tickets:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchTickets()
   }, [walletAddress])
 
-  async function fetchTickets() {
-    try {
-      const { supabase } = await import('./lib/supabase')
-      const { data } = await supabase
-        .from('tickets')
-        .select('*, battles(*)')
-        .eq('wallet_address', walletAddress)
-        .order('created_at', { ascending: false })
-
-      setTickets(data || [])
-    } catch (err) {
-      console.error('Failed to fetch tickets:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const sideLabel = (side: number) => side === 1 ? 'Team A' : side === 2 ? 'Team B' : 'Draw'
   const statusColor = (status: string) => {
     if (status === 'live') return COLORS.accent
     if (status === 'settled') return '#888'
