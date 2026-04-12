@@ -1482,21 +1482,7 @@ const handleFetchBattles = async () => {
           </div>
         )}
 
-        <button
-          onClick={handleCreateTestBattle}
-          className="px-5 py-2 rounded-full text-black font-semibold text-sm transition-opacity hover:opacity-80"
-          style={{ background: "#00d4ff" }}
-        >
-          Test Battle
-        </button>
 
-        <button
-          onClick={handleFetchBattles}
-          className="px-5 py-2 rounded-full font-semibold text-sm transition-opacity hover:opacity-80"
-          style={{ background: "rgba(0,212,255,0.12)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.3)" }}
-        >
-          Fetch Battles
-        </button>
 
         {authenticated && (
           <button
@@ -1613,8 +1599,9 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
   const [timeLeft, setTimeLeft] = React.useState('')
 
   React.useEffect(() => {
+    if (!battle?.end_time) { setTimeLeft('Unknown'); return }
     function calcTime() {
-      const end = new Date(battle?.end_time)
+      const end = new Date(battle.end_time)
       const now = new Date()
       const diff = end.getTime() - now.getTime()
       if (diff <= 0) { setTimeLeft('Settling soon...'); return }
@@ -1627,6 +1614,8 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
     const interval = setInterval(calcTime, 1000)
     return () => clearInterval(interval)
   }, [battle?.end_time])
+
+  if (!battle) return null
 
   const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
   const pick = ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'
@@ -1799,7 +1788,7 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
           .eq('wallet_address', walletAddress)
           .not('battles.status', 'eq', 'settled')
           .order('created_at', { ascending: false })
-        setTickets((data || []).filter((t: any) => t.battles?.status !== 'settled'))
+        setTickets((data || []).filter((t: any) => t.battles && t.battles?.status !== 'settled' && t.battles?.coin_a))
       } catch (err) {
         console.error('Failed to fetch tickets:', err)
       } finally {
@@ -2111,6 +2100,27 @@ export default function PredaLandingDashboardMockup() {
           updated_at: new Date().toISOString()
         })
         .eq('wallet_address', walletAddr)
+
+      // Update battle pools and entries
+      for (const selection of slipSelections) {
+        const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
+        const { data: battleData } = await supabase
+          .from('battles')
+          .select('side_a_pool, side_b_pool, draw_pool, total_pool')
+          .eq('id', selection.matchId)
+          .single()
+
+        if (battleData) {
+          const updates: any = {
+            total_pool: (battleData.total_pool || 0) + totalStake,
+          }
+          if (side === 1) updates.side_a_pool = (battleData.side_a_pool || 0) + totalStake
+          else if (side === 2) updates.side_b_pool = (battleData.side_b_pool || 0) + totalStake
+          else updates.draw_pool = (battleData.draw_pool || 0) + totalStake
+
+          await supabase.from('battles').update(updates).eq('id', selection.matchId)
+        }
+      }
 
       setSlipSelections([])
       window.dispatchEvent(new Event('balance-refresh'))

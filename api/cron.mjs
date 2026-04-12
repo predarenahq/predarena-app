@@ -99,6 +99,36 @@ async function settleBattles() {
       final_price_b: finalPriceB,
     }).eq('id', battle.id)
 
+    // Pay out winners
+    const { data: tickets } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('battle_id', battle.id)
+      .eq('side', winner)
+
+    if (tickets && tickets.length > 0) {
+      for (const ticket of tickets) {
+        const payout = Math.floor((ticket.stake / finalPriceA) * ticket.odds * 1_000_000_000)
+        
+        const { data: userBal } = await supabase
+          .from('user_balances')
+          .select('balance_lamports')
+          .eq('wallet_address', ticket.wallet_address)
+          .single()
+
+        if (userBal) {
+          await supabase.from('user_balances')
+            .update({ 
+              balance_lamports: userBal.balance_lamports + payout,
+              updated_at: new Date().toISOString()
+            })
+            .eq('wallet_address', ticket.wallet_address)
+          
+          console.log(`Paid out ${payout} lamports to ${ticket.wallet_address}`)
+        }
+      }
+    }
+
     console.log(`Settled: ${battle.coin_a} vs ${battle.coin_b} winner=${winner}`)
   }
 }

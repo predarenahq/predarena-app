@@ -88,7 +88,7 @@ export function useBattles() {
   async function fetchBattles() {
     const { data, error } = await supabase
       .from('battles')
-      .select('*')
+      .select('*, tickets(count)')
       .in('status', ['live', 'upcoming'])
       .order('start_time', { ascending: true })
 
@@ -97,7 +97,10 @@ export function useBattles() {
       return
     }
 
-    setMatches((data as Battle[]).map(battleToMatch))
+    setMatches((data as any[]).map(b => ({
+      ...battleToMatch(b as Battle),
+      entries: b.tickets?.[0]?.count || 0
+    })))
     setLoading(false)
   }
 
