@@ -897,12 +897,14 @@ function SlipDrawer({
   stake,
   setStake,
   onRemove,
+  onPlaceTicket,
 }: {
   open: boolean;
   items: SlipSelection[];
   stake: string;
   setStake: (v: string) => void;
   onRemove: (matchId: string) => void;
+  onPlaceTicket: () => void;
 }) {
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
@@ -1003,8 +1005,7 @@ function SlipDrawer({
               </div>
             </div>
 
-            <button disabled={!items.length} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40" style={{ background: COLORS.accent }}>
-              <Lock className="h-4 w-4" />
+            <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40" style={{ background: COLORS.accent }}>
               Place Ticket
             </button>
           </div>
@@ -1540,6 +1541,30 @@ export default function PredaLandingDashboardMockup() {
     }
   };
 
+  const handlePlaceTicket = async () => {
+    if (!slipSelections.length) return
+    const { publicKey } = window as any
+    const walletAddress = publicKey?.toString() || 'unknown'
+    
+    try {
+      const { supabase } = await import('./lib/supabase')
+      for (const selection of slipSelections) {
+        await supabase.from('tickets').insert({
+          battle_id: selection.matchId,
+          wallet_address: walletAddress,
+          side: selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3,
+          stake: Number(stake),
+          odds: selection.oddsAtPick,
+        })
+      }
+      alert('Ticket placed successfully!')
+      setSlipSelections([])
+    } catch (err) {
+      console.error('Failed to place ticket:', err)
+      alert('Failed to place ticket. Try again.')
+    }
+  }
+
   return (
     <div className="min-h-screen" style={{ background: COLORS.bg }}>
       <PredaStyles />
@@ -1570,7 +1595,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} />
 
       <div className={cx("transition-all duration-300", sidebarExpanded ? "lg:pl-[280px]" : "lg:pl-[86px]", "pt-[68px] pb-[72px] lg:pt-[72px] lg:pb-0")}>
         <Showboard onNavigate={(path) => navigate(path)} />
