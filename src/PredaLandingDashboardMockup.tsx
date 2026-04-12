@@ -1543,7 +1543,6 @@ export default function PredaLandingDashboardMockup() {
 
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
-    const { publicKey } = window as any
     const walletAddress = publicKey?.toString() || 'unknown'
     
     try {
