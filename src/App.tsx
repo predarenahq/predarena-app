@@ -25,7 +25,7 @@ function App() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#050805",
+          background: "#080c14",
           color: "white",
           display: "flex",
           alignItems: "center",

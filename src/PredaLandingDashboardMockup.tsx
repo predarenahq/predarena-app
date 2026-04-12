@@ -75,8 +75,8 @@ interface ActiveBet {
 }
 
 const COLORS = {
-  bg: "#04080d",
-  panel: "#060d12",
+  bg: "#080c14",
+  panel: "#0d1420",
   line: "rgba(0,212,255,0.10)",
   lineStrong: "rgba(0,212,255,0.22)",
   accent: "#00d4ff",
@@ -466,7 +466,7 @@ function DesktopHeader({
   onLogoClick: () => void;
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#04080d]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#080c14]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
       <div className="flex h-full items-center justify-between">
         <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
           <motion.div
@@ -614,7 +614,7 @@ function MobileShell({
 }) {
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#04080d]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
+      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#080c14]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
         <button onClick={() => setOpen(true)} className="rounded-xl border p-2 text-white" style={{ borderColor: COLORS.line }}>
           <Menu className="h-5 w-5" />
         </button>
