@@ -161,9 +161,24 @@ async function createBattles() {
 
 export default async function handler(req, res) {
   try {
+    const tickers = ['BTC', 'ETH', 'SOL']
+    const prices = await getPythPrices(tickers)
+    
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
+    
     await settleBattles()
-    await createBattles()
-    res.status(200).json({ ok: true, timestamp: new Date().toISOString() })
+    const result = await createBattles()
+    
+    res.status(200).json({ 
+      ok: true, 
+      timestamp: new Date().toISOString(),
+      prices,
+      supabaseUrl: supabaseUrl ? 'set' : 'missing',
+      serviceKey: serviceKey ? 'set' : 'missing',
+      anonKey: anonKey ? 'set' : 'missing',
+    })
   } catch (err) {
     console.error('Cron error:', err)
     res.status(500).json({ error: String(err) })
