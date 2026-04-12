@@ -1608,6 +1608,179 @@ function _PredaAuthControls({
   );
 }
 
+function RunningTicketCard({ ticket }: { ticket: any }) {
+  const battle = ticket.battles
+  const [timeLeft, setTimeLeft] = React.useState('')
+
+  React.useEffect(() => {
+    function calcTime() {
+      const end = new Date(battle?.end_time)
+      const now = new Date()
+      const diff = end.getTime() - now.getTime()
+      if (diff <= 0) { setTimeLeft('Settling soon...'); return }
+      const hrs = Math.floor(diff / 3600000)
+      const mins = Math.floor((diff % 3600000) / 60000)
+      const secs = Math.floor((diff % 60000) / 1000)
+      setTimeLeft(hrs > 0 ? `${hrs}h ${mins}m ${secs}s` : `${mins}m ${secs}s`)
+    }
+    calcTime()
+    const interval = setInterval(calcTime, 1000)
+    return () => clearInterval(interval)
+  }, [battle?.end_time])
+
+  const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
+  const pick = ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'
+
+  return (
+    <div className="rounded-2xl border p-4" style={{ borderColor: COLORS.lineStrong, background: COLORS.panel }}>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-white font-semibold text-lg">{battle?.coin_a} vs {battle?.coin_b}</p>
+          <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
+        </div>
+        <div className="text-right">
+          <div className="text-xs px-3 py-1 rounded-full font-semibold mb-1" style={{ background: `${COLORS.accent}22`, color: COLORS.accent }}>
+            ⏱ {timeLeft}
+          </div>
+          <div className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#22c55e22', color: '#22c55e' }}>
+            Live
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
+          <p className="text-white font-semibold">{pick}</p>
+          <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {ticket.odds}x</p>
+        </div>
+        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Stake</p>
+          <p className="text-white font-semibold">${ticket.stake}</p>
+        </div>
+        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>To Win</p>
+          <p className="font-semibold" style={{ color: COLORS.accent }}>${potentialWin}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HistoryPage({ walletAddress }: { walletAddress: string }) {
+  const [tickets, setTickets] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (!walletAddress) { setLoading(false); return }
+    async function fetchHistory() {
+      try {
+        const { supabase } = await import('./lib/supabase')
+        const { data } = await supabase
+          .from('tickets')
+          .select('*, battles(*)')
+          .eq('wallet_address', walletAddress)
+          .order('created_at', { ascending: false })
+        setTickets((data || []).filter((t: any) => t.battles?.status === 'settled'))
+      } catch (err) {
+        console.error('Failed to fetch history:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchHistory()
+  }, [walletAddress])
+
+  if (!walletAddress) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-white text-lg font-semibold">Connect your wallet to see history</p>
+    </div>
+  )
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <p style={{ color: COLORS.textSoft }}>Loading history...</p>
+    </div>
+  )
+
+  if (!tickets.length) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-white text-lg font-semibold">No settled bets yet</p>
+      <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>Your completed battles will appear here</p>
+    </div>
+  )
+
+  return (
+    <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
+      <h2 className="text-2xl font-bold text-white mb-6">Bet History</h2>
+      <div className="grid gap-4">
+        {tickets.map((ticket) => {
+          const battle = ticket.battles
+          const won = battle?.winner === ticket.side
+          const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
+          const changeA = battle?.start_price_a && battle?.final_price_a 
+            ? (((battle.final_price_a - battle.start_price_a) / battle.start_price_a) * 100).toFixed(2)
+            : null
+          const changeB = battle?.start_price_b && battle?.final_price_b
+            ? (((battle.final_price_b - battle.start_price_b) / battle.start_price_b) * 100).toFixed(2)
+            : null
+
+          return (
+            <div key={ticket.id} className="rounded-2xl border p-4" style={{ borderColor: COLORS.lineStrong, background: COLORS.panel }}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-white font-semibold text-lg">{battle?.coin_a} vs {battle?.coin_b}</p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
+                </div>
+                <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
+                  background: won ? `${COLORS.accent}22` : '#ef444422',
+                  color: won ? COLORS.accent : '#ef4444'
+                }}>
+                  {won ? '🏆 Won' : '❌ Lost'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+                  <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
+                  <p className="text-white font-semibold">
+                    {ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {ticket.odds}x</p>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+                  <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{won ? 'Won' : 'Lost'}</p>
+                  <p className="font-semibold" style={{ color: won ? COLORS.accent : '#ef4444' }}>
+                    {won ? `+$${potentialWin}` : `-$${ticket.stake}`}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>Stake: ${ticket.stake}</p>
+                </div>
+              </div>
+
+              {(changeA || changeB) && (
+                <div className="rounded-xl p-3 grid grid-cols-2 gap-3" style={{ background: COLORS.accentSoft }}>
+                  <div>
+                    <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle?.coin_a} move</p>
+                    <p className="font-semibold text-sm mt-1" style={{ color: Number(changeA) >= 0 ? '#4ade80' : '#ef4444' }}>
+                      {Number(changeA) >= 0 ? '+' : ''}{changeA}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle?.coin_b} move</p>
+                    <p className="font-semibold text-sm mt-1" style={{ color: Number(changeB) >= 0 ? '#4ade80' : '#ef4444' }}>
+                      {Number(changeB) >= 0 ? '+' : ''}{changeB}%
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -1624,8 +1797,9 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
           .from('tickets')
           .select('*, battles(*)')
           .eq('wallet_address', walletAddress)
+          .not('battles.status', 'eq', 'settled')
           .order('created_at', { ascending: false })
-        setTickets(data || [])
+        setTickets((data || []).filter((t: any) => t.battles?.status !== 'settled'))
       } catch (err) {
         console.error('Failed to fetch tickets:', err)
       } finally {
@@ -1633,6 +1807,8 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
       }
     }
     fetchTickets()
+    const interval = setInterval(fetchTickets, 30000)
+    return () => clearInterval(interval)
   }, [walletAddress])
 
   const statusColor = (status: string) => {
@@ -1671,42 +1847,7 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
           const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
 
           return (
-            <div key={ticket.id} className="rounded-2xl border p-4" style={{ borderColor: COLORS.lineStrong, background: COLORS.panel }}>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-white font-semibold">{battle?.coin_a} vs {battle?.coin_b}</p>
-                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ background: `${statusColor(battle?.status)}22`, color: statusColor(battle?.status) }}>
-                    {isSettled ? (isWinner ? '🏆 Won' : '❌ Lost') : '⏳ ' + (battle?.status || 'pending')}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <p style={{ color: COLORS.textSoft }}>Your Pick</p>
-                  <p className="text-white font-medium mt-1">
-                    {ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ color: COLORS.textSoft }}>Stake</p>
-                  <p className="text-white font-medium mt-1">${ticket.stake}</p>
-                </div>
-                <div>
-                  <p style={{ color: COLORS.textSoft }}>Potential Win</p>
-                  <p className="font-medium mt-1" style={{ color: COLORS.accent }}>${potentialWin}</p>
-                </div>
-              </div>
-              {isSettled && (
-                <div className="mt-3 pt-3 border-t text-xs" style={{ borderColor: COLORS.line }}>
-                  <span style={{ color: COLORS.textSoft }}>
-                    Final: {battle?.coin_a} {battle?.final_price_a?.toFixed(2)} vs {battle?.coin_b} {battle?.final_price_b?.toFixed(2)}
-                  </span>
-                </div>
-              )}
-            </div>
+            <RunningTicketCard key={ticket.id} ticket={ticket} />
           )
         })}
       </div>
@@ -1890,7 +2031,7 @@ export default function PredaLandingDashboardMockup() {
       case "/running":
         return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} />;
       case "/history":
-        return <PlaceholderPage title="History" body="Win, lose, and void ticket history will show here." />;
+        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} />;
       default:
         return (
           <section className="overflow-hidden rounded-[30px] border bg-[#0a0f0a]" style={{ borderColor: COLORS.lineStrong }}>
