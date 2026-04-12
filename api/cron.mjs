@@ -184,6 +184,21 @@ export default async function handler(req, res) {
   try {
     await settleBattles()
     const prices = await createBattles()
+
+    // Save price snapshots to history
+    try {
+      const priceRows = Object.entries(prices).map(([coin, price]) => ({
+        coin,
+        price,
+        recorded_at: new Date().toISOString()
+      }))
+      if (priceRows.length > 0) {
+        await supabase.from('price_history').insert(priceRows)
+      }
+    } catch (e) {
+      console.error('Failed to save price history:', e)
+    }
+
     res.status(200).json({ ok: true, timestamp: new Date().toISOString(), prices })
   } catch (err) {
     console.error('Cron error:', err)
