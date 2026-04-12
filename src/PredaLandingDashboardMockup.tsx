@@ -1834,12 +1834,9 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
       <h2 className="text-2xl font-bold text-white mb-6">My Bets</h2>
       <div className="grid gap-4">
-        {tickets.map((ticket) => {
-          const battle = ticket.battles
-          return (
+        {tickets.map((ticket) => (
             <RunningTicketCard key={ticket.id} ticket={ticket} />
-          )
-        })}
+        ))}
       </div>
     </div>
   )
