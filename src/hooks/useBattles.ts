@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase, Battle } from '../lib/supabase'
 
+type MatchCategory = "Major" | "Altcoins" | "L1" | "L2" | "DeFi" | "Meme" | "AI"
+
 export type Match = {
   id: string
-  category: string
+  category: MatchCategory
   board: 'Live' | 'Upcoming'
   duration: string
   league: string
@@ -50,7 +52,7 @@ function battleToMatch(battle: Battle): Match {
 
   return {
     id: battle.id,
-    category: battle.league as any,
+    category: (battle.league || "Major") as MatchCategory,
     board: battle.status === 'upcoming' ? 'Upcoming' : 'Live',
     duration: battle.duration,
     league: battle.league,
