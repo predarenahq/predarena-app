@@ -567,6 +567,34 @@ function SidebarAccordion({
   );
 }
 
+function Toast() {
+  const [toasts, setToasts] = React.useState<{id: number, message: string, type: string}[]>([])
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const id = Date.now()
+      setToasts(prev => [...prev, { id, ...e.detail }])
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
+    }
+    window.addEventListener('toast', handler)
+    return () => window.removeEventListener('toast', handler)
+  }, [])
+
+  return (
+    <div className="fixed top-20 right-5 z-[100] flex flex-col gap-2">
+      {toasts.map(toast => (
+        <div key={toast.id} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-xl"
+          style={{ 
+            background: toast.type === 'success' ? COLORS.accent : '#ef4444',
+            color: toast.type === 'success' ? '#000' : '#fff'
+          }}>
+          {toast.message}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function UserBalancePanel() {
   const { publicKey, connected, sendTransaction } = useWallet()
   const [balance, setBalance] = React.useState<number>(0)
@@ -1174,7 +1202,7 @@ function SlipDrawer({
           </div>
           <div className="flex items-center gap-2">
             <div className="rounded-full border border-black/15 px-3 py-1 text-xs font-semibold text-black/80">AUTO</div>
-            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-black/10 lg:hidden">
+            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-black/10">
               <X className="h-4 w-4 text-black" />
             </button>
           </div>
@@ -1904,7 +1932,7 @@ export default function PredaLandingDashboardMockup() {
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
     if (!connected || !publicKey) {
-      alert('Please connect your wallet first')
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Connect your wallet first', type: 'error' } }))
       return
     }
     const walletAddr = publicKey.toBase58()
@@ -1932,7 +1960,7 @@ export default function PredaLandingDashboardMockup() {
       const stakeInLamports = Math.floor((totalStake / solPriceUsd) * 1_000_000_000)
 
       if (!balData || balData.balance_lamports < stakeInLamports) {
-        alert(`Insufficient balance. You need $${totalStake} but only have $${((balData?.balance_lamports || 0) / 1_000_000_000 * solPriceUsd).toFixed(2)}`)
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Insufficient balance. Deposit more SOL to continue.`, type: 'error' } }))
         return
       }
 
@@ -1956,9 +1984,9 @@ export default function PredaLandingDashboardMockup() {
         })
         .eq('wallet_address', walletAddr)
 
-      alert('Ticket placed successfully!')
       setSlipSelections([])
       window.dispatchEvent(new Event('balance-refresh'))
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '🎯 Ticket placed!', type: 'success' } }))
     } catch (err: any) {
       console.error('Failed to place ticket:', err)
       alert('Failed: ' + (err.message || err))
@@ -1970,6 +1998,7 @@ export default function PredaLandingDashboardMockup() {
       <PredaStyles />
       <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(circle at top right, rgba(141,255,79,0.07), transparent 24%), radial-gradient(circle at top left, rgba(141,255,79,0.05), transparent 18%)" }} />
 
+      <Toast />
       <LoadingOverlay loading={loading} />
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <BreakingNewsPopup />
