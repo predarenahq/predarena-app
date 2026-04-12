@@ -1811,12 +1811,6 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
     return () => clearInterval(interval)
   }, [walletAddress])
 
-  const statusColor = (status: string) => {
-    if (status === 'live') return COLORS.accent
-    if (status === 'settled') return '#888'
-    return '#fbbf24'
-  }
-
   if (!walletAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-white text-lg font-semibold">Connect your wallet to see your bets</p>
@@ -1842,10 +1836,6 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
       <div className="grid gap-4">
         {tickets.map((ticket) => {
           const battle = ticket.battles
-          const isWinner = battle?.winner === ticket.side
-          const isSettled = battle?.status === 'settled'
-          const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
-
           return (
             <RunningTicketCard key={ticket.id} ticket={ticket} />
           )
