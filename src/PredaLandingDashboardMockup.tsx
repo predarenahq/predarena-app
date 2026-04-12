@@ -1346,6 +1346,8 @@ export default function PredaLandingDashboardMockup() {
   const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
   const { matches: supabaseMatches } = useBattles();
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
+  const wallet = useWallet();
+  const { publicKey, connected } = wallet;
 
   useEffect(() => {
     if (supabaseMatches.length > 0) {
