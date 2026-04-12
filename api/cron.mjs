@@ -61,8 +61,9 @@ async function getPythPrices(tickers) {
       const price = feed.getPriceNoOlderThan(60)
       if (!price) continue
 
+      const feedIdClean = feed.id.replace('0x', '')
       const ticker = Object.keys(PYTH_FEEDS).find(
-        k => PYTH_FEEDS[k] === '0x' + feed.id
+        k => PYTH_FEEDS[k].replace('0x', '') === feedIdClean
       )
       if (ticker) {
         results[ticker] = Number(price.price) * Math.pow(10, price.expo)
