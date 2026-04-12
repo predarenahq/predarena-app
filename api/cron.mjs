@@ -46,29 +46,27 @@ const DURATION_MS = {
 
 async function getPythPrices(tickers) {
   const results = {}
+  const validTickers = tickers.filter(t => PYTH_FEEDS[t])
   
-  // Fetch one at a time to avoid batch failures
-  for (const ticker of tickers) {
+  // Fetch all in parallel
+  await Promise.all(validTickers.map(async (ticker) => {
     const feedId = PYTH_FEEDS[ticker]
-    if (!feedId) continue
-    
     try {
       const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`
       const res = await fetch(url)
       if (!res.ok) {
-        console.log(`Pyth 404 for ${ticker}: ${feedId}`)
-        continue
+        console.log(`Pyth error for ${ticker}: ${res.status}`)
+        return
       }
       const data = await res.json()
       const parsed = data?.parsed?.[0]
-      if (!parsed) continue
-      
+      if (!parsed) return
       const price = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
       results[ticker] = price
     } catch (err) {
       console.error(`Pyth error for ${ticker}:`, err.message)
     }
-  }
+  }))
   
   return results
 }
