@@ -1141,6 +1141,7 @@ function SlipDrawer({
   setStake,
   onRemove,
   onPlaceTicket,
+  onClose,
 }: {
   open: boolean;
   items: SlipSelection[];
@@ -1148,6 +1149,7 @@ function SlipDrawer({
   setStake: (v: string) => void;
   onRemove: (matchId: string) => void;
   onPlaceTicket: () => void;
+  onClose: () => void;
 }) {
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
@@ -1156,7 +1158,7 @@ function SlipDrawer({
     <motion.aside
       animate={{ x: open ? 0 : 420, opacity: open ? 1 : 0.96 }}
       transition={{ type: "spring", stiffness: 280, damping: 28 }}
-      className="fixed bottom-20 right-5 top-[92px] z-[45] hidden w-[380px] overflow-hidden rounded-[30px] border bg-[#0b110b] shadow-2xl lg:block"
+      className="fixed bottom-20 right-5 top-[92px] z-[45] w-[380px] overflow-hidden rounded-[30px] border bg-[#0b110b] shadow-2xl"
       style={{ borderColor: COLORS.lineStrong }}
     >
       <div className="flex h-full flex-col">
@@ -1170,7 +1172,12 @@ function SlipDrawer({
               <p className="text-xs text-black/70">{items.length} selections</p>
             </div>
           </div>
-          <div className="rounded-full border border-black/15 px-3 py-1 text-xs font-semibold text-black/80">AUTO</div>
+          <div className="flex items-center gap-2">
+            <div className="rounded-full border border-black/15 px-3 py-1 text-xs font-semibold text-black/80">AUTO</div>
+            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-black/10 lg:hidden">
+              <X className="h-4 w-4 text-black" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 text-sm">
@@ -1988,7 +1995,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} />
 
       <div className={cx("transition-all duration-300", sidebarExpanded ? "lg:pl-[280px]" : "lg:pl-[86px]", "pt-[68px] pb-[72px] lg:pt-[72px] lg:pb-0")}>
         <Showboard onNavigate={(path) => navigate(path)} />
