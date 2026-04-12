@@ -51,7 +51,7 @@ export default function NewsPage() {
     setLoading(true)
     try {
       const cat = selectedCat === 'All' ? 'BTC,ETH,SOL,DeFi' : selectedCat
-      const res = await fetch(`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${cat}&sortOrder=latest`)
+      const res = await fetch(`/api/news?category=${cat}`)
       const data = await res.json()
       if (data?.Data) {
         setNews(data.Data.map((item: any) => ({
