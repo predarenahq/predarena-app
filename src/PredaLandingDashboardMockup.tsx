@@ -1411,7 +1411,6 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 
 function AuthSection() {
   const { login, authenticated, user, logout } = usePrivy();
-  const wallet = useWallet();
 
 
 
