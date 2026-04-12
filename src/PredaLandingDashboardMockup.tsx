@@ -1095,9 +1095,9 @@ function MarketCard({
       onClose={() => setChartOpen(false)}
       coinA={match.left.ticker}
       coinB={match.right.ticker}
-      startTime={match.startTime}
-      startPriceA={match.startPriceA}
-      startPriceB={match.startPriceB}
+      startTime={match.startTime || new Date().toISOString()}
+      startPriceA={match.startPriceA || 0}
+      startPriceB={match.startPriceB || 0}
     />
     <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3 }} transition={{ duration: 0.18 }} className="rounded-[24px] border bg-[#0b110b] p-5" style={{ borderColor: COLORS.lineStrong }}>
       <div className="flex flex-col gap-4">
