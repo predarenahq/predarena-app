@@ -1348,7 +1348,7 @@ export default function PredaLandingDashboardMockup() {
 
   useEffect(() => {
     if (supabaseMatches.length > 0) {
-      setLiveMatches(supabaseMatches)
+      setLiveMatches(supabaseMatches as any)
     }
   }, [supabaseMatches]);
 
