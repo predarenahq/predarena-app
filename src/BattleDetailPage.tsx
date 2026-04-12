@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from './lib/supabase'
@@ -65,6 +64,7 @@ export default function BattleDetailPage() {
       clearInterval(chartInterval)
       clearInterval(countdownInterval)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   useEffect(() => {
@@ -77,6 +77,7 @@ export default function BattleDetailPage() {
 
   useEffect(() => {
     if (connected && publicKey) fetchUserBalance()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, publicKey])
 
   async function fetchBattle() {
@@ -129,8 +130,7 @@ export default function BattleDetailPage() {
     setLoading(true)
     try {
       const stakeUSD = parseFloat(stake)
-      const stakeLamports = Math.floor((stakeUSD / solPrice) * 1_000_000_000)
-      const walletAddr = publicKey.toBase58()
+        const walletAddr = publicKey.toBase58()
 
       const { data: balData } = await supabase.from('user_balances').select('balance_lamports').eq('wallet_address', walletAddr).single()
       if (!balData || balData.balance_lamports < stakeLamports) {
