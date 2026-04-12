@@ -12,7 +12,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   LayoutGrid,
-  Lock,
+
   Menu,
   Wallet,
   X,
