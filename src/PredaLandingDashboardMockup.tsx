@@ -1560,6 +1560,115 @@ function _PredaAuthControls({
   );
 }
 
+function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
+  const [tickets, setTickets] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (!walletAddress) {
+      setLoading(false)
+      return
+    }
+    fetchTickets()
+  }, [walletAddress])
+
+  async function fetchTickets() {
+    try {
+      const { supabase } = await import('./lib/supabase')
+      const { data } = await supabase
+        .from('tickets')
+        .select('*, battles(*)')
+        .eq('wallet_address', walletAddress)
+        .order('created_at', { ascending: false })
+
+      setTickets(data || [])
+    } catch (err) {
+      console.error('Failed to fetch tickets:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const sideLabel = (side: number) => side === 1 ? 'Team A' : side === 2 ? 'Team B' : 'Draw'
+  const statusColor = (status: string) => {
+    if (status === 'live') return COLORS.accent
+    if (status === 'settled') return '#888'
+    return '#fbbf24'
+  }
+
+  if (!walletAddress) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-white text-lg font-semibold">Connect your wallet to see your bets</p>
+    </div>
+  )
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <p style={{ color: COLORS.textSoft }}>Loading bets...</p>
+    </div>
+  )
+
+  if (!tickets.length) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-white text-lg font-semibold">No bets yet</p>
+      <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>Place your first bet on the Arena</p>
+    </div>
+  )
+
+  return (
+    <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
+      <h2 className="text-2xl font-bold text-white mb-6">My Bets</h2>
+      <div className="grid gap-4">
+        {tickets.map((ticket) => {
+          const battle = ticket.battles
+          const isWinner = battle?.winner === ticket.side
+          const isSettled = battle?.status === 'settled'
+          const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
+
+          return (
+            <div key={ticket.id} className="rounded-2xl border p-4" style={{ borderColor: COLORS.lineStrong, background: COLORS.panel }}>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-white font-semibold">{battle?.coin_a} vs {battle?.coin_b}</p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ background: `${statusColor(battle?.status)}22`, color: statusColor(battle?.status) }}>
+                    {isSettled ? (isWinner ? '🏆 Won' : '❌ Lost') : '⏳ ' + (battle?.status || 'pending')}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div>
+                  <p style={{ color: COLORS.textSoft }}>Your Pick</p>
+                  <p className="text-white font-medium mt-1">
+                    {ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ color: COLORS.textSoft }}>Stake</p>
+                  <p className="text-white font-medium mt-1">${ticket.stake}</p>
+                </div>
+                <div>
+                  <p style={{ color: COLORS.textSoft }}>Potential Win</p>
+                  <p className="font-medium mt-1" style={{ color: COLORS.accent }}>${potentialWin}</p>
+                </div>
+              </div>
+              {isSettled && (
+                <div className="mt-3 pt-3 border-t text-xs" style={{ borderColor: COLORS.line }}>
+                  <span style={{ color: COLORS.textSoft }}>
+                    Final: {battle?.coin_a} {battle?.final_price_a?.toFixed(2)} vs {battle?.coin_b} {battle?.final_price_b?.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function PredaLandingDashboardMockup() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1732,7 +1841,7 @@ export default function PredaLandingDashboardMockup() {
       case "/profile":
         return <ProfilePage />;
       case "/running":
-        return <PlaceholderPage title="Running" body="Live bets in progress will show here." />;
+        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} />;
       case "/history":
         return <PlaceholderPage title="History" body="Win, lose, and void ticket history will show here." />;
       default:
@@ -1780,18 +1889,46 @@ export default function PredaLandingDashboardMockup() {
       return
     }
     const walletAddr = publicKey.toBase58()
+    const totalStake = Number(stake)
+
     try {
       const { supabase } = await import('./lib/supabase')
+
+      // Check balance
+      const { data: balData } = await supabase
+        .from('user_balances')
+        .select('balance_lamports')
+        .eq('wallet_address', walletAddr)
+        .single()
+
+      const solPrice = 150 // fallback
+      const stakeInLamports = Math.floor((totalStake / solPrice) * 1_000_000_000)
+
+      if (!balData || balData.balance_lamports < stakeInLamports) {
+        alert('Insufficient balance. Please deposit first.')
+        return
+      }
+
+      // Insert tickets
       for (const selection of slipSelections) {
         const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
         await supabase.from('tickets').insert({
           battle_id: selection.matchId,
           wallet_address: walletAddr,
           side,
-          stake: Number(stake),
+          stake: totalStake,
           odds: selection.oddsAtPick,
         })
       }
+
+      // Deduct balance
+      await supabase.from('user_balances')
+        .update({ 
+          balance_lamports: balData.balance_lamports - stakeInLamports,
+          updated_at: new Date().toISOString()
+        })
+        .eq('wallet_address', walletAddr)
+
       alert('Ticket placed successfully!')
       setSlipSelections([])
     } catch (err: any) {
