@@ -65,6 +65,9 @@ async function getPythPrices(tickers) {
   return results
 }
 
+const PLATFORM_FEE = 0.05 // 5% house cut
+const TREASURY_WALLET = '4xjEzpBki9ekwx56oRSynsrbQ8uXaUa2wxmPhZXeHHNz'
+
 async function settleBattles() {
   const now = new Date().toISOString()
   const { data: battles } = await supabase
@@ -99,17 +102,75 @@ async function settleBattles() {
       final_price_b: finalPriceB,
     }).eq('id', battle.id)
 
-    // Pay out winners
-    const { data: tickets } = await supabase
+    // Get ALL tickets for this battle
+    const { data: allTickets } = await supabase
       .from('tickets')
       .select('*')
       .eq('battle_id', battle.id)
-      .eq('side', winner)
 
-    if (tickets && tickets.length > 0) {
-      for (const ticket of tickets) {
-        const payout = Math.floor((ticket.stake / finalPriceA) * ticket.odds * 1_000_000_000)
-        
+    if (!allTickets || allTickets.length === 0) {
+      console.log(`No tickets for battle ${battle.id}`)
+      continue
+    }
+
+    // Calculate total pot from ALL tickets (losers fund winners)
+    const totalPotUSD = allTickets.reduce((sum, t) => sum + t.stake, 0)
+    const winningTickets = allTickets.filter(t => t.side === winner)
+    const losingTickets = allTickets.filter(t => t.side !== winner)
+
+    // Total stake on winning side
+    const winnerStakeTotal = winningTickets.reduce((sum, t) => sum + t.stake, 0)
+
+    // Platform fee comes off the top of the total pot
+    const platformFeeUSD = totalPotUSD * PLATFORM_FEE
+    const payoutPoolUSD = totalPotUSD - platformFeeUSD
+
+    console.log(`Battle ${battle.coin_a} vs ${battle.coin_b}: totalPot=$${totalPotUSD.toFixed(2)} fee=$${platformFeeUSD.toFixed(2)} payoutPool=$${payoutPoolUSD.toFixed(2)} winners=${winningTickets.length} losers=${losingTickets.length}`)
+
+    // Get current SOL price for lamport conversion
+    const solPrice = prices['SOL'] || 100
+
+    // Credit platform fee to treasury in Supabase
+    if (platformFeeUSD > 0) {
+      const feeInLamports = Math.floor((platformFeeUSD / solPrice) * 1_000_000_000)
+      const { data: treasuryBal } = await supabase
+        .from('user_balances')
+        .select('balance_lamports')
+        .eq('wallet_address', TREASURY_WALLET)
+        .single()
+
+      if (treasuryBal) {
+        await supabase.from('user_balances')
+          .update({
+            balance_lamports: treasuryBal.balance_lamports + feeInLamports,
+            updated_at: new Date().toISOString()
+          })
+          .eq('wallet_address', TREASURY_WALLET)
+      } else {
+        await supabase.from('user_balances')
+          .insert({
+            wallet_address: TREASURY_WALLET,
+            balance_lamports: feeInLamports,
+            total_deposited: 0,
+            total_withdrawn: 0,
+            updated_at: new Date().toISOString()
+          })
+      }
+      console.log(`Treasury credited $${platformFeeUSD.toFixed(2)} (${feeInLamports} lamports)`)
+    }
+
+    // Pay out winners proportionally from the payout pool
+    // Each winner gets: (their stake / total winner stake) * payoutPool
+    if (winningTickets.length > 0 && winnerStakeTotal > 0) {
+      for (const ticket of winningTickets) {
+        // Proportional share of payout pool
+        const winnerShare = ticket.stake / winnerStakeTotal
+        const payoutUSD = payoutPoolUSD * winnerShare
+        const payoutLamports = Math.floor((payoutUSD / solPrice) * 1_000_000_000)
+
+        // Actual multiplier achieved
+        const actualOdds = payoutUSD / ticket.stake
+
         const { data: userBal } = await supabase
           .from('user_balances')
           .select('balance_lamports')
@@ -118,14 +179,34 @@ async function settleBattles() {
 
         if (userBal) {
           await supabase.from('user_balances')
-            .update({ 
-              balance_lamports: userBal.balance_lamports + payout,
+            .update({
+              balance_lamports: userBal.balance_lamports + payoutLamports,
               updated_at: new Date().toISOString()
             })
             .eq('wallet_address', ticket.wallet_address)
-          
-          console.log(`Paid out ${payout} lamports to ${ticket.wallet_address}`)
+
+          console.log(`Winner ${ticket.wallet_address}: stake=$${ticket.stake} payout=$${payoutUSD.toFixed(2)} (${actualOdds.toFixed(2)}x) = ${payoutLamports} lamports`)
         }
+      }
+    } else {
+      // No winners — entire pot minus fee goes to treasury
+      const noBettersFeeUSD = payoutPoolUSD
+      const noBettersLamports = Math.floor((noBettersFeeUSD / solPrice) * 1_000_000_000)
+      
+      const { data: treasuryBal } = await supabase
+        .from('user_balances')
+        .select('balance_lamports')
+        .eq('wallet_address', TREASURY_WALLET)
+        .single()
+
+      if (treasuryBal && noBettersLamports > 0) {
+        await supabase.from('user_balances')
+          .update({
+            balance_lamports: treasuryBal.balance_lamports + noBettersLamports,
+            updated_at: new Date().toISOString()
+          })
+          .eq('wallet_address', TREASURY_WALLET)
+        console.log(`No winners — $${noBettersFeeUSD.toFixed(2)} added to treasury`)
       }
     }
 

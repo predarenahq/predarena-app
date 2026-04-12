@@ -18,6 +18,21 @@ const COINGECKO_IDS: Record<string, string> = {
 }
 
 const HOUSE_MARGIN = 1.05 // 5% overround
+
+// Historical volatility profiles — higher = more volatile = more unpredictable
+// Scale 1-10: BTC=3 (stable), PEPE=9 (wild)
+const VOLATILITY: Record<string, number> = {
+  BTC: 3, ETH: 4, BNB: 4, XRP: 5,
+  SOL: 5, AVAX: 6, LINK: 5, UNI: 6,
+  DOGE: 7, JUP: 7, WIF: 8, BONK: 9, PEPE: 9,
+}
+
+function getVolatilitySpread(coinA: string, coinB: string): number {
+  const volA = VOLATILITY[coinA] || 5
+  const volB = VOLATILITY[coinB] || 5
+  // Higher volatility difference = more spread in starting odds
+  return Math.abs(volA - volB) / 10
+}
 const MIN_ODDS = 1.10
 const MAX_ODDS = 50.00
 
@@ -97,13 +112,24 @@ export async function getStartingOdds(coinA: string, coinB: string): Promise<Odd
   const diff = changeA - changeB
 
   // Convert diff to an edge using tanh (caps at ±1)
-  // A 10% diff gives ~0.76 edge, 5% diff gives ~0.46 edge
-  const edge = Math.tanh(diff / 10)
+  const edge = Math.tanh(diff / 8)
 
-  // Base probs — favourite gets up to 15% edge boost
-  const probA = Math.max(0.10, Math.min(0.80, 0.40 + edge * 0.15))
-  const probB = Math.max(0.10, Math.min(0.80, 0.40 - edge * 0.15))
-  const probDraw = Math.max(0.05, 0.20 - Math.abs(edge) * 0.05)
+  // Volatility spread — more volatile coin pair = more spread in odds
+  const volSpread = getVolatilitySpread(coinA, coinB)
+  const volA = VOLATILITY[coinA] || 5
+  const volB = VOLATILITY[coinB] || 5
+
+  // Higher volatility coin has more uncertain outcome (wider odds spread)
+  // Lower volatility coin is more predictable
+  const volEdge = (volB - volA) / 20 // positive if A is more stable
+
+  // Combined edge: momentum + volatility
+  const totalEdge = edge * 0.20 + volEdge + volSpread * Math.sign(edge) * 0.10
+
+  // Base probs — favourite gets up to 25% edge boost
+  const probA = Math.max(0.08, Math.min(0.85, 0.40 + totalEdge))
+  const probB = Math.max(0.08, Math.min(0.85, 0.40 - totalEdge))
+  const probDraw = Math.max(0.04, 0.20 - Math.abs(totalEdge) * 0.08)
 
   return applyMargin(probA, probB, probDraw)
 }
