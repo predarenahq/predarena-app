@@ -119,9 +119,10 @@ async function createBattles() {
   const now = new Date()
   const tickers = [...new Set(BATTLE_PAIRS.flatMap(p => [p.coinA, p.coinB]))]
   const prices = await getPythPrices(tickers)
+  console.log('Prices fetched:', JSON.stringify(prices))
 
   for (const pair of BATTLE_PAIRS) {
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from('battles')
       .select('id')
       .eq('coin_a', pair.coinA)
@@ -129,17 +130,21 @@ async function createBattles() {
       .in('status', ['live', 'upcoming'])
       .limit(1)
 
+    console.log(`Check existing ${pair.coinA}/${pair.coinB}:`, existing, fetchError)
     if (existing && existing.length > 0) continue
 
     const startPriceA = prices[pair.coinA]
     const startPriceB = prices[pair.coinB]
-    if (!startPriceA || !startPriceB) continue
+    if (!startPriceA || !startPriceB) {
+      console.log(`Missing prices for ${pair.coinA}/${pair.coinB}`)
+      continue
+    }
 
     const durationMs = DURATION_MS[pair.duration] || 3600000
     const startTime = new Date(now.getTime() + 2 * 60 * 1000)
     const endTime = new Date(startTime.getTime() + durationMs)
 
-    await supabase.from('battles').insert({
+    const { data, error } = await supabase.from('battles').insert({
       coin_a: pair.coinA,
       coin_b: pair.coinB,
       league: pair.league,
@@ -155,7 +160,7 @@ async function createBattles() {
       total_pool: 0,
     })
 
-    console.log(`Created: ${pair.coinA} vs ${pair.coinB}`)
+    console.log(`Insert ${pair.coinA}/${pair.coinB}:`, data, error)
   }
 }
 
