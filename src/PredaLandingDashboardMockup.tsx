@@ -52,10 +52,10 @@ type Match = {
   pool: number;
   entries: number;
   timer: string;
-  status: string;
-  startTime: string;
-  startPriceA: number;
-  startPriceB: number;
+  status?: string;
+  startTime?: string;
+  startPriceA?: number;
+  startPriceB?: number;
 };
 
 type SlipSelection = {
