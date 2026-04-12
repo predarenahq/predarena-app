@@ -1543,7 +1543,7 @@ export default function PredaLandingDashboardMockup() {
 
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
-    const walletAddr = walletAddress || 'unknown'
+    const walletAddr = connected && publicKey ? publicKey.toBase58() : 'unknown'
     
     try {
       const { supabase } = await import('./lib/supabase')
