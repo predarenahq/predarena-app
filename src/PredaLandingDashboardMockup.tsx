@@ -592,7 +592,7 @@ function UserBalancePanel() {
     }
   }
 
-  async function fetchBalance() {
+  const fetchBalance = React.useCallback(async () => {
     try {
       const { supabase } = await import('./lib/supabase')
       const { data } = await supabase
@@ -604,7 +604,7 @@ function UserBalancePanel() {
     } catch (err) {
       console.error('Failed to fetch balance:', err)
     }
-  }
+  }, [walletAddr])
 
   async function handleDeposit() {
     if (!connected || !publicKey || !depositAmount) return
