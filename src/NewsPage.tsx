@@ -84,7 +84,7 @@ export default function NewsPage() {
           <p className="text-xs" style={{ color: COLORS.textSoft }}>Live headlines · Powered by CryptoCompare</p>
         </div>
         <button onClick={fetchNews} disabled={loading} className="ml-auto text-xs px-3 py-2 rounded-xl font-medium" style={{ background: 'rgba(0,240,255,0.1)', color: COLORS.accent, border: `1px solid rgba(0,240,255,0.2)` }}>
-          {loading ? 'Refreshing...' : '↻ Refresh'}
+          {loading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
