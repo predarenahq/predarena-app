@@ -1543,14 +1543,14 @@ export default function PredaLandingDashboardMockup() {
 
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
-    const walletAddress = publicKey?.toString() || 'unknown'
+    const walletAddr = walletAddress || 'unknown'
     
     try {
       const { supabase } = await import('./lib/supabase')
       for (const selection of slipSelections) {
         await supabase.from('tickets').insert({
           battle_id: selection.matchId,
-          wallet_address: walletAddress,
+          wallet_address: walletAddr,
           side: selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3,
           stake: Number(stake),
           odds: selection.oddsAtPick,
