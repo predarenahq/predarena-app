@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import BattleDetailPage from "./BattleDetailPage";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
@@ -54,6 +55,7 @@ function App() {
           <WalletModalProvider>
             <BrowserRouter>
               <Routes>
+                <Route path="/battle/:id" element={<BattleDetailPage />} />
                 <Route path="*" element={<PredaLandingDashboardMockup />} />
               </Routes>
             </BrowserRouter>

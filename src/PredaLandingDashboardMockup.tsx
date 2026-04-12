@@ -1088,6 +1088,7 @@ function MarketCard({
   onPick: (match: Match, side: Side) => void;
 }) {
   const [chartOpen, setChartOpen] = React.useState(false)
+  const navigate = useNavigate()
   return (
     <>
     <PriceChartModal
@@ -1141,8 +1142,8 @@ function MarketCard({
             <SelectionButton active={selectedSide === "right"} label={match.right.ticker} odds={match.right.odds} meta={match.right.change} ticker={match.right.ticker} />
           </button>
         </div>
-        <button onClick={() => setChartOpen(true)} className="w-full mt-1 rounded-xl py-2 text-xs font-medium flex items-center justify-center gap-2" style={{ border: `1px solid rgba(0,240,255,0.2)`, color: "#00f0ff", background: "rgba(0,240,255,0.05)" }}>
-          📈 View Settlement Chart
+        <button onClick={() => navigate(`/battle/${match.id}`)} className="w-full mt-1 rounded-xl py-2 text-xs font-medium flex items-center justify-center gap-2" style={{ border: `1px solid rgba(0,240,255,0.2)`, color: "#00f0ff", background: "rgba(0,240,255,0.05)" }}>
+          📈 View Chart & Analytics
         </button>
       </div>
     </motion.div>
