@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
@@ -20,7 +19,6 @@ const PYTH_FEEDS = {
   JUP: '0x0a0408d619e9380abad35060f9192039ed5042fa6f82301d0e48bb52be830996',
   WIF: '0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc',
   BONK: '0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419',
-  return prices
 }
 
 const BATTLE_PAIRS = [
@@ -43,35 +41,28 @@ const DURATION_MS = {
   '1h': 60 * 60 * 1000,
   '4h': 4 * 60 * 60 * 1000,
   '1D': 24 * 60 * 60 * 1000,
-  return prices
 }
 
 async function getPythPrices(tickers) {
   const results = {}
   const validTickers = tickers.filter(t => PYTH_FEEDS[t])
-  
-  // Fetch all in parallel
+
   await Promise.all(validTickers.map(async (ticker) => {
     const feedId = PYTH_FEEDS[ticker]
     try {
       const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`
       const res = await fetch(url)
-      if (!res.ok) {
-        console.log(`Pyth error for ${ticker}: ${res.status}`)
-        return
-      }
+      if (!res.ok) return
       const data = await res.json()
       const parsed = data?.parsed?.[0]
       if (!parsed) return
-      const price = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
-      results[ticker] = price
+      results[ticker] = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
     } catch (err) {
       console.error(`Pyth error for ${ticker}:`, err.message)
     }
   }))
-  
+
   return results
-  return prices
 }
 
 async function settleBattles() {
@@ -90,7 +81,6 @@ async function settleBattles() {
   for (const battle of battles) {
     const finalPriceA = prices[battle.coin_a]
     const finalPriceB = prices[battle.coin_b]
-
     if (!finalPriceA || !finalPriceB || !battle.start_price_a || !battle.start_price_b) continue
 
     const changeA = (finalPriceA - battle.start_price_a) / battle.start_price_a
@@ -111,17 +101,15 @@ async function settleBattles() {
 
     console.log(`Settled: ${battle.coin_a} vs ${battle.coin_b} winner=${winner}`)
   }
-  return prices
 }
 
 async function createBattles() {
   const now = new Date()
   const tickers = [...new Set(BATTLE_PAIRS.flatMap(p => [p.coinA, p.coinB]))]
   const prices = await getPythPrices(tickers)
-  console.log('Prices fetched:', JSON.stringify(prices))
 
   for (const pair of BATTLE_PAIRS) {
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing } = await supabase
       .from('battles')
       .select('id')
       .eq('coin_a', pair.coinA)
@@ -129,21 +117,17 @@ async function createBattles() {
       .in('status', ['live', 'upcoming'])
       .limit(1)
 
-    console.log(`Check existing ${pair.coinA}/${pair.coinB}:`, existing, fetchError)
     if (existing && existing.length > 0) continue
 
     const startPriceA = prices[pair.coinA]
     const startPriceB = prices[pair.coinB]
-    if (!startPriceA || !startPriceB) {
-      console.log(`Missing prices for ${pair.coinA}/${pair.coinB}`)
-      continue
-    }
+    if (!startPriceA || !startPriceB) continue
 
     const durationMs = DURATION_MS[pair.duration] || 3600000
     const startTime = new Date(now.getTime() + 2 * 60 * 1000)
     const endTime = new Date(startTime.getTime() + durationMs)
 
-    const { data, error } = await supabase.from('battles').insert({
+    const { error } = await supabase.from('battles').insert({
       coin_a: pair.coinA,
       coin_b: pair.coinB,
       league: pair.league,
@@ -159,22 +143,18 @@ async function createBattles() {
       total_pool: 0,
     })
 
-    if(error) console.error(`Insert error ${pair.coinA}/${pair.coinB}:`, error.message)
-    else console.log(`Inserted: ${pair.coinA} vs ${pair.coinB}`)
+    if (error) console.error(`Insert error ${pair.coinA}/${pair.coinB}:`, error.message)
+    else console.log(`Created: ${pair.coinA} vs ${pair.coinB}`)
   }
+
   return prices
 }
 
 export default async function handler(req, res) {
   try {
     await settleBattles()
-    const allPrices = await createBattles()
-    
-    res.status(200).json({ 
-      ok: true, 
-      timestamp: new Date().toISOString(),
-      prices: allPrices,
-    })
+    const prices = await createBattles()
+    res.status(200).json({ ok: true, timestamp: new Date().toISOString(), prices })
   } catch (err) {
     console.error('Cron error:', err)
     res.status(500).json({ error: String(err) })
