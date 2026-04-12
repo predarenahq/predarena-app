@@ -1,5 +1,5 @@
 import { useBattles } from "./hooks/useBattles";
-import { createBattle, fetchBattles } from "./lib/predaProgram";
+
 import { usePrivy } from "@privy-io/react-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -1412,7 +1412,7 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 function AuthSection() {
   const { login, authenticated, user, logout } = usePrivy();
   const wallet = useWallet();
-  const { publicKey, connected } = wallet;
+
 
 
 
@@ -1463,7 +1463,7 @@ function _PredaAuthControls({
 }) {
   const { login, authenticated, user, logout } = usePrivy();
   const wallet = useWallet();
-  const { publicKey, connected } = wallet;
+
 
   const walletAddress = connected && publicKey ? publicKey.toBase58() : "";
   const twitterUsername =
@@ -1761,7 +1761,7 @@ export default function PredaLandingDashboardMockup() {
   const { matches: supabaseMatches } = useBattles();
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
   const wallet = useWallet();
-  const { publicKey, connected } = wallet;
+
 
   useEffect(() => {
     if (supabaseMatches.length > 0) {
