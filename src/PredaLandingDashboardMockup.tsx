@@ -711,27 +711,34 @@ function UserBalancePanel() {
     if (!connected || !publicKey || !withdrawAmount) return
     setLoading(true)
     try {
-      const { supabase } = await import('./lib/supabase')
       const lamports = Math.floor(Number(withdrawAmount) * 1_000_000_000)
       
       if (lamports > balance) {
-        alert('Insufficient balance')
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Insufficient balance', type: 'error' } }))
         return
       }
 
-      // Update balance in Supabase (actual on-chain withdrawal would need backend signing)
-      await supabase.from('user_balances').update({
-        balance_lamports: balance - lamports,
-        total_withdrawn: lamports,
-        updated_at: new Date().toISOString(),
-      }).eq('wallet_address', walletAddr)
+      const res = await fetch('/api/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_address: walletAddr,
+          amount_lamports: lamports,
+        })
+      })
+
+      const data = await res.json()
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Withdrawal failed')
+      }
 
       setBalance(prev => prev - lamports)
       setWithdrawAmount('')
       setShowWithdraw(false)
-      alert('Withdrawal processed!')
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '✅ Withdrawal successful!', type: 'success' } }))
     } catch (err: any) {
-      alert('Withdrawal failed: ' + err.message)
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Withdrawal failed: ' + err.message, type: 'error' } }))
     } finally {
       setLoading(false)
     }
