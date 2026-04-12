@@ -435,12 +435,44 @@ function AuthButton({
 }
 
 function BreakingNewsPopup() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [news, setNews] = useState<{ title: string; source: string; url: string } | null>(null);
+  const [newsIndex, setNewsIndex] = useState(0);
+  const [allNews, setAllNews] = useState<any[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setOpen(false), 9000);
-    return () => clearTimeout(timer);
+    async function fetchNews() {
+      try {
+        const res = await fetch('https://cryptopanic.com/api/free/v1/posts/?auth_token=public&filter=hot&currencies=BTC,ETH,SOL&public=true')
+        const data = await res.json()
+        if (data?.results?.length) {
+          setAllNews(data.results)
+          const first = data.results[0]
+          setNews({ title: first.title, source: first.source?.title || 'CryptoPanic', url: first.url })
+          setOpen(true)
+        }
+      } catch {
+        // fallback
+        setNews({ title: 'BTC, ETH and SOL markets showing increased volatility. Monitor positions closely.', source: 'Market Alert', url: '#' })
+        setOpen(true)
+      }
+    }
+    const t = setTimeout(fetchNews, 2000)
+    return () => clearTimeout(t)
   }, []);
+
+  useEffect(() => {
+    if (!open || allNews.length === 0) return
+    const timer = setTimeout(() => {
+      const next = (newsIndex + 1) % allNews.length
+      const item = allNews[next]
+      setNews({ title: item.title, source: item.source?.title || 'CryptoPanic', url: item.url })
+      setNewsIndex(next)
+    }, 9000)
+    return () => clearTimeout(timer)
+  }, [open, newsIndex, allNews]);
+
+  if (!news) return null
 
   return (
     <AnimatePresence>
@@ -448,17 +480,19 @@ function BreakingNewsPopup() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-20 right-5 z-[60] w-full max-w-sm rounded-[24px] border bg-[#0b110b]/95 p-4 shadow-2xl backdrop-blur" style={{ borderColor: COLORS.lineStrong }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: COLORS.accentSoft, color: COLORS.accent }}>
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: COLORS.accentSoft, color: COLORS.accent }}>
                 <Bell className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.18em]" style={{ color: COLORS.accent }}>
-                  Serious Market Update
+                  {news.source}
                 </p>
-                <p className="mt-1 text-sm font-medium text-white">BTC volatility spike detected ahead of major session open.</p>
+                <a href={news.url} target="_blank" rel="noreferrer" className="mt-1 text-sm font-medium text-white hover:underline line-clamp-2 block">
+                  {news.title}
+                </a>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="rounded-full border p-2 text-slate-400" style={{ borderColor: COLORS.line }}>
+            <button onClick={() => setOpen(false)} className="rounded-full border p-2 text-slate-400 shrink-0" style={{ borderColor: COLORS.line }}>
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -1100,7 +1134,7 @@ function MarketCard({
       startPriceA={match.startPriceA || 0}
       startPriceB={match.startPriceB || 0}
     />
-    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3 }} transition={{ duration: 0.18 }} className="rounded-[24px] border bg-[#0b110b] p-5" style={{ borderColor: COLORS.lineStrong }}>
+    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3 }} transition={{ duration: 0.18 }} className="rounded-[24px] border bg-[#0b110b] p-5 cursor-pointer" style={{ borderColor: COLORS.lineStrong }} onClick={() => navigate(`/battle/${match.id}`)}>
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -1132,19 +1166,17 @@ function MarketCard({
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          <button onClick={() => onPick(match, "left")}>
+          <button onClick={(e) => { e.stopPropagation(); onPick(match, "left"); }}>
             <SelectionButton active={selectedSide === "left"} label={match.left.ticker} odds={match.left.odds} meta={match.left.change} ticker={match.left.ticker} />
           </button>
-          <button onClick={() => onPick(match, "draw")}>
+          <button onClick={(e) => { e.stopPropagation(); onPick(match, "draw"); }}>
             <SelectionButton active={selectedSide === "draw"} label="Draw" odds={match.draw.odds} meta={match.draw.change} ticker="DRAW" />
           </button>
-          <button onClick={() => onPick(match, "right")}>
+          <button onClick={(e) => { e.stopPropagation(); onPick(match, "right"); }}>
             <SelectionButton active={selectedSide === "right"} label={match.right.ticker} odds={match.right.odds} meta={match.right.change} ticker={match.right.ticker} />
           </button>
         </div>
-        <button onClick={() => navigate(`/battle/${match.id}`)} className="w-full mt-1 rounded-xl py-2 text-xs font-medium flex items-center justify-center gap-2" style={{ border: `1px solid rgba(0,240,255,0.2)`, color: "#00f0ff", background: "rgba(0,240,255,0.05)" }}>
-          📈 View Chart & Analytics
-        </button>
+
       </div>
     </motion.div>
     </>
