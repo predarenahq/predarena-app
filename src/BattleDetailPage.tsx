@@ -235,6 +235,11 @@ export default function BattleDetailPage() {
   const oddsB = totalPool === 0 || !battle.side_b_pool ? 2.0 : Math.round((totalPool / battle.side_b_pool) * 100) / 100
   const oddsDraw = totalPool === 0 || !battle.draw_pool ? 2.0 : Math.round((totalPool / battle.draw_pool) * 100) / 100
 
+  const now = Date.now()
+  const battleEndTime = battle ? new Date(battle.end_time).getTime() : 0
+  const isSettling = battleEndTime > 0 && now > battleEndTime && battle?.status === 'live'
+  const isClosed = battle?.status === 'settled' || isSettling
+
   const stakeUSD = parseFloat(stake) || 0
   const stakeLamports = Math.floor((stakeUSD / solPrice) * 1_000_000_000)
   const selectedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
@@ -375,7 +380,7 @@ export default function BattleDetailPage() {
             ].map(({ side, label, odds, color }) => (
               <button
                 key={side}
-                onClick={() => setSelectedSide(side)}
+                onClick={() => !isClosed && setSelectedSide(side)}
                 className="rounded-xl p-3 text-center transition-all"
                 style={{
                   background: selectedSide === side ? `${color}20` : 'rgba(255,255,255,0.03)',
@@ -409,7 +414,16 @@ export default function BattleDetailPage() {
             )}
           </div>
 
-          {!connected ? (
+          {isClosed ? (
+            <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}>
+              <p className="font-semibold" style={{ color: '#f43f5e' }}>
+                {battle?.status === 'settled' ? '🏁 Battle Settled' : '🔒 Betting Closed — Settling...'}
+              </p>
+              <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>
+                {isSettling ? 'Waiting for oracle confirmation' : 'Check History for results'}
+              </p>
+            </div>
+          ) : !connected ? (
             <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.line}` }}>
               <p style={{ color: COLORS.textSoft }}>Connect wallet to place a bet</p>
             </div>
