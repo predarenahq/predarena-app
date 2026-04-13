@@ -76,6 +76,10 @@ function battleToMatch(battle: Battle, odds?: OddsResult): Match {
     entries: 0,
     timer: getTimer(battle),
     status: battle.status,
+    startTime: battle.start_time,
+    endTime: battle.end_time,
+    startPriceA: battle.start_price_a || 0,
+    startPriceB: battle.start_price_b || 0,
   }
 }
 
