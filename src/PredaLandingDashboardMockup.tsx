@@ -1586,49 +1586,50 @@ function _PredaAuthControls({
   );
 }
 
+function useCountdown(endTime: string) {
+  const [timeLeft, setTimeLeft] = React.useState('')
+  React.useEffect(() => {
+    if (!endTime) { setTimeLeft('Unknown'); return }
+    function calc() {
+      const diff = new Date(endTime).getTime() - Date.now()
+      if (diff <= 0) { setTimeLeft('Settling...'); return }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      setTimeLeft(h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`)
+    }
+    calc()
+    const t = setInterval(calc, 1000)
+    return () => clearInterval(t)
+  }, [endTime])
+  return timeLeft
+}
+
 function RunningTicketCard({ ticket }: { ticket: any }) {
   const battle = ticket.battles
-  const [timeLeft, setTimeLeft] = React.useState('')
-
-  React.useEffect(() => {
-    if (!battle?.end_time) { setTimeLeft('Unknown'); return }
-    function calcTime() {
-      const end = new Date(battle.end_time)
-      const now = new Date()
-      const diff = end.getTime() - now.getTime()
-      if (diff <= 0) { setTimeLeft('Settling soon...'); return }
-      const hrs = Math.floor(diff / 3600000)
-      const mins = Math.floor((diff % 3600000) / 60000)
-      const secs = Math.floor((diff % 60000) / 1000)
-      setTimeLeft(hrs > 0 ? `${hrs}h ${mins}m ${secs}s` : `${mins}m ${secs}s`)
-    }
-    calcTime()
-    const interval = setInterval(calcTime, 1000)
-    return () => clearInterval(interval)
-  }, [battle?.end_time])
-
+  const timeLeft = useCountdown(battle?.end_time || '')
   if (!battle) return null
 
-  const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
+  const isCombo = !!ticket.combo_id
   const pick = ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'
+  const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
 
   return (
-    <div className="rounded-2xl border p-4" style={{ borderColor: COLORS.lineStrong, background: COLORS.panel }}>
-      <div className="flex items-start justify-between mb-4">
+    <div className="rounded-2xl border p-4" style={{ borderColor: isCombo ? 'rgba(167,139,250,0.3)' : COLORS.lineStrong, background: COLORS.panel }}>
+      <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-white font-semibold text-lg">{battle?.coin_a} vs {battle?.coin_b}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-white font-semibold">{battle?.coin_a} vs {battle?.coin_b}</p>
+            {isCombo && <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(167,139,250,0.15)', color: '#a78bfa' }}>COMBO LEG</span>}
+          </div>
           <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
         </div>
         <div className="text-right">
           <div className="text-xs px-3 py-1 rounded-full font-semibold mb-1" style={{ background: `${COLORS.accent}22`, color: COLORS.accent }}>
             ⏱ {timeLeft}
           </div>
-          <div className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#22c55e22', color: '#22c55e' }}>
-            Live
-          </div>
         </div>
       </div>
-
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
           <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
@@ -1644,6 +1645,73 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
           <p className="font-semibold" style={{ color: COLORS.accent }}>${potentialWin}</p>
         </div>
       </div>
+      {isCombo && (
+        <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
+          ⚠️ Combo — all {ticket.combo_legs} legs must win
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ComboTicketCard({ legs }: { legs: any[] }) {
+  const firstLeg = legs[0]
+  const comboOdds = firstLeg.combo_odds || legs.reduce((a, t) => a * t.odds, 1)
+  const stake = firstLeg.stake
+  const potentialWin = (stake * comboOdds).toFixed(2)
+  const allEndTimes = legs.map(l => l.battles?.end_time || '').filter(Boolean)
+  const latestEnd = allEndTimes.sort().pop() || ''
+  const timeLeft = useCountdown(latestEnd)
+
+  return (
+    <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(167,139,250,0.4)', background: COLORS.panel }}>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-white font-semibold">Combo Bet</p>
+            <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(167,139,250,0.2)', color: '#a78bfa' }}>
+              {legs.length} LEGS
+            </span>
+          </div>
+          <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>All legs must win · {comboOdds.toFixed(2)}x combined</p>
+        </div>
+        <div className="text-xs px-3 py-1 rounded-full font-semibold" style={{ background: `${COLORS.accent}22`, color: COLORS.accent }}>
+          ⏱ {timeLeft}
+        </div>
+      </div>
+
+      {/* Each leg */}
+      <div className="space-y-2 mb-3">
+        {legs.map((leg, i) => {
+          const b = leg.battles
+          const pick = leg.side === 1 ? b?.coin_a : leg.side === 2 ? b?.coin_b : 'Draw'
+          return (
+            <div key={leg.id} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <span className="text-xs" style={{ color: COLORS.textSoft }}>Leg {i + 1}</span>
+              <span className="text-white text-sm font-medium">{b?.coin_a} vs {b?.coin_b}</span>
+              <span style={{ color: COLORS.accent }} className="text-sm font-semibold">{pick}</span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Combined Odds</p>
+          <p className="text-white font-semibold">{comboOdds.toFixed(2)}x</p>
+        </div>
+        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Stake</p>
+          <p className="text-white font-semibold">${stake}</p>
+        </div>
+        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>To Win</p>
+          <p className="font-semibold" style={{ color: COLORS.accent }}>${potentialWin}</p>
+        </div>
+      </div>
+      <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
+        ⚠️ If any leg loses, entire combo is lost
+      </p>
     </div>
   )
 }
@@ -1811,12 +1879,30 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
     </div>
   )
 
+  // Group combo tickets together, show singles separately
+  const comboGroups: Record<string, any[]> = {}
+  const singleTickets: any[] = []
+
+  for (const ticket of tickets) {
+    if (ticket.combo_id) {
+      if (!comboGroups[ticket.combo_id]) comboGroups[ticket.combo_id] = []
+      comboGroups[ticket.combo_id].push(ticket)
+    } else {
+      singleTickets.push(ticket)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
       <h2 className="text-2xl font-bold text-white mb-6">My Bets</h2>
       <div className="grid gap-4">
-        {tickets.map((ticket) => (
-            <RunningTicketCard key={ticket.id} ticket={ticket} />
+        {/* Combo bets grouped */}
+        {Object.entries(comboGroups).map(([comboId, legs]) => (
+          <ComboTicketCard key={comboId} legs={legs} />
+        ))}
+        {/* Single bets */}
+        {singleTickets.map((ticket) => (
+          <RunningTicketCard key={ticket.id} ticket={ticket} />
         ))}
       </div>
     </div>

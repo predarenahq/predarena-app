@@ -253,12 +253,12 @@ export function getImbalanceAdjustment(
   sideBPool: number,
   totalPool: number
 ): number {
-  if (totalPool < 10) return 0 // not enough bets to matter
-  const shareA = sideAPool / totalPool
-  // Returns positive if A is over-backed, negative if B is over-backed
-  // Threshold: >60% on one side triggers adjustment
-  if (shareA > 0.60) return (shareA - 0.60) * 1.5  // A over-backed, reduce A odds
-  if (shareA < 0.40) return (shareA - 0.40) * 1.5  // B over-backed, increase A odds
+  if (totalPool < 50) return 0 // need meaningful pool before adjusting
+  if (sideAPool <= 0 || sideBPool <= 0) return 0 // one side empty, no adjustment
+  const shareA = sideAPool / (sideAPool + sideBPool) // exclude draw from imbalance calc
+  // Threshold: >60% on one side triggers adjustment — max 0.15 shift
+  if (shareA > 0.60) return Math.min(0.15, (shareA - 0.60) * 0.8)
+  if (shareA < 0.40) return Math.max(-0.15, (shareA - 0.40) * 0.8)
   return 0
 }
 
