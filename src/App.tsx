@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BattleDetailPage from "./BattleDetailPage";
 import NewsPage from "./NewsPage";
+import BetSharePage from "./BetSharePage";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
@@ -58,6 +59,7 @@ function App() {
               <Routes>
                 <Route path="/battle/:id" element={<BattleDetailPage />} />
                 <Route path="/news" element={<NewsPage />} />
+                <Route path="/bet/:code" element={<BetSharePage />} />
                 <Route path="*" element={<PredaLandingDashboardMockup />} />
               </Routes>
             </BrowserRouter>

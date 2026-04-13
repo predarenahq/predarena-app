@@ -2154,6 +2154,25 @@ export default function PredaLandingDashboardMockup() {
         ? `🎯 Combo ticket placed! ${slipSelections.length} legs · ${comboOdds.toFixed(2)}x combined odds`
         : '🎯 Ticket placed!'
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'success' } }))
+
+      // Generate share code for single bets
+      if (!isCombo && slipSelections.length === 1) {
+        const sel = slipSelections[0]
+        try {
+          const { createBetShare } = await import('./utils/betShare')
+          const code = await createBetShare({
+            battleId: sel.matchId,
+            side: sel.chosenSide === 'left' ? 1 : sel.chosenSide === 'right' ? 2 : 3,
+            oddsAtShare: sel.oddsAtPick,
+            coinA: sel.matchTitle.split(' vs ')[0],
+            coinB: sel.matchTitle.split(' vs ')[1] || '',
+            league: '',
+            duration: sel.duration,
+            createdBy: walletAddr,
+          })
+          window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Share code: ${code} — tap to copy`, type: 'success' } }))
+        } catch(e) { console.error('Share failed:', e) }
+      }
     } catch (err: any) {
       console.error('Failed to place ticket:', err)
       alert('Failed: ' + (err.message || err))

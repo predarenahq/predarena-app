@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from './lib/supabase'
+import { createBetShare } from './utils/betShare'
+import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
 
 const COLORS = {
@@ -52,8 +54,17 @@ export default function BattleDetailPage() {
   const [loading, setLoading] = useState(false)
   const [userBalance, setUserBalance] = useState(0)
   const [solPrice, setSolPrice] = useState(150)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [shareCode, setShareCode] = useState('')
+  const [lastBet, setLastBet] = useState<{side: number, odds: number, stake: number} | null>(null)
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
+    // Pre-fill from share code if coming from a shared bet
+    const sharedSide = searchParams.get('side')
+    const sharedOdds = searchParams.get('odds')
+    if (sharedSide) setSelectedSide(Number(sharedSide))
+
     fetchBattle()
     fetchChart()
     const chartInterval = setInterval(fetchChart, 30000)
@@ -180,7 +191,24 @@ export default function BattleDetailPage() {
 
       await supabase.from('battles').update(updateData).eq('id', battle.id)
 
-      alert('Bet placed!')
+      // Create share code
+      const walletAddr2 = publicKey!.toBase58()
+      try {
+        const code = await createBetShare({
+          battleId: battle.id,
+          side: selectedSide!,
+          oddsAtShare: selectedOdds,
+          coinA: battle.coin_a,
+          coinB: battle.coin_b,
+          league: battle.league,
+          duration: battle.duration,
+          createdBy: walletAddr2,
+        })
+        setShareCode(code)
+        setLastBet({ side: selectedSide!, odds: selectedOdds, stake: stakeUSD })
+        setShareModalOpen(true)
+      } catch(e) { console.error('Share failed:', e) }
+
       setStake('')
       setSelectedSide(null)
       fetchUserBalance()
@@ -215,6 +243,16 @@ export default function BattleDetailPage() {
 
   return (
     <div className="min-h-screen" style={{ background: COLORS.bg }}>
+      {lastBet && <BetShareModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        code={shareCode}
+        coinA={battle?.coin_a || ''}
+        coinB={battle?.coin_b || ''}
+        side={lastBet.side}
+        odds={lastBet.odds}
+        stake={lastBet.stake}
+      />}
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b" style={{ borderColor: COLORS.lineStrong }}>
         <button onClick={() => navigate('/')} className="p-2 rounded-xl" style={{ background: COLORS.panel }}>
