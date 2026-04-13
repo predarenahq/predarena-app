@@ -161,7 +161,10 @@ export function getInPlayOdds(
   startPriceB: number,
   startTimeMs: number,
   endTimeMs: number,
-  baseOdds: OddsResult
+  baseOdds: OddsResult,
+  sideAPool: number = 0,
+  sideBPool: number = 0,
+  drawPool: number = 0
 ): OddsResult {
   const now = Date.now()
   const totalDuration = endTimeMs - startTimeMs
@@ -242,6 +245,23 @@ export function getGuaranteedOdds(
   return Math.min(currentOdds, Math.round(floor * 100) / 100)
 }
 
+// Fix 1: Bet imbalance adjustment
+// If too much money is on one side, shift odds to attract balancing bets
+// This is independent of in-play price movement
+export function getImbalanceAdjustment(
+  sideAPool: number,
+  sideBPool: number,
+  totalPool: number
+): number {
+  if (totalPool < 10) return 0 // not enough bets to matter
+  const shareA = sideAPool / totalPool
+  // Returns positive if A is over-backed, negative if B is over-backed
+  // Threshold: >60% on one side triggers adjustment
+  if (shareA > 0.60) return (shareA - 0.60) * 1.5  // A over-backed, reduce A odds
+  if (shareA < 0.40) return (shareA - 0.40) * 1.5  // B over-backed, increase A odds
+  return 0
+}
+
 // Simple odds from pool (parimutuel fallback when no prices available)
 export function getPoolOdds(
   sideAPool: number,
@@ -257,9 +277,12 @@ export function getPoolOdds(
   const probB = sideBPool / totalPool
   const probDraw = drawPool / totalPool
 
+  // Apply imbalance adjustment
+  const imbalance = getImbalanceAdjustment(sideAPool, sideBPool, totalPool)
+  
   return applyMargin(
-    Math.max(0.05, probA),
-    Math.max(0.05, probB),
+    Math.max(0.05, probA + imbalance),
+    Math.max(0.05, probB - imbalance),
     Math.max(0.02, probDraw)
   )
 }

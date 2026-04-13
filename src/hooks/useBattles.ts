@@ -135,7 +135,10 @@ export function useBattles() {
             b.start_price_a, b.start_price_b,
             new Date(b.start_time).getTime(),
             new Date(b.end_time).getTime(),
-            base
+            base,
+            b.side_a_pool || 0,
+            b.side_b_pool || 0,
+            b.draw_pool || 0
           )
         } else {
           odds = base

@@ -79,12 +79,50 @@ async function settleBattles() {
   if (!battles || battles.length === 0) return
 
   const tickers = [...new Set(battles.flatMap(b => [b.coin_a, b.coin_b]))]
-  const prices = await getPythPrices(tickers)
 
   for (const battle of battles) {
-    const finalPriceA = prices[battle.coin_a]
-    const finalPriceB = prices[battle.coin_b]
-    if (!finalPriceA || !finalPriceB || !battle.start_price_a || !battle.start_price_b) continue
+    // Fix 2: TWAP settlement — average last 90 seconds of price history
+    // Prevents oracle manipulation at exact end time
+    const twapCutoff = new Date(Date.now() - 90 * 1000).toISOString()
+
+    const [twapA, twapB] = await Promise.all([
+      supabase
+        .from('price_history')
+        .select('price')
+        .eq('coin', battle.coin_a)
+        .gte('recorded_at', twapCutoff)
+        .order('recorded_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('price_history')
+        .select('price')
+        .eq('coin', battle.coin_b)
+        .gte('recorded_at', twapCutoff)
+        .order('recorded_at', { ascending: false })
+        .limit(10)
+    ])
+
+    // Calculate TWAP — fallback to live Pyth price if no history in window
+    let finalPriceA, finalPriceB
+
+    if (twapA.data && twapA.data.length >= 2) {
+      finalPriceA = twapA.data.reduce((sum, r) => sum + r.price, 0) / twapA.data.length
+      console.log(`${battle.coin_a} TWAP from ${twapA.data.length} samples: $${finalPriceA.toFixed(4)}`)
+    } else {
+      const live = await getPythPrices([battle.coin_a])
+      finalPriceA = live[battle.coin_a]
+      console.log(`${battle.coin_a} fallback to live Pyth: $${finalPriceA?.toFixed(4)}`)
+    }
+
+    if (twapB.data && twapB.data.length >= 2) {
+      finalPriceB = twapB.data.reduce((sum, r) => sum + r.price, 0) / twapB.data.length
+      console.log(`${battle.coin_b} TWAP from ${twapB.data.length} samples: $${finalPriceB.toFixed(4)}`)
+    } else {
+      const live = await getPythPrices([battle.coin_b])
+      finalPriceB = live[battle.coin_b]
+      console.log(`${battle.coin_b} fallback to live Pyth: $${finalPriceB?.toFixed(4)}`)
+    }
+    if (!finalPriceA || !finalPriceB || !battle.start_price_a || !battle.start_price_b) { console.log(`Missing prices for ${battle.coin_a}/${battle.coin_b}, skipping`); continue }
 
     const changeA = (finalPriceA - battle.start_price_a) / battle.start_price_a
     const changeB = (finalPriceB - battle.start_price_b) / battle.start_price_b
