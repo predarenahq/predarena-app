@@ -81,6 +81,7 @@ async function settleBattles() {
   const tickers = [...new Set(battles.flatMap(b => [b.coin_a, b.coin_b]))]
 
   for (const battle of battles) {
+    try {
     // Fix 2: TWAP settlement — average last 90 seconds of price history
     // Prevents oracle manipulation at exact end time
     const twapCutoff = new Date(Date.now() - 90 * 1000).toISOString()
@@ -293,6 +294,9 @@ async function settleBattles() {
     }
 
     console.log(`Settled: ${battle.coin_a} vs ${battle.coin_b} winner=${winner}`)
+    } catch (battleErr) {
+      console.error(`Failed to settle battle ${battle.id} (${battle.coin_a} vs ${battle.coin_b}):`, battleErr.message)
+    }
   }
 
   // Settle combo bets that have all legs resolved
@@ -422,27 +426,44 @@ async function createBattles() {
 }
 
 export default async function handler(req, res) {
+  const results = { settled: 0, created: 0, pricesSaved: 0, errors: [] }
+  
   try {
     await settleBattles()
-    const prices = await createBattles()
-
-    // Save price snapshots to history
-    try {
-      const priceRows = Object.entries(prices).map(([coin, price]) => ({
-        coin,
-        price,
-        recorded_at: new Date().toISOString()
-      }))
-      if (priceRows.length > 0) {
-        await supabase.from('price_history').insert(priceRows)
-      }
-    } catch (e) {
-      console.error('Failed to save price history:', e)
-    }
-
-    res.status(200).json({ ok: true, timestamp: new Date().toISOString(), prices })
+    results.settled = 1
   } catch (err) {
-    console.error('Cron error:', err)
-    res.status(500).json({ error: String(err) })
+    console.error('settleBattles failed:', err.message)
+    results.errors.push('settle: ' + err.message)
   }
+
+  let prices = {}
+  try {
+    prices = await createBattles()
+    results.created = 1
+  } catch (err) {
+    console.error('createBattles failed:', err.message)
+    results.errors.push('create: ' + err.message)
+  }
+
+  try {
+    const priceRows = Object.entries(prices).map(([coin, price]) => ({
+      coin,
+      price,
+      recorded_at: new Date().toISOString()
+    }))
+    if (priceRows.length > 0) {
+      await supabase.from('price_history').insert(priceRows)
+      results.pricesSaved = priceRows.length
+    }
+  } catch (e) {
+    console.error('Failed to save price history:', e.message)
+    results.errors.push('prices: ' + e.message)
+  }
+
+  res.status(200).json({ 
+    ok: results.errors.length === 0, 
+    timestamp: new Date().toISOString(), 
+    prices,
+    ...results
+  })
 }
