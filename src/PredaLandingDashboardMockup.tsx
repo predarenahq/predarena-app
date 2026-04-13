@@ -54,6 +54,7 @@ type Match = {
   timer: string;
   status?: string;
   startTime?: string;
+  endTime?: string;
   startPriceA?: number;
   startPriceB?: number;
 };
@@ -1128,6 +1129,7 @@ function MarketCard({
 }) {
   const [chartOpen, setChartOpen] = React.useState(false)
   const navigate = useNavigate()
+  const isSettling = match.endTime ? Date.now() > new Date(match.endTime).getTime() : false
   return (
     <>
     <PriceChartModal
@@ -1166,18 +1168,18 @@ function MarketCard({
           <div className="grid grid-cols-3 gap-2 text-sm">
             <StatBox label="Pool" value={`$${match.pool.toLocaleString()}`} />
             <StatBox label="Entries" value={String(match.entries)} />
-            <StatBox label="Timer" value={match.timer} />
+            <StatBox label="Timer" value={isSettling ? "🔒" : match.timer} />
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">
-          <button onClick={(e) => { e.stopPropagation(); onPick(match, "left"); }}>
+          <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
             <SelectionButton active={selectedSide === "left"} label={match.left.ticker} odds={match.left.odds} meta={match.left.change} ticker={match.left.ticker} />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); onPick(match, "draw"); }}>
+          <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "draw"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
             <SelectionButton active={selectedSide === "draw"} label="Draw" odds={match.draw.odds} meta={match.draw.change} ticker="DRAW" />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); onPick(match, "right"); }}>
+          <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "right"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
             <SelectionButton active={selectedSide === "right"} label={match.right.ticker} odds={match.right.odds} meta={match.right.change} ticker={match.right.ticker} />
           </button>
         </div>
