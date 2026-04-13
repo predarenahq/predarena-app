@@ -34,18 +34,25 @@ function getTimer(battle: Battle): string {
   const end = new Date(battle.end_time)
   const start = new Date(battle.start_time)
 
+  if (battle.status === 'settled') return 'Settled'
+
   if (battle.status === 'upcoming') {
     const diff = start.getTime() - now.getTime()
+    if (diff <= 0) return 'Starting...'
     const mins = Math.floor(diff / 60000)
     return `Starts in ${mins}m`
   }
 
   const diff = end.getTime() - now.getTime()
+  if (diff <= 0) return 'Settling...'
+
   const hours = Math.floor(diff / 3600000)
   const mins = Math.floor((diff % 3600000) / 60000)
+  const secs = Math.floor((diff % 60000) / 1000)
 
   if (hours > 0) return `${hours}h ${mins}m left`
-  return `${mins}m left`
+  if (mins > 0) return `${mins}m ${secs}s left`
+  return `${secs}s left`
 }
 
 function battleToMatch(battle: Battle, odds?: OddsResult): Match {
