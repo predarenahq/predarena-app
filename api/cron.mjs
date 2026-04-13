@@ -255,6 +255,84 @@ async function settleBattles() {
 
     console.log(`Settled: ${battle.coin_a} vs ${battle.coin_b} winner=${winner}`)
   }
+
+  // Settle combo bets that have all legs resolved
+  await settleComboTickets()
+}
+
+async function settleComboTickets() {
+  // Find all unsettled combo tickets (combo_id is not null, not yet claimed)
+  const { data: comboTickets } = await supabase
+    .from('tickets')
+    .select('*, battles(status, winner)')
+    .not('combo_id', 'is', null)
+    .eq('claimed', false)
+
+  if (!comboTickets || comboTickets.length === 0) return
+
+  // Group by combo_id
+  const comboGroups: Record<string, any[]> = {}
+  for (const ticket of comboTickets) {
+    if (!comboGroups[ticket.combo_id]) comboGroups[ticket.combo_id] = []
+    comboGroups[ticket.combo_id].push(ticket)
+  }
+
+  for (const [comboId, legs] of Object.entries(comboGroups)) {
+    // Check if all legs are settled
+    const allSettled = legs.every(t => t.battles?.status === 'settled')
+    if (!allSettled) continue // wait for all battles to finish
+
+    // Check if all legs won
+    const allWon = legs.every(t => t.battles?.winner === t.side)
+    const anyLost = legs.some(t => t.battles?.status === 'settled' && t.battles?.winner !== t.side && t.battles?.winner !== 0)
+
+    const walletAddr = legs[0].wallet_address
+    const stake = legs[0].stake // single stake covers all legs
+    const comboOdds = legs[0].combo_odds || legs.reduce((acc, t) => acc * t.odds, 1)
+
+    if (allWon) {
+      // All legs won — pay out combo odds on the stake
+      const { data: solPriceData } = await supabase
+        .from('price_history')
+        .select('price')
+        .eq('coin', 'SOL')
+        .order('recorded_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      const solPrice = solPriceData?.price || 100
+      const payoutUSD = stake * comboOdds * (1 - PLATFORM_FEE)
+      const payoutLamports = Math.floor((payoutUSD / solPrice) * 1_000_000_000)
+
+      const { data: userBal } = await supabase
+        .from('user_balances')
+        .select('balance_lamports')
+        .eq('wallet_address', walletAddr)
+        .single()
+
+      if (userBal) {
+        await supabase.from('user_balances')
+          .update({
+            balance_lamports: userBal.balance_lamports + payoutLamports,
+            updated_at: new Date().toISOString()
+          })
+          .eq('wallet_address', walletAddr)
+
+        console.log(`Combo ${comboId} WON: ${legs.length} legs, stake=$${stake}, payout=$${payoutUSD.toFixed(2)} (${comboOdds.toFixed(2)}x)`)
+      }
+    } else if (anyLost) {
+      // At least one leg lost — entire combo loses, stake already deducted
+      // Platform keeps the stake (minus what was already distributed to pool)
+      console.log(`Combo ${comboId} LOST: one or more legs failed. Stake=$${stake} forfeited.`)
+    }
+
+    // Mark all legs as claimed so we don't process again
+    for (const leg of legs) {
+      await supabase.from('tickets')
+        .update({ claimed: true })
+        .eq('id', leg.id)
+    }
+  }
 }
 
 async function createBattles() {

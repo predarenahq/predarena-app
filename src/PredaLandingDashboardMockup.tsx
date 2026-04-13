@@ -1331,14 +1331,27 @@ function SlipDrawer({
             </div>
 
             <div className="mt-4 space-y-2 text-sm">
+              {items.length > 1 && (
+                <div className="rounded-xl px-3 py-2 mb-2" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}>
+                  <p className="text-xs font-medium" style={{ color: '#f43f5e' }}>
+                    ⚠️ Combo Bet — If any leg loses, the entire bet loses
+                  </p>
+                </div>
+              )}
               <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
-                <span>Total Odds</span>
+                <span>{items.length > 1 ? 'Combined Odds' : 'Odds'}</span>
                 <span className="font-medium text-white">{items.length ? formatOdds(totalOdds) : "--"}</span>
               </div>
               <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
-                <span>Total Bet</span>
+                <span>Stake</span>
                 <span className="font-medium text-white">{stake ? `$${stake}` : "--"}</span>
               </div>
+              {items.length > 1 && (
+                <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
+                  <span>Legs</span>
+                  <span className="font-medium text-white">{items.length} selections</span>
+                </div>
+              )}
               <div className="flex items-center justify-between pt-1">
                 <span className="text-base font-semibold text-white">Potential Win</span>
                 <span className="text-lg font-semibold" style={{ color: COLORS.accent }}>
@@ -1348,7 +1361,7 @@ function SlipDrawer({
             </div>
 
             <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40" style={{ background: COLORS.accent }}>
-              Place Ticket
+              {items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
             </button>
           </div>
         </div>
@@ -2059,19 +2072,54 @@ export default function PredaLandingDashboardMockup() {
         return
       }
 
-      // Insert tickets
+      const isCombo = slipSelections.length > 1
+
+      // For combo bets — generate a shared combo_id
+      const comboId = isCombo
+        ? crypto.randomUUID()
+        : null
+
+      // Total combo odds = multiply all individual odds together
+      const comboOdds = slipSelections.reduce((acc, s) => acc * s.oddsAtPick, 1)
+
+      // Guaranteed odds floor per leg
+      const now = Date.now()
+
+      // Insert tickets — all linked by combo_id if combo
       for (const selection of slipSelections) {
         const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
+
+        // Get battle times for guaranteed odds calculation
+        const { data: battleInfo } = await supabase
+          .from('battles')
+          .select('start_time, end_time')
+          .eq('id', selection.matchId)
+          .single()
+
+        let guaranteedOdds = 1.50
+        if (battleInfo) {
+          const battleStart = new Date(battleInfo.start_time).getTime()
+          const battleEnd = new Date(battleInfo.end_time).getTime()
+          const timeProgress = Math.min(1, (now - battleStart) / (battleEnd - battleStart))
+          guaranteedOdds = Math.max(1.01, 1.50 - timeProgress * 0.49)
+        }
+
         await supabase.from('tickets').insert({
           battle_id: selection.matchId,
           wallet_address: walletAddr,
           side,
           stake: totalStake,
-          odds: selection.oddsAtPick,
+          odds: isCombo ? comboOdds : selection.oddsAtPick,
+          guaranteed_odds: Math.round(guaranteedOdds * 100) / 100,
+          guaranteed_payout: Math.round(totalStake * guaranteedOdds * 100) / 100,
+          combo_id: comboId,
+          combo_legs: isCombo ? slipSelections.length : 1,
+          combo_odds: isCombo ? Math.round(comboOdds * 100) / 100 : selection.oddsAtPick,
+          claimed: false,
         })
       }
 
-      // Deduct balance
+      // Deduct balance once (single stake covers all legs)
       await supabase.from('user_balances')
         .update({ 
           balance_lamports: balData.balance_lamports - stakeInLamports,
@@ -2079,7 +2127,7 @@ export default function PredaLandingDashboardMockup() {
         })
         .eq('wallet_address', walletAddr)
 
-      // Update battle pools and entries
+      // Update battle pools for each leg
       for (const selection of slipSelections) {
         const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
         const { data: battleData } = await supabase
@@ -2102,7 +2150,10 @@ export default function PredaLandingDashboardMockup() {
 
       setSlipSelections([])
       window.dispatchEvent(new Event('balance-refresh'))
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '🎯 Ticket placed!', type: 'success' } }))
+      const msg = isCombo
+        ? \`🎯 Combo ticket placed! \${slipSelections.length} legs · \${comboOdds.toFixed(2)}x combined odds\`
+        : '🎯 Ticket placed!'
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'success' } }))
     } catch (err: any) {
       console.error('Failed to place ticket:', err)
       alert('Failed: ' + (err.message || err))
