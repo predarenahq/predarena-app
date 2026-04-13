@@ -166,7 +166,8 @@ async function settleBattles() {
     console.log(`Battle ${battle.coin_a} vs ${battle.coin_b}: totalPot=$${totalPotUSD.toFixed(2)} fee=$${platformFeeUSD.toFixed(2)} payoutPool=$${payoutPoolUSD.toFixed(2)} winners=${winningTickets.length} losers=${losingTickets.length}`)
 
     // Get current SOL price for lamport conversion
-    const solPrice = prices['SOL'] || 100
+    const solPriceRes = await getPythPrices(['SOL'])
+    const solPrice = solPriceRes['SOL'] || 100
 
     // Credit platform fee to treasury in Supabase
     if (platformFeeUSD > 0) {
