@@ -1,1 +1,16 @@
-{}
+{
+  "functions": {
+    "api/cron.mjs": {
+      "maxDuration": 60
+    },
+    "api/withdraw.mjs": {
+      "maxDuration": 30
+    },
+    "api/news.mjs": {
+      "maxDuration": 15
+    },
+    "api/momentum.mjs": {
+      "maxDuration": 15
+    }
+  }
+}
