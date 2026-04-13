@@ -2151,7 +2151,7 @@ export default function PredaLandingDashboardMockup() {
       setSlipSelections([])
       window.dispatchEvent(new Event('balance-refresh'))
       const msg = isCombo
-        ? \`🎯 Combo ticket placed! \${slipSelections.length} legs · \${comboOdds.toFixed(2)}x combined odds\`
+        ? `🎯 Combo ticket placed! ${slipSelections.length} legs · ${comboOdds.toFixed(2)}x combined odds`
         : '🎯 Ticket placed!'
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'success' } }))
     } catch (err: any) {
