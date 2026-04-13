@@ -159,17 +159,46 @@ async function settleBattles() {
       console.log(`Treasury credited $${platformFeeUSD.toFixed(2)} (${feeInLamports} lamports)`)
     }
 
-    // Pay out winners proportionally from the payout pool
-    // Each winner gets: (their stake / total winner stake) * payoutPool
-    if (winningTickets.length > 0 && winnerStakeTotal > 0) {
-      for (const ticket of winningTickets) {
-        // Proportional share of payout pool
-        const winnerShare = ticket.stake / winnerStakeTotal
-        const payoutUSD = payoutPoolUSD * winnerShare
-        const payoutLamports = Math.floor((payoutUSD / solPrice) * 1_000_000_000)
+    // OPTION 3 HYBRID SETTLEMENT
+    // Each winner gets the HIGHER of:
+    //   A) Their proportional share of the payout pool (parimutuel)
+    //   B) Their guaranteed minimum odds payout
+    // If pool is too thin, platform treasury covers the gap
 
-        // Actual multiplier achieved
-        const actualOdds = payoutUSD / ticket.stake
+    if (winningTickets.length > 0 && winnerStakeTotal > 0) {
+      // Get treasury balance to cover gaps
+      const { data: treasury } = await supabase
+        .from('platform_treasury')
+        .select('*')
+        .single()
+
+      let totalTreasuryDrawdown = 0
+
+      for (const ticket of winningTickets) {
+        // Parimutuel payout
+        const winnerShare = ticket.stake / winnerStakeTotal
+        const parimutuelPayoutUSD = payoutPoolUSD * winnerShare
+        const parimutuelOdds = parimutuelPayoutUSD / ticket.stake
+
+        // Guaranteed minimum payout from ticket
+        const guaranteedOdds = ticket.guaranteed_odds || 1.50
+        const guaranteedPayoutUSD = ticket.stake * guaranteedOdds
+
+        // User gets the HIGHER of the two
+        let finalPayoutUSD = parimutuelPayoutUSD
+        let treasuryGapUSD = 0
+        let payoutSource = 'pool'
+
+        if (guaranteedPayoutUSD > parimutuelPayoutUSD) {
+          // Pool is too thin — platform covers the gap
+          treasuryGapUSD = guaranteedPayoutUSD - parimutuelPayoutUSD
+          finalPayoutUSD = guaranteedPayoutUSD
+          payoutSource = 'guaranteed'
+          totalTreasuryDrawdown += treasuryGapUSD
+        }
+
+        const finalPayoutLamports = Math.floor((finalPayoutUSD / solPrice) * 1_000_000_000)
+        const actualOdds = finalPayoutUSD / ticket.stake
 
         const { data: userBal } = await supabase
           .from('user_balances')
@@ -180,14 +209,28 @@ async function settleBattles() {
         if (userBal) {
           await supabase.from('user_balances')
             .update({
-              balance_lamports: userBal.balance_lamports + payoutLamports,
+              balance_lamports: userBal.balance_lamports + finalPayoutLamports,
               updated_at: new Date().toISOString()
             })
             .eq('wallet_address', ticket.wallet_address)
 
-          console.log(`Winner ${ticket.wallet_address}: stake=$${ticket.stake} payout=$${payoutUSD.toFixed(2)} (${actualOdds.toFixed(2)}x) = ${payoutLamports} lamports`)
+          console.log(`Winner ${ticket.wallet_address}: stake=$${ticket.stake} payout=$${finalPayoutUSD.toFixed(2)} (${actualOdds.toFixed(2)}x) source=${payoutSource} gap=$${treasuryGapUSD.toFixed(2)}`)
         }
       }
+
+      // Deduct treasury drawdown and update platform treasury
+      if (treasury) {
+        const netEarned = platformFeeUSD - totalTreasuryDrawdown
+        await supabase.from('platform_treasury')
+          .update({
+            balance_usd: Math.max(0, (treasury.balance_usd || 0) + netEarned),
+            total_earned_usd: (treasury.total_earned_usd || 0) + platformFeeUSD,
+            total_paid_out_usd: (treasury.total_paid_out_usd || 0) + totalTreasuryDrawdown,
+            updated_at: new Date().toISOString()
+          })
+        console.log(`Treasury: earned=$${platformFeeUSD.toFixed(2)} drawdown=$${totalTreasuryDrawdown.toFixed(2)} net=$${netEarned.toFixed(2)}`)
+      }
+
     } else {
       // No winners — entire pot minus fee goes to treasury
       const noBettersFeeUSD = payoutPoolUSD

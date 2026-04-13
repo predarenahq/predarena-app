@@ -147,12 +147,21 @@ export default function BattleDetailPage() {
 
       const odds = totalPool === 0 || sidePool === 0 ? 2.0 : Math.round((totalPool / sidePool) * 100) / 100
 
+      // Guaranteed odds floor
+      const battleEnd = new Date(battle.end_time).getTime()
+      const battleStart = new Date(battle.start_time).getTime()
+      const timeProgress = Math.min(1, (Date.now() - battleStart) / (battleEnd - battleStart))
+      const guaranteedOdds = Math.max(1.01, 1.50 - timeProgress * 0.49)
+      const guaranteedPayout = stakeUSD * guaranteedOdds
+
       await supabase.from('tickets').insert({
         battle_id: battle.id,
         wallet_address: walletAddr,
         side: selectedSide,
         stake: stakeUSD,
         odds,
+        guaranteed_odds: Math.round(guaranteedOdds * 100) / 100,
+        guaranteed_payout: Math.round(guaranteedPayout * 100) / 100,
         claimed: false,
       })
 
@@ -353,8 +362,11 @@ export default function BattleDetailPage() {
             />
             {stakeUSD > 0 && selectedSide && (
               <div className="rounded-xl px-4 py-3 text-right" style={{ background: 'rgba(0,240,255,0.05)', border: `1px solid ${COLORS.accent}30` }}>
-                <p className="text-xs" style={{ color: COLORS.textSoft }}>To Win</p>
+                <p className="text-xs" style={{ color: COLORS.textSoft }}>Max Win</p>
                 <p className="font-bold" style={{ color: COLORS.accent }}>${potentialWin}</p>
+                <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>
+                  Min: ${(stakeUSD * Math.max(1.01, 1.50 - Math.min(1, (Date.now() - new Date(battle.start_time).getTime()) / (new Date(battle.end_time).getTime() - new Date(battle.start_time).getTime())) * 0.49)).toFixed(2)}
+                </p>
               </div>
             )}
           </div>

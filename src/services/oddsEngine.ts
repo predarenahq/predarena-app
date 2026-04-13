@@ -134,6 +134,23 @@ export async function getStartingOdds(coinA: string, coinB: string): Promise<Odd
   return applyMargin(probA, probB, probDraw)
 }
 
+// Time-based odds compression
+// At battle start: full odds (e.g. 2.41x)
+// As time runs out: odds compress toward 1.01x for the leader
+// Late bettors get punished — discourages last-second gaming
+function compressOdds(odds: number, timeProgress: number, isLeader: boolean): number {
+  if (!isLeader) return odds // loser odds can stay high or go higher
+
+  // Leader odds compress from starting odds → 1.01x over time
+  // Compression accelerates in the last 20% of battle
+  const compressionRate = timeProgress < 0.8
+    ? timeProgress * 0.5          // gentle compression early
+    : 0.4 + (timeProgress - 0.8) * 3.0  // aggressive in final stretch
+
+  const compressed = odds - (odds - 1.01) * compressionRate
+  return Math.max(1.01, Math.round(compressed * 100) / 100)
+}
+
 // IN-PLAY ODDS — updated in real time as battle progresses
 export function getInPlayOdds(
   coinA: string,
@@ -144,7 +161,7 @@ export function getInPlayOdds(
   startPriceB: number,
   startTimeMs: number,
   endTimeMs: number,
-  baseOdds: OddsResult // starting odds as anchor
+  baseOdds: OddsResult
 ): OddsResult {
   const now = Date.now()
   const totalDuration = endTimeMs - startTimeMs
@@ -153,8 +170,7 @@ export function getInPlayOdds(
   // Time progress 0 → 1
   const timeProgress = Math.min(1, elapsed / totalDuration)
 
-  // How confident are we in the current result?
-  // Starts at 0 (battle just began) → 0.85 (near the end)
+  // Confidence in current result increases with time
   const confidence = timeProgress * 0.85
 
   // Current performance delta
@@ -162,19 +178,59 @@ export function getInPlayOdds(
   const perfB = startPriceB > 0 ? (currentPriceB - startPriceB) / startPriceB : 0
   const perfDiff = perfA - perfB
 
-  // Normalise perf diff — small moves matter more as time runs out
-  const sensitivity = 1 + timeProgress * 3 // increases 4x by end
-  const shift = Math.tanh(perfDiff * sensitivity * 100) * confidence * 0.45
+  // Sensitivity increases as time runs out
+  const sensitivity = 1 + timeProgress * 4
+  const shift = Math.tanh(perfDiff * sensitivity * 100) * confidence * 0.50
 
-  // Start from base probabilities, then shift based on who's winning
-  const probA = Math.max(0.05, Math.min(0.92, baseOdds.probA + shift))
-  const probB = Math.max(0.05, Math.min(0.92, baseOdds.probB - shift))
+  // Raw probabilities
+  const probA = Math.max(0.05, Math.min(0.95, baseOdds.probA + shift))
+  const probB = Math.max(0.05, Math.min(0.95, baseOdds.probB - shift))
+  const probDraw = Math.max(0.01, baseOdds.probDraw - Math.abs(shift) * 0.6)
 
-  // Draw becomes less likely as one coin pulls ahead
-  const drawReduction = Math.abs(shift) * 0.5
-  const probDraw = Math.max(0.02, baseOdds.probDraw - drawReduction)
+  // Get raw odds from margin
+  const raw = applyMargin(probA, probB, probDraw)
 
-  return applyMargin(probA, probB, probDraw)
+  // Determine who is currently leading
+  const aLeading = perfA > perfB
+  const bLeading = perfB > perfA
+  const tooClose = Math.abs(perfDiff) < 0.0005 // within 0.05% — too close to call
+
+  // Apply time compression to leader
+  const finalOddsA = tooClose
+    ? raw.oddsA
+    : compressOdds(raw.oddsA, timeProgress, aLeading)
+
+  const finalOddsB = tooClose
+    ? raw.oddsB
+    : compressOdds(raw.oddsB, timeProgress, bLeading)
+
+  // Draw odds compress aggressively as time runs out (draw gets less likely)
+  const finalOddsDraw = timeProgress > 0.5
+    ? Math.max(1.01, raw.oddsDraw * (1 - timeProgress * 0.8))
+    : raw.oddsDraw
+
+  return {
+    oddsA: finalOddsA,
+    oddsB: finalOddsB,
+    oddsDraw: Math.round(finalOddsDraw * 100) / 100,
+    probA: raw.probA,
+    probB: raw.probB,
+    probDraw: raw.probDraw,
+    favourite: raw.favourite,
+    marginApplied: raw.marginApplied,
+  }
+}
+
+// Calculate minimum guaranteed payout for option 3 hybrid model
+export function getGuaranteedOdds(
+  currentOdds: number,
+  timeProgress: number
+): number {
+  // Guaranteed floor starts at 1.50x at battle start
+  // Compresses to 1.01x as battle ends
+  // This is what platform reserves cover if pool is too thin
+  const floor = Math.max(1.01, 1.50 - timeProgress * 0.49)
+  return Math.min(currentOdds, Math.round(floor * 100) / 100)
 }
 
 // Simple odds from pool (parimutuel fallback when no prices available)
