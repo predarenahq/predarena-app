@@ -19,6 +19,10 @@ export type Match = {
   entries: number
   timer: string
   status: string
+  startTime: string
+  endTime: string
+  startPriceA: number
+  startPriceB: number
 }
 
 function calculateOdds(sidePool: number, totalPool: number): number {
