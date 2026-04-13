@@ -1166,7 +1166,7 @@ function MarketCard({
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-sm">
-            <StatBox label="Pool" value={`$${match.pool.toLocaleString()}`} />
+{match.pool > 0 && <StatBox label="Pool" value={`$${match.pool.toLocaleString()}`} />}
             <StatBox label="Entries" value={String(match.entries)} />
             <StatBox label="Timer" value={isSettling ? "🔒" : match.timer} />
           </div>
