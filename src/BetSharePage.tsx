@@ -18,6 +18,7 @@ export default function BetSharePage() {
 
   useEffect(() => {
     if (code) resolveBetShare(code)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code])
 
   async function resolveBetShare(shareCode: string) {

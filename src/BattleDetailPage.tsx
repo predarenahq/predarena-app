@@ -62,7 +62,7 @@ export default function BattleDetailPage() {
   useEffect(() => {
     // Pre-fill from share code if coming from a shared bet
     const sharedSide = searchParams.get('side')
-    const sharedOdds = searchParams.get('odds')
+    // const sharedOdds = searchParams.get('odds') // reserved for future use
     if (sharedSide) setSelectedSide(Number(sharedSide))
 
     fetchBattle()
