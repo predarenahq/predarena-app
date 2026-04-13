@@ -204,10 +204,19 @@ export function getInPlayOdds(
     ? raw.oddsB
     : compressOdds(raw.oddsB, timeProgress, bLeading)
 
-  // Draw odds compress aggressively as time runs out (draw gets less likely)
-  const finalOddsDraw = timeProgress > 0.5
-    ? Math.max(1.01, raw.oddsDraw * (1 - timeProgress * 0.8))
-    : raw.oddsDraw
+  // Draw odds INCREASE as time runs out and a leader emerges
+  // A draw becomes less and less likely the further apart the two coins are
+  // Only compress draw odds if it's genuinely neck and neck
+  const leaderGap = Math.abs(perfDiff) * 100 // in percentage points
+  let finalOddsDraw: number
+  if (tooClose) {
+    // Genuinely tied — draw stays moderate, slight compression
+    finalOddsDraw = Math.max(2.00, raw.oddsDraw * (1 - timeProgress * 0.3))
+  } else {
+    // One coin is clearly ahead — draw becomes very unlikely → higher odds
+    const drawInflation = 1 + timeProgress * leaderGap * 2
+    finalOddsDraw = Math.min(MAX_ODDS, Math.round(raw.oddsDraw * drawInflation * 100) / 100)
+  }
 
   return {
     oddsA: finalOddsA,
