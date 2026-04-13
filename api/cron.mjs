@@ -271,7 +271,7 @@ async function settleComboTickets() {
   if (!comboTickets || comboTickets.length === 0) return
 
   // Group by combo_id
-  const comboGroups: Record<string, any[]> = {}
+  const comboGroups = {}
   for (const ticket of comboTickets) {
     if (!comboGroups[ticket.combo_id]) comboGroups[ticket.combo_id] = []
     comboGroups[ticket.combo_id].push(ticket)
