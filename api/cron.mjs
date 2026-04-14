@@ -148,7 +148,14 @@ async function settleBattles() {
       .eq('battle_id', battle.id)
 
     if (!allTickets || allTickets.length === 0) {
-      console.log(`No tickets for battle ${battle.id}`)
+      // No tickets — just mark battle as settled, no payouts needed
+      await supabase.from('battles').update({
+        status: 'settled',
+        winner: 0,
+        final_price_a: finalPriceA,
+        final_price_b: finalPriceB,
+      }).eq('id', battle.id)
+      console.log(`No tickets for battle ${battle.id} — marked settled`)
       continue
     }
 
