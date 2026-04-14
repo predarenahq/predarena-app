@@ -433,11 +433,11 @@ async function createBattles() {
 }
 
 export default async function handler(req, res) {
-  const results = { settled: 0, created: 0, pricesSaved: 0, errors: [] }
+  const results = { battlesSettled: 0, battlesCreated: 0, pricesSaved: 0, errors: [] }
   
   try {
     await settleBattles()
-    results.settled = 1
+    results.battlesSettled = 1
   } catch (err) {
     console.error('settleBattles failed:', err.message)
     results.errors.push('settle: ' + err.message)
@@ -446,7 +446,7 @@ export default async function handler(req, res) {
   let prices = {}
   try {
     prices = await createBattles()
-    results.created = 1
+    results.battlesCreated = 1
   } catch (err) {
     console.error('createBattles failed:', err.message)
     results.errors.push('create: ' + err.message)
