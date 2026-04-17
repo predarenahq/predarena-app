@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     const sig = await connection.sendRawTransaction(tx.serialize())
     await connection.confirmTransaction(sig, 'confirmed')
 
-    // Deduct from Supabase balance
+    // Deduct full amount from user Supabase balance
     await supabase.from('user_balances')
       .update({
         balance_lamports: balData.balance_lamports - amount_lamports,
@@ -91,7 +91,42 @@ export default async function handler(req, res) {
       })
       .eq('wallet_address', wallet_address)
 
-    return res.status(200).json({ ok: true, signature: sig })
+    // Track 1% withdrawal fee in platform_treasury
+    try {
+      const solPriceRes = await fetch(
+        'https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d'
+      )
+      const solPriceData = await solPriceRes.json()
+      const solPrice = solPriceData?.parsed?.[0]
+        ? Number(solPriceData.parsed[0].price.price) * Math.pow(10, solPriceData.parsed[0].price.expo)
+        : 85
+      const feeUSD = (feeAmount / 1_000_000_000) * solPrice
+
+      const { data: treasury } = await supabase
+        .from('platform_treasury')
+        .select('*')
+        .single()
+
+      if (treasury) {
+        await supabase.from('platform_treasury')
+          .update({
+            balance_usd: (treasury.balance_usd || 0) + feeUSD,
+            total_earned_usd: (treasury.total_earned_usd || 0) + feeUSD,
+            updated_at: new Date().toISOString()
+          })
+        console.log(`Withdrawal fee: ${feeAmount} lamports ($${feeUSD.toFixed(4)}) credited to treasury`)
+      }
+    } catch (feeErr) {
+      console.error('Failed to track withdrawal fee:', feeErr.message)
+      // Don't fail the withdrawal if fee tracking fails
+    }
+
+    return res.status(200).json({ 
+      ok: true, 
+      signature: sig,
+      fee_lamports: feeAmount,
+      net_lamports: netAmount
+    })
 
   } catch (err) {
     console.error('Withdraw error:', err)
