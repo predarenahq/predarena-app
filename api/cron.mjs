@@ -227,8 +227,9 @@ async function settleBattles() {
         const parimutuelPayoutUSD = payoutPoolUSD * winnerShare
         const parimutuelOdds = parimutuelPayoutUSD / ticket.stake
 
-        // Guaranteed minimum payout from ticket
-        const guaranteedOdds = ticket.guaranteed_odds || 1.50
+        // Fixed odds payout — guaranteed_odds is the engine odds locked at bet time
+        // This is what the user was shown and what they're owed
+        const guaranteedOdds = ticket.guaranteed_odds || ticket.odds || 1.50
         const guaranteedPayoutUSD = ticket.stake * guaranteedOdds
 
         // User gets the HIGHER of the two

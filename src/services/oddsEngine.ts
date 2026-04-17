@@ -51,7 +51,39 @@ export interface OddsResult {
   marginApplied: number
 }
 
-// Fetch 24h price change from CoinGecko (cached)
+// Hardcoded momentum bias — used as Layer 3 fallback
+// Reflects general market cap / stability relative ranking
+const MOMENTUM_BIAS: Record<string, number> = {
+  BTC: 0.5, ETH: 0.3, BNB: 0.2, XRP: 0.1,
+  SOL: 0.0, AVAX: 0.0, LINK: 0.0, UNI: -0.1,
+  DOGE: -0.2, JUP: -0.2, WIF: -0.4, BONK: -0.5, PEPE: -0.5,
+}
+
+// Layer 2 fallback: calculate 24h change from our own price_history table
+async function get24hMomentumFromHistory(coin: string): Promise<number | null> {
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const sb = createClient(
+      process.env.REACT_APP_SUPABASE_URL!,
+      process.env.REACT_APP_SUPABASE_ANON_KEY!
+    )
+    const ago24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+    const [{ data: latest }, { data: old24h }] = await Promise.all([
+      sb.from('price_history').select('price').eq('coin', coin).order('recorded_at', { ascending: false }).limit(1).single(),
+      sb.from('price_history').select('price').eq('coin', coin).gte('recorded_at', ago24h).order('recorded_at', { ascending: true }).limit(1).single(),
+    ])
+
+    if (latest?.price && old24h?.price) {
+      return ((latest.price - old24h.price) / old24h.price) * 100
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+// Fetch 24h price change — 3 layer fallback
 async function get24hMomentum(coin: string): Promise<number> {
   const cached = momentumCache[coin]
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) {
@@ -59,19 +91,35 @@ async function get24hMomentum(coin: string): Promise<number> {
   }
 
   const geckoId = COINGECKO_IDS[coin]
-  if (!geckoId) return 0
+  if (!geckoId) return MOMENTUM_BIAS[coin] || 0
 
+  // Layer 1: CoinGecko via our proxy
   try {
-    // Use our proxy to avoid CORS
     const ticker = Object.keys(COINGECKO_IDS).find(k => COINGECKO_IDS[k] === geckoId) || coin
     const res = await fetch(`/api/momentum?coins=${ticker}`)
-    const data = await res.json()
-    const change24h = data?.[ticker]?.change24h || 0
-    momentumCache[coin] = { change24h, fetchedAt: Date.now() }
-    return change24h
-  } catch {
-    return 0
+    if (res.ok) {
+      const data = await res.json()
+      const change24h = data?.[ticker]?.change24h
+      if (typeof change24h === 'number') {
+        momentumCache[coin] = { change24h, fetchedAt: Date.now() }
+        return change24h
+      }
+    }
+  } catch {}
+
+  // Layer 2: Our own price_history table
+  console.warn(`CoinGecko failed for ${coin}, trying price_history`)
+  const historyChange = await get24hMomentumFromHistory(coin)
+  if (historyChange !== null) {
+    momentumCache[coin] = { change24h: historyChange, fetchedAt: Date.now() }
+    return historyChange
   }
+
+  // Layer 3: Hardcoded bias fallback
+  console.warn(`price_history failed for ${coin}, using hardcoded bias`)
+  const bias = MOMENTUM_BIAS[coin] || 0
+  momentumCache[coin] = { change24h: bias, fetchedAt: Date.now() }
+  return bias
 }
 
 // Apply house margin to raw probabilities

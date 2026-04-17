@@ -2195,27 +2195,17 @@ export default function PredaLandingDashboardMockup() {
       // Total combo odds = multiply all individual odds together
       const comboOdds = slipSelections.reduce((acc, s) => acc * s.oddsAtPick, 1)
 
-      // Guaranteed odds floor per leg
+      // Gap 1 fix: lock engine odds at bet time (fixed odds model)
+      // guaranteed_odds = the displayed engine odds at moment of bet
+      // Settlement cron pays at least this amount regardless of pool
       const now = Date.now()
 
       // Insert tickets — all linked by combo_id if combo
       for (const selection of slipSelections) {
         const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
 
-        // Get battle times for guaranteed odds calculation
-        const { data: battleInfo } = await supabase
-          .from('battles')
-          .select('start_time, end_time')
-          .eq('id', selection.matchId)
-          .single()
-
-        let guaranteedOdds = 1.50
-        if (battleInfo) {
-          const battleStart = new Date(battleInfo.start_time).getTime()
-          const battleEnd = new Date(battleInfo.end_time).getTime()
-          const timeProgress = Math.min(1, (now - battleStart) / (battleEnd - battleStart))
-          guaranteedOdds = Math.max(1.01, 1.50 - timeProgress * 0.49)
-        }
+        // Lock the displayed odds as the guaranteed payout
+        const guaranteedOdds = isCombo ? comboOdds : selection.oddsAtPick
 
         await supabase.from('tickets').insert({
           battle_id: selection.matchId,

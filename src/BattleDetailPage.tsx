@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from './lib/supabase'
 import { createBetShare } from './utils/betShare'
+import { getStartingOdds, getInPlayOdds, OddsResult } from './services/oddsEngine'
 import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
 
@@ -57,6 +58,8 @@ export default function BattleDetailPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareCode, setShareCode] = useState('')
   const [lastBet, setLastBet] = useState<{side: number, odds: number, stake: number} | null>(null)
+  const [engineOdds, setEngineOdds] = useState<OddsResult | null>(null)
+  const [baseOdds, setBaseOdds] = useState<OddsResult | null>(null)
   const [searchParams] = useSearchParams()
 
   useEffect(() => {
@@ -94,6 +97,13 @@ export default function BattleDetailPage() {
   async function fetchBattle() {
     const { data } = await supabase.from('battles').select('*').eq('id', id).single()
     setBattle(data)
+    if (data && !baseOdds) {
+      try {
+        const base = await getStartingOdds(data.coin_a, data.coin_b)
+        setBaseOdds(base)
+        setEngineOdds(base)
+      } catch(e) { console.error('Engine odds error:', e) }
+    }
   }
 
   async function fetchChart() {
@@ -121,6 +131,26 @@ export default function BattleDetailPage() {
 
     const merged = Object.values(timeMap).sort((a, b) => a.fullTime > b.fullTime ? 1 : -1)
     setChartData(merged)
+
+    // Update engine in-play odds with latest prices
+    if (bat && baseOdds) {
+      try {
+        const latestA = histA && histA.length > 0 ? histA[histA.length - 1].price : bat.start_price_a
+        const latestB = histB && histB.length > 0 ? histB[histB.length - 1].price : bat.start_price_b
+        const inPlay = getInPlayOdds(
+          bat.coin_a, bat.coin_b,
+          latestA, latestB,
+          bat.start_price_a, bat.start_price_b,
+          new Date(bat.start_time).getTime(),
+          new Date(bat.end_time).getTime(),
+          baseOdds,
+          bat.side_a_pool || 0,
+          bat.side_b_pool || 0,
+          bat.draw_pool || 0
+        )
+        setEngineOdds(inPlay)
+      } catch(e) { console.error('In-play odds error:', e) }
+    }
   }
 
   async function fetchUserBalance() {
@@ -156,14 +186,15 @@ export default function BattleDetailPage() {
           ? (battle.side_b_pool || 0) + stakeUSD
           : (battle.draw_pool || 0) + stakeUSD
 
-      const odds = totalPool === 0 || sidePool === 0 ? 2.0 : Math.round((totalPool / sidePool) * 100) / 100
+      // Gap 1 fix: lock engine odds at bet time (fixed odds model)
+      // User is guaranteed these exact odds regardless of pool size
+      // Treasury covers any shortfall at settlement
+      const lockedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
+      const odds = lockedOdds
 
-      // Guaranteed odds floor
-      const battleEnd = new Date(battle.end_time).getTime()
-      const battleStart = new Date(battle.start_time).getTime()
-      const timeProgress = Math.min(1, (Date.now() - battleStart) / (battleEnd - battleStart))
-      const guaranteedOdds = Math.max(1.01, 1.50 - timeProgress * 0.49)
-      const guaranteedPayout = stakeUSD * guaranteedOdds
+      // Guaranteed payout = stake × locked odds (fixed, not estimated)
+      const guaranteedOdds = lockedOdds
+      const guaranteedPayout = stakeUSD * lockedOdds
 
       await supabase.from('tickets').insert({
         battle_id: battle.id,
@@ -231,9 +262,10 @@ export default function BattleDetailPage() {
   const leadingCoin = latestA > latestB ? battle.coin_a : latestB > latestA ? battle.coin_b : null
 
   const totalPool = battle.total_pool || 0
-  const oddsA = totalPool === 0 || !battle.side_a_pool ? 2.0 : Math.round((totalPool / battle.side_a_pool) * 100) / 100
-  const oddsB = totalPool === 0 || !battle.side_b_pool ? 2.0 : Math.round((totalPool / battle.side_b_pool) * 100) / 100
-  const oddsDraw = totalPool === 0 || !battle.draw_pool ? 2.0 : Math.round((totalPool / battle.draw_pool) * 100) / 100
+  // Gap 2 fix: use engine odds (same source as main cards), fallback to pool ratio
+  const oddsA = engineOdds?.oddsA ?? (totalPool === 0 || !battle.side_a_pool ? 2.0 : Math.round((totalPool / battle.side_a_pool) * 100) / 100)
+  const oddsB = engineOdds?.oddsB ?? (totalPool === 0 || !battle.side_b_pool ? 2.0 : Math.round((totalPool / battle.side_b_pool) * 100) / 100)
+  const oddsDraw = engineOdds?.oddsDraw ?? (totalPool === 0 || !battle.draw_pool ? 2.0 : Math.round((totalPool / battle.draw_pool) * 100) / 100)
 
   const now = Date.now()
   const battleEndTime = battle ? new Date(battle.end_time).getTime() : 0
