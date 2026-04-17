@@ -1165,14 +1165,14 @@ function MarketCard({
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-sm">
+          <div className="flex gap-2 text-sm">
 {match.pool > 0 && <StatBox label="Pool" value={`$${match.pool.toLocaleString()}`} />}
             <StatBox label="Entries" value={String(match.entries)} />
             <StatBox label="Timer" value={isSettling ? "🔒" : match.timer} />
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2">
           <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
             <SelectionButton active={selectedSide === "left"} label={match.left.ticker} odds={match.left.odds} meta={match.left.change} ticker={match.left.ticker} />
           </button>
@@ -1252,7 +1252,7 @@ function SlipDrawer({
     <motion.aside
       animate={{ x: open ? 0 : 420, opacity: open ? 1 : 0.96 }}
       transition={{ type: "spring", stiffness: 280, damping: 28 }}
-      className="fixed bottom-20 right-5 top-[92px] z-[45] w-[380px] overflow-hidden rounded-[30px] border bg-[#0b110b] shadow-2xl"
+      className="fixed bottom-0 right-0 left-0 top-auto z-[45] w-full overflow-hidden rounded-t-[30px] border-t border-l border-r bg-[#0b110b] shadow-2xl lg:bottom-20 lg:right-5 lg:left-auto lg:top-[92px] lg:w-[380px] lg:rounded-[30px] lg:border"
       style={{ borderColor: COLORS.lineStrong }}
     >
       <div className="flex h-full flex-col">
@@ -1379,14 +1379,39 @@ function BottomNav({
   onNavigate: (path: string) => void;
   onOpenSlip: () => void;
 }) {
+  const location = useLocation()
+  const path = location.pathname
+
+  const items = [
+    { label: 'Home', icon: '⚔️', route: '/' },
+    { label: 'Running', icon: '🎯', route: '/running' },
+    { label: 'Slip', icon: '📋', route: '__slip__' },
+    { label: 'History', icon: '📊', route: '/history' },
+    { label: 'News', icon: '📰', route: '/news' },
+  ]
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-black/95 px-2 py-2 backdrop-blur lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
-      <div className="flex items-center justify-around text-xs text-white">
-        <button onClick={() => onNavigate("/profile")} className="px-2 py-2">Profile</button>
-        <button onClick={onOpenSlip} className="px-2 py-2">Betslip</button>
-        <button onClick={() => onNavigate("/running")} className="px-2 py-2">Running</button>
-        <button onClick={() => onNavigate("/history")} className="px-2 py-2">History</button>
-        <button onClick={() => onNavigate("/")} className="px-2 py-2">Home</button>
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur lg:hidden"
+      style={{ borderColor: COLORS.lineStrong, background: 'rgba(6,10,18,0.97)' }}>
+      <div className="flex items-center justify-around px-1 py-1 pb-safe">
+        {items.map(item => {
+          const isActive = item.route === '__slip__' ? false : path === item.route
+          return (
+            <button
+              key={item.label}
+              onClick={() => item.route === '__slip__' ? onOpenSlip() : onNavigate(item.route)}
+              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
+              style={{
+                color: isActive ? COLORS.accent : 'rgba(255,255,255,0.45)',
+                background: isActive ? 'rgba(0,240,255,0.08)' : 'transparent',
+                minWidth: 56,
+              }}
+            >
+              <span className="text-lg leading-none">{item.icon}</span>
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   );
@@ -2300,7 +2325,7 @@ export default function PredaLandingDashboardMockup() {
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
       <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} />
 
-      <div className={cx("transition-all duration-300", sidebarExpanded ? "lg:pl-[280px]" : "lg:pl-[86px]", "pt-[68px] pb-[72px] lg:pt-[72px] lg:pb-0")}>
+      <div className={cx("transition-all duration-300", sidebarExpanded ? "lg:pl-[280px]" : "lg:pl-[86px]", "pt-[60px] pb-[80px] lg:pt-[72px] lg:pb-0")}>
         <Showboard onNavigate={(path) => navigate(path)} />
 
         <main className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
