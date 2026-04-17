@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BattleDetailPage from "./BattleDetailPage";
 import NewsPage from "./NewsPage";
 import BetSharePage from "./BetSharePage";
+import AdminPage from "./AdminPage";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/battle/:id" element={<BattleDetailPage />} />
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/bet/:code" element={<BetSharePage />} />
+                <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<PredaLandingDashboardMockup />} />
               </Routes>
             </BrowserRouter>
