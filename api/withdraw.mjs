@@ -21,6 +21,11 @@ export default async function handler(req, res) {
   }
 
   const { wallet_address, amount_lamports } = req.body
+  
+  // 1% withdrawal fee — user requests X lamports, receives 99%, platform keeps 1% in vault
+  const WITHDRAWAL_FEE = 0.01
+  const feeAmount = Math.floor(amount_lamports * WITHDRAWAL_FEE)
+  const netAmount = amount_lamports - feeAmount
 
   if (!wallet_address || !amount_lamports) {
     return res.status(400).json({ error: 'Missing wallet_address or amount_lamports' })
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
 
     // Check vault has enough SOL
     const vaultBalance = await connection.getBalance(vaultPda)
-    if (vaultBalance < amount_lamports) {
+    if (vaultBalance < netAmount) {
       return res.status(400).json({ error: 'Vault has insufficient funds' })
     }
 
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
       SystemProgram.transfer({
         fromPubkey: vaultKeypair.publicKey,
         toPubkey: userPubkey,
-        lamports: amount_lamports,
+        lamports: netAmount, // user receives 99% of requested amount
       })
     )
 
