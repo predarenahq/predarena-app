@@ -2198,8 +2198,6 @@ export default function PredaLandingDashboardMockup() {
       // Gap 1 fix: lock engine odds at bet time (fixed odds model)
       // guaranteed_odds = the displayed engine odds at moment of bet
       // Settlement cron pays at least this amount regardless of pool
-      const now = Date.now()
-
       // Insert tickets — all linked by combo_id if combo
       for (const selection of slipSelections) {
         const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
