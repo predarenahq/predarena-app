@@ -66,10 +66,6 @@ function App() {
           accentColor: "#00d4ff",
           walletList: ["phantom", "solflare", "coinbase_wallet", "detected_solana_wallets"],
         },
-        embeddedWallets: {
-          createOnLogin: "users-without-wallets",
-          noPromptOnSignature: true,
-        },
         solanaClusters: [{ name: "devnet", rpcUrl: "https://api.devnet.solana.com" }],
       }}
     >
