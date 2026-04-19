@@ -7,7 +7,14 @@ import AdminPage from "./AdminPage";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  CoinbaseWalletAdapter,
+  TrustWalletAdapter,
+  TorusWalletAdapter,
+  LedgerWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { clusterApiUrl } from "@solana/web3.js";
 import PredaLandingDashboardMockup from "./PredaLandingDashboardMockup";
@@ -18,7 +25,14 @@ function App() {
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new CoinbaseWalletAdapter(),
+      new TrustWalletAdapter(),
+      new TorusWalletAdapter(),
+      new LedgerWalletAdapter(),
+    ],
     []
   );
 
@@ -46,15 +60,21 @@ function App() {
     <PrivyProvider
       appId={privyAppId}
       config={{
-        loginMethods: ["wallet"],
+        loginMethods: ["wallet", "email"],
         appearance: {
           theme: "dark",
           accentColor: "#00d4ff",
+          walletList: ["phantom", "solflare", "coinbase_wallet", "detected_solana_wallets"],
         },
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets",
+          noPromptOnSignature: true,
+        },
+        solanaClusters: [{ name: "devnet", rpcUrl: "https://api.devnet.solana.com" }],
       }}
     >
       <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider wallets={wallets} autoConnect={false}>
+        <WalletProvider wallets={wallets} autoConnect={true}>
           <WalletModalProvider>
             <BrowserRouter>
               <Routes>

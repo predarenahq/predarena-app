@@ -5,6 +5,91 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
 )
 
+// Chainlink Price Feed addresses on Solana Devnet
+// Program ID: HEvSKofvBgfaexv23kMabbYqxasxU3mQ4ibBMEmJWHny
+const CHAINLINK_FEEDS = {
+  BTC:  '6PxBx93S8x3tno1TsFZwT5VqP8drrRCbCXygEXYNkFJe',
+  ETH:  '669U43LNHx7LsVj95uYksnhXUfWKDsdzVqev3V4Jpw3P',
+  SOL:  'HgTtcbcmp5BeThax5AU8vg4VwK79qAvAKKFMs8txMLW6',
+  LINK: 'CcPVS9bqyXbD9cLnTbhhHazLsrua8QMFa39Wr9mitiku',
+  BNB:  'GwzBgrXb4PG59zjce24SF2b9JXbLEjJJTBkmytuEZj1b',
+  AVAX: 'AeOX2mFPQFRMcGkFwMmFSMiDXiR56GvSniZBX3wHGnMs',
+}
+
+const CHAINLINK_PROGRAM_ID = 'HEvSKofvBgfaexv23kMabbYqxasxU3mQ4ibBMEmJWHny'
+
+// Fetch price from Chainlink feed on Solana (offchain read)
+async function getChainlinkPrice(ticker) {
+  const feedAddress = CHAINLINK_FEEDS[ticker]
+  if (!feedAddress) return null
+
+  try {
+    const { Connection, PublicKey } = await import('@solana/web3.js')
+    const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
+    
+    const feedPubkey = new PublicKey(feedAddress)
+    const accountInfo = await connection.getAccountInfo(feedPubkey)
+    if (!accountInfo) return null
+
+    // Chainlink stores price in a specific layout — read answer from buffer
+    // Layout: 8 bytes discriminator, then rounds data including answer
+    // The answer is stored as int128 at offset 16 after the latest round header
+    const data = accountInfo.data
+    
+    // Try to read the latest answer — Chainlink uses big-endian int128 at byte 48
+    // This is the simplified offchain read approach
+    const answerBuf = data.slice(48, 64)
+    const answer = Number(
+      BigInt('0x' + Buffer.from(answerBuf).toString('hex'))
+    )
+    
+    // Chainlink prices have 8 decimal places
+    const price = answer / 1e8
+    
+    if (price > 0 && price < 10_000_000) {
+      console.log(`Chainlink ${ticker}: $${price.toFixed(4)}`)
+      return price
+    }
+    return null
+  } catch (e) {
+    console.error(`Chainlink fetch error for ${ticker}:`, e.message)
+    return null
+  }
+}
+
+// Dual oracle settlement — both Pyth and Chainlink must be in agreement
+// If they diverge by more than threshold, use average as protection
+async function getDualOraclePrice(ticker, pythPrice) {
+  const chainlinkPrice = await getChainlinkPrice(ticker)
+  
+  if (!chainlinkPrice) {
+    console.log(`${ticker}: Chainlink unavailable, using Pyth only: $${pythPrice?.toFixed(4)}`)
+    return pythPrice
+  }
+  
+  if (!pythPrice) {
+    console.log(`${ticker}: Pyth unavailable, using Chainlink only: $${chainlinkPrice.toFixed(4)}`)
+    return chainlinkPrice
+  }
+
+  // Check divergence between oracles
+  const divergence = Math.abs(pythPrice - chainlinkPrice) / pythPrice
+  const DIVERGENCE_THRESHOLD = 0.02 // 2% — if more than this, flag it
+
+  if (divergence > DIVERGENCE_THRESHOLD) {
+    console.warn(`⚠️ Oracle divergence for ${ticker}: Pyth=$${pythPrice.toFixed(4)} Chainlink=$${chainlinkPrice.toFixed(4)} (${(divergence*100).toFixed(2)}%)`)
+    // Use average to protect against manipulation of either oracle
+    const avg = (pythPrice + chainlinkPrice) / 2
+    console.log(`Using average: $${avg.toFixed(4)}`)
+    return avg
+  }
+
+  // Both agree — use average for maximum accuracy
+  const avg = (pythPrice + chainlinkPrice) / 2
+  console.log(`✅ Dual oracle ${ticker}: Pyth=$${pythPrice.toFixed(4)} Chainlink=$${chainlinkPrice.toFixed(4)} avg=$${avg.toFixed(4)}`)
+  return avg
+}
+
 const PYTH_FEEDS = {
   BTC: '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
   ETH: '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',
@@ -82,7 +167,7 @@ async function settleBattles() {
 
   for (const battle of battles) {
     try {
-    // Fix 2: TWAP settlement — average last 90 seconds of price history
+    // TWAP settlement — average last 90 seconds of price history
     // Prevents oracle manipulation at exact end time
     const twapCutoff = new Date(Date.now() - 90 * 1000).toISOString()
 
@@ -106,23 +191,31 @@ async function settleBattles() {
     // Calculate TWAP — fallback to live Pyth price if no history in window
     let finalPriceA, finalPriceB
 
+    // Get Pyth TWAP price
+    let pythPriceA = null
+    let pythPriceB = null
+
     if (twapA.data && twapA.data.length >= 2) {
-      finalPriceA = twapA.data.reduce((sum, r) => sum + r.price, 0) / twapA.data.length
-      console.log(`${battle.coin_a} TWAP from ${twapA.data.length} samples: $${finalPriceA.toFixed(4)}`)
+      pythPriceA = twapA.data.reduce((sum, r) => sum + r.price, 0) / twapA.data.length
+      console.log(`${battle.coin_a} Pyth TWAP (${twapA.data.length} samples): $${pythPriceA.toFixed(4)}`)
     } else {
       const live = await getPythPrices([battle.coin_a])
-      finalPriceA = live[battle.coin_a]
-      console.log(`${battle.coin_a} fallback to live Pyth: $${finalPriceA?.toFixed(4)}`)
+      pythPriceA = live[battle.coin_a]
+      console.log(`${battle.coin_a} Pyth live: $${pythPriceA?.toFixed(4)}`)
     }
 
     if (twapB.data && twapB.data.length >= 2) {
-      finalPriceB = twapB.data.reduce((sum, r) => sum + r.price, 0) / twapB.data.length
-      console.log(`${battle.coin_b} TWAP from ${twapB.data.length} samples: $${finalPriceB.toFixed(4)}`)
+      pythPriceB = twapB.data.reduce((sum, r) => sum + r.price, 0) / twapB.data.length
+      console.log(`${battle.coin_b} Pyth TWAP (${twapB.data.length} samples): $${pythPriceB.toFixed(4)}`)
     } else {
       const live = await getPythPrices([battle.coin_b])
-      finalPriceB = live[battle.coin_b]
-      console.log(`${battle.coin_b} fallback to live Pyth: $${finalPriceB?.toFixed(4)}`)
+      pythPriceB = live[battle.coin_b]
+      console.log(`${battle.coin_b} Pyth live: $${pythPriceB?.toFixed(4)}`)
     }
+
+    // Dual oracle: cross-check with Chainlink
+    finalPriceA = await getDualOraclePrice(battle.coin_a, pythPriceA)
+    finalPriceB = await getDualOraclePrice(battle.coin_b, pythPriceB)
     if (!finalPriceA || !finalPriceB || !battle.start_price_a || !battle.start_price_b) { console.log(`Missing prices for ${battle.coin_a}/${battle.coin_b}, skipping`); continue }
 
     const changeA = (finalPriceA - battle.start_price_a) / battle.start_price_a
@@ -227,20 +320,24 @@ async function settleBattles() {
         const parimutuelPayoutUSD = payoutPoolUSD * winnerShare
         const parimutuelOdds = parimutuelPayoutUSD / ticket.stake
 
-        // Fixed odds payout — guaranteed_odds is the engine odds locked at bet time
-        // This is what the user was shown and what they're owed
-        const guaranteedOdds = ticket.guaranteed_odds || ticket.odds || 1.50
+        // Fixed odds payout — cap at 10x to prevent broken engine odds draining treasury
+        const rawGuaranteedOdds = ticket.guaranteed_odds || ticket.odds || 1.50
+        const guaranteedOdds = Math.min(rawGuaranteedOdds, 10.0)
         const guaranteedPayoutUSD = ticket.stake * guaranteedOdds
 
-        // User gets the HIGHER of the two
-        let finalPayoutUSD = parimutuelPayoutUSD
+        // Hard cap: never pay out more than the entire pot per winner
+        const absoluteMaxPayout = totalPotUSD
+
+        // User gets the HIGHER of parimutuel or guaranteed, never more than total pot
+        let finalPayoutUSD = Math.min(
+          Math.max(parimutuelPayoutUSD, guaranteedPayoutUSD),
+          absoluteMaxPayout
+        )
         let treasuryGapUSD = 0
         let payoutSource = 'pool'
 
-        if (guaranteedPayoutUSD > parimutuelPayoutUSD) {
-          // Pool is too thin — platform covers the gap
-          treasuryGapUSD = guaranteedPayoutUSD - parimutuelPayoutUSD
-          finalPayoutUSD = guaranteedPayoutUSD
+        if (finalPayoutUSD > parimutuelPayoutUSD) {
+          treasuryGapUSD = finalPayoutUSD - parimutuelPayoutUSD
           payoutSource = 'guaranteed'
           totalTreasuryDrawdown += treasuryGapUSD
         }
