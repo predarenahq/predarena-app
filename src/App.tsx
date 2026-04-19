@@ -66,7 +66,7 @@ function App() {
           accentColor: "#00d4ff",
           walletList: ["phantom", "solflare", "coinbase_wallet", "detected_solana_wallets"],
         },
-        solanaClusters: [{ name: "devnet", rpcUrl: "https://api.devnet.solana.com" }],
+
       }}
     >
       <ConnectionProvider endpoint={endpoint}>
