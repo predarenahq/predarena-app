@@ -8,7 +8,7 @@ import { getStartingOdds, getInPlayOdds, OddsResult } from './services/oddsEngin
 import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWallets } from '@privy-io/react-auth'
-import { useArcArena, ArcBattle } from './arc/useArcArena'
+import { useArcArena } from './arc/useArcArena'
 import { ArcSide } from './arc/contracts'
 
 const COLORS = {
@@ -75,9 +75,9 @@ export default function BattleDetailPage() {
   const {
     placeBet: arcPlaceBet,
     getArenaBalance,
-    getUSDCBalance,
+    
     loading: arcLoading,
-    error: arcError,
+    
   } = useArcArena()
 
   // EVM wallet from Privy
@@ -327,13 +327,12 @@ export default function BattleDetailPage() {
   const isClosed = battle?.status === 'settled' || isSettling
 
   const stakeUSD = parseFloat(stake) || 0
-  const stakeLamports = Math.floor((stakeUSD / solPrice) * 1_000_000_000)
   const selectedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
   const potentialWin = (stakeUSD * selectedOdds).toFixed(2)
   const balanceUSD = (userBalance / 1_000_000_000 * solPrice).toFixed(2)
 
   const isArc = chain === 'arc'
-  const isBetting = isArc ? arcLoading : loading
+  
 
   return (
     <div className="min-h-screen" style={{ background: COLORS.bg }}>
