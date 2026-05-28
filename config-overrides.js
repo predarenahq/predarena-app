@@ -37,5 +37,11 @@ module.exports = function override(config) {
     }),
   ];
 
+  // Suppress "Critical dependency" warnings from third-party libs
+  // These are dynamic require() calls that webpack can't statically analyze
+  config.ignoreWarnings = [
+    /Critical dependency: the request of a dependency is an expression/,
+  ];
+
   return config;
 };
