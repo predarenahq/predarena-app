@@ -7,6 +7,9 @@ import { createBetShare } from './utils/betShare'
 import { getStartingOdds, getInPlayOdds, OddsResult } from './services/oddsEngine'
 import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { useWallets } from '@privy-io/react-auth'
+import { useArcArena, ArcBattle } from './arc/useArcArena'
+import { ArcSide } from './arc/contracts'
 
 const COLORS = {
   bg: '#060d14',
@@ -19,6 +22,7 @@ const COLORS = {
   coinB: '#a78bfa',
   green: '#10b981',
   red: '#f43f5e',
+  arc: '#7c3aed',
 }
 
 function formatTime(iso: string): string {
@@ -46,6 +50,10 @@ export default function BattleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { publicKey, connected } = useWallet()
+  const { wallets } = useWallets()
+
+  // ── Chain selector: 'solana' | 'arc' ────────────────────────────────────────
+  const [chain, setChain] = useState<'solana' | 'arc'>('solana')
 
   const [battle, setBattle] = useState<any>(null)
   const [chartData, setChartData] = useState<any[]>([])
@@ -54,6 +62,7 @@ export default function BattleDetailPage() {
   const [stake, setStake] = useState('')
   const [loading, setLoading] = useState(false)
   const [userBalance, setUserBalance] = useState(0)
+  const [arcUSDCBalance, setArcUSDCBalance] = useState<string>('0.00')
   const [solPrice, setSolPrice] = useState(150)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareCode, setShareCode] = useState('')
@@ -62,12 +71,22 @@ export default function BattleDetailPage() {
   const [baseOdds, setBaseOdds] = useState<OddsResult | null>(null)
   const [searchParams] = useSearchParams()
 
-  useEffect(() => {
-    // Pre-fill from share code if coming from a shared bet
-    const sharedSide = searchParams.get('side')
-    // const sharedOdds = searchParams.get('odds') // reserved for future use
-    if (sharedSide) setSelectedSide(Number(sharedSide))
+  // ── Arc hook ─────────────────────────────────────────────────────────────────
+  const {
+    placeBet: arcPlaceBet,
+    getArenaBalance,
+    getUSDCBalance,
+    loading: arcLoading,
+    error: arcError,
+  } = useArcArena()
 
+  // EVM wallet from Privy
+  const evmWallet = wallets.find(w => w.chainId?.startsWith('eip155:'))
+  const arcConnected = !!evmWallet
+
+  useEffect(() => {
+    const sharedSide = searchParams.get('side')
+    if (sharedSide) setSelectedSide(Number(sharedSide))
     fetchBattle()
     fetchChart()
     const chartInterval = setInterval(fetchChart, 30000)
@@ -93,6 +112,16 @@ export default function BattleDetailPage() {
     if (connected && publicKey) fetchUserBalance()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, publicKey])
+
+  // Fetch Arc USDC balance when Arc chain is selected
+  useEffect(() => {
+    if (chain === 'arc' && evmWallet?.address) {
+      getArenaBalance(evmWallet.address as `0x${string}`)
+        .then(setArcUSDCBalance)
+        .catch(console.error)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chain, evmWallet?.address])
 
   async function fetchBattle() {
     const { data } = await supabase.from('battles').select('*').eq('id', id).single()
@@ -132,7 +161,6 @@ export default function BattleDetailPage() {
     const merged = Object.values(timeMap).sort((a, b) => a.fullTime > b.fullTime ? 1 : -1)
     setChartData(merged)
 
-    // Update engine in-play odds with latest prices
     if (bat && baseOdds) {
       try {
         const latestA = histA && histA.length > 0 ? histA[histA.length - 1].price : bat.start_price_a
@@ -157,7 +185,6 @@ export default function BattleDetailPage() {
     const walletAddr = publicKey!.toBase58()
     const { data } = await supabase.from('user_balances').select('balance_lamports').eq('wallet_address', walletAddr).single()
     if (data) setUserBalance(data.balance_lamports)
-    // Get SOL price
     try {
       const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
       const json = await res.json()
@@ -166,14 +193,16 @@ export default function BattleDetailPage() {
     } catch {}
   }
 
+  // ── Solana bet handler (unchanged) ──────────────────────────────────────────
   async function handlePlaceBet() {
     if (!connected || !publicKey || !selectedSide || !stake || !battle) return
     setLoading(true)
     try {
       const stakeUSD = parseFloat(stake)
-        const walletAddr = publicKey.toBase58()
+      const walletAddr = publicKey.toBase58()
 
       const { data: balData } = await supabase.from('user_balances').select('balance_lamports').eq('wallet_address', walletAddr).single()
+      const stakeLamports = Math.floor((stakeUSD / solPrice) * 1_000_000_000)
       if (!balData || balData.balance_lamports < stakeLamports) {
         alert('Insufficient balance')
         return
@@ -186,14 +215,7 @@ export default function BattleDetailPage() {
           ? (battle.side_b_pool || 0) + stakeUSD
           : (battle.draw_pool || 0) + stakeUSD
 
-      // Gap 1 fix: lock engine odds at bet time (fixed odds model)
-      // User is guaranteed these exact odds regardless of pool size
-      // Treasury covers any shortfall at settlement
       const lockedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
-      const odds = lockedOdds
-
-      // Guaranteed payout = stake × locked odds (fixed, not estimated)
-      const guaranteedOdds = lockedOdds
       const guaranteedPayout = stakeUSD * lockedOdds
 
       await supabase.from('tickets').insert({
@@ -201,8 +223,8 @@ export default function BattleDetailPage() {
         wallet_address: walletAddr,
         side: selectedSide,
         stake: stakeUSD,
-        odds,
-        guaranteed_odds: Math.round(guaranteedOdds * 100) / 100,
+        odds: lockedOdds,
+        guaranteed_odds: Math.round(lockedOdds * 100) / 100,
         guaranteed_payout: Math.round(guaranteedPayout * 100) / 100,
         claimed: false,
       })
@@ -212,18 +234,12 @@ export default function BattleDetailPage() {
         updated_at: new Date().toISOString(),
       }).eq('wallet_address', walletAddr)
 
-      const updateData: any = {
-        total_pool: totalPool,
-        updated_at: new Date().toISOString(),
-      }
+      const updateData: any = { total_pool: totalPool, updated_at: new Date().toISOString() }
       if (selectedSide === 1) updateData.side_a_pool = sidePool
       else if (selectedSide === 2) updateData.side_b_pool = sidePool
       else updateData.draw_pool = sidePool
-
       await supabase.from('battles').update(updateData).eq('id', battle.id)
 
-      // Create share code
-      const walletAddr2 = publicKey!.toBase58()
       try {
         const code = await createBetShare({
           battleId: battle.id,
@@ -233,7 +249,7 @@ export default function BattleDetailPage() {
           coinB: battle.coin_b,
           league: battle.league,
           duration: battle.duration,
-          createdBy: walletAddr2,
+          createdBy: walletAddr,
         })
         setShareCode(code)
         setLastBet({ side: selectedSide!, odds: selectedOdds, stake: stakeUSD })
@@ -251,6 +267,45 @@ export default function BattleDetailPage() {
     }
   }
 
+  // ── Arc bet handler ──────────────────────────────────────────────────────────
+  async function handlePlaceBetArc() {
+    if (!selectedSide || !stake || !battle) return
+    try {
+      // Map UI side (1/2/3) to Solidity enum (CoinA/CoinB/Draw)
+      const sideMap: Record<number, ArcSide> = {
+        1: ArcSide.CoinA,
+        2: ArcSide.CoinB,
+        3: ArcSide.Draw,
+      }
+      const arcSide = sideMap[selectedSide]
+
+      // Convert odds to ODDS_DECIMALS (1.76 → 17600)
+      const oddsScaled = BigInt(Math.round(selectedOdds * 10_000))
+
+      const receipt = await arcPlaceBet(
+        BigInt(battle.id),
+        arcSide,
+        stake,           // USDC amount as string e.g. "10.00"
+        oddsScaled,
+      )
+
+      setLastBet({ side: selectedSide!, odds: selectedOdds, stake: parseFloat(stake) })
+      setShareModalOpen(false)
+      setStake('')
+      setSelectedSide(null)
+
+      // Refresh Arc balance
+      if (evmWallet?.address) {
+        const newBal = await getArenaBalance(evmWallet.address as `0x${string}`)
+        setArcUSDCBalance(newBal)
+      }
+
+      alert(`✅ Bet placed on Arc!\nTx: ${receipt.transactionHash.slice(0, 20)}...`)
+    } catch (e: any) {
+      alert('Arc bet failed: ' + (e.shortMessage || e.message))
+    }
+  }
+
   if (!battle) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: COLORS.bg }}>
       <p style={{ color: COLORS.textSoft }}>Loading battle...</p>
@@ -262,7 +317,6 @@ export default function BattleDetailPage() {
   const leadingCoin = latestA > latestB ? battle.coin_a : latestB > latestA ? battle.coin_b : null
 
   const totalPool = battle.total_pool || 0
-  // Gap 2 fix: use engine odds (same source as main cards), fallback to pool ratio
   const oddsA = engineOdds?.oddsA ?? (totalPool === 0 || !battle.side_a_pool ? 2.0 : Math.round((totalPool / battle.side_a_pool) * 100) / 100)
   const oddsB = engineOdds?.oddsB ?? (totalPool === 0 || !battle.side_b_pool ? 2.0 : Math.round((totalPool / battle.side_b_pool) * 100) / 100)
   const oddsDraw = engineOdds?.oddsDraw ?? (totalPool === 0 || !battle.draw_pool ? 2.0 : Math.round((totalPool / battle.draw_pool) * 100) / 100)
@@ -278,6 +332,9 @@ export default function BattleDetailPage() {
   const potentialWin = (stakeUSD * selectedOdds).toFixed(2)
   const balanceUSD = (userBalance / 1_000_000_000 * solPrice).toFixed(2)
 
+  const isArc = chain === 'arc'
+  const isBetting = isArc ? arcLoading : loading
+
   return (
     <div className="min-h-screen" style={{ background: COLORS.bg }}>
       {lastBet && <BetShareModal
@@ -290,6 +347,7 @@ export default function BattleDetailPage() {
         odds={lastBet.odds}
         stake={lastBet.stake}
       />}
+
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b" style={{ borderColor: COLORS.lineStrong }}>
         <button onClick={() => navigate('/')} className="p-2 rounded-xl" style={{ background: COLORS.panel }}>
@@ -345,7 +403,6 @@ export default function BattleDetailPage() {
               Powered by Pyth Network
             </span>
           </div>
-
           {chartData.length < 2 ? (
             <div className="h-64 flex flex-col items-center justify-center gap-2">
               <p style={{ color: COLORS.textSoft }}>Building chart history...</p>
@@ -400,8 +457,51 @@ export default function BattleDetailPage() {
         <div className="rounded-2xl p-5 space-y-4" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
           <div className="flex items-center justify-between">
             <h2 className="text-white font-semibold">Place Your Bet</h2>
-            {connected && <p className="text-xs" style={{ color: COLORS.textSoft }}>Balance: ${balanceUSD}</p>}
+            {/* Balance display */}
+            {isArc && arcConnected && (
+              <p className="text-xs" style={{ color: COLORS.textSoft }}>
+                Arena balance: <span style={{ color: COLORS.accent }}>${arcUSDCBalance} USDC</span>
+              </p>
+            )}
+            {!isArc && connected && (
+              <p className="text-xs" style={{ color: COLORS.textSoft }}>Balance: ${balanceUSD}</p>
+            )}
           </div>
+
+          {/* Chain selector */}
+          <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.lineStrong}` }}>
+            <button
+              onClick={() => setChain('solana')}
+              className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
+              style={{
+                background: !isArc ? 'rgba(0,240,255,0.15)' : 'transparent',
+                color: !isArc ? COLORS.accent : COLORS.textSoft,
+                border: !isArc ? `1px solid ${COLORS.accent}40` : '1px solid transparent',
+              }}
+            >
+              ◎ Solana
+            </button>
+            <button
+              onClick={() => setChain('arc')}
+              className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
+              style={{
+                background: isArc ? 'rgba(124,58,237,0.2)' : 'transparent',
+                color: isArc ? '#a78bfa' : COLORS.textSoft,
+                border: isArc ? '1px solid rgba(124,58,237,0.4)' : '1px solid transparent',
+              }}
+            >
+              ⬡ Arc · USDC
+            </button>
+          </div>
+
+          {/* Arc info banner */}
+          {isArc && (
+            <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)' }}>
+              <p style={{ color: '#a78bfa' }}>
+                ⬡ Betting on Arc — payouts settle in USDC on-chain. Sub-second finality.
+              </p>
+            </div>
+          )}
 
           {/* Side selection */}
           <div className="grid grid-cols-3 gap-3">
@@ -429,7 +529,7 @@ export default function BattleDetailPage() {
           <div className="flex gap-3">
             <input
               type="number"
-              placeholder="Stake in USD"
+              placeholder={isArc ? 'Stake in USDC' : 'Stake in USD'}
               value={stake}
               onChange={e => setStake(e.target.value)}
               className="flex-1 rounded-xl px-4 py-3 text-white outline-none text-sm"
@@ -439,13 +539,11 @@ export default function BattleDetailPage() {
               <div className="rounded-xl px-4 py-3 text-right" style={{ background: 'rgba(0,240,255,0.05)', border: `1px solid ${COLORS.accent}30` }}>
                 <p className="text-xs" style={{ color: COLORS.textSoft }}>Max Win</p>
                 <p className="font-bold" style={{ color: COLORS.accent }}>${potentialWin}</p>
-                <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>
-                  Min: ${(stakeUSD * Math.max(1.01, 1.50 - Math.min(1, (Date.now() - new Date(battle.start_time).getTime()) / (new Date(battle.end_time).getTime() - new Date(battle.start_time).getTime())) * 0.49)).toFixed(2)}
-                </p>
               </div>
             )}
           </div>
 
+          {/* Action area */}
           {isClosed ? (
             <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}>
               <p className="font-semibold" style={{ color: '#f43f5e' }}>
@@ -455,23 +553,42 @@ export default function BattleDetailPage() {
                 {isSettling ? 'Waiting for oracle confirmation' : 'Check History for results'}
               </p>
             </div>
-          ) : !connected ? (
-            <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.line}` }}>
-              <p style={{ color: COLORS.textSoft }}>Connect wallet to place a bet</p>
-            </div>
+          ) : isArc ? (
+            !arcConnected ? (
+              <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)' }}>
+                <p style={{ color: '#a78bfa' }}>Connect an EVM wallet (MetaMask) to bet on Arc</p>
+              </div>
+            ) : (
+              <button
+                onClick={handlePlaceBetArc}
+                disabled={arcLoading || !selectedSide || !stake}
+                className="w-full rounded-xl py-3 font-semibold"
+                style={{
+                  background: arcLoading || !selectedSide || !stake ? 'rgba(255,255,255,0.1)' : 'rgba(124,58,237,0.8)',
+                  color: arcLoading || !selectedSide || !stake ? COLORS.textSoft : 'white',
+                }}
+              >
+                {arcLoading ? 'Confirming on Arc...' : '⬡ Place Bet on Arc'}
+              </button>
+            )
           ) : (
-            <button
-              onClick={handlePlaceBet}
-              disabled={loading || !selectedSide || !stake}
-              className="w-full rounded-xl py-3 font-semibold text-black"
-              style={{ background: loading || !selectedSide || !stake ? 'rgba(255,255,255,0.1)' : COLORS.accent, color: loading || !selectedSide || !stake ? COLORS.textSoft : 'black' }}
-            >
-              {loading ? 'Placing...' : 'Place Bet'}
-            </button>
+            !connected ? (
+              <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.line}` }}>
+                <p style={{ color: COLORS.textSoft }}>Connect wallet to place a bet</p>
+              </div>
+            ) : (
+              <button
+                onClick={handlePlaceBet}
+                disabled={loading || !selectedSide || !stake}
+                className="w-full rounded-xl py-3 font-semibold text-black"
+                style={{ background: loading || !selectedSide || !stake ? 'rgba(255,255,255,0.1)' : COLORS.accent, color: loading || !selectedSide || !stake ? COLORS.textSoft : 'black' }}
+              >
+                {loading ? 'Placing...' : 'Place Bet'}
+              </button>
+            )
           )}
         </div>
       </div>
     </div>
   )
 }
-

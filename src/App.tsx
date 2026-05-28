@@ -19,9 +19,10 @@ import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { clusterApiUrl } from "@solana/web3.js";
 import PredaLandingDashboardMockup from "./PredaLandingDashboardMockup";
 import "@solana/wallet-adapter-react-ui/styles.css";
+import { arcTestnet } from "./arc/chain";
 
 function App() {
-  const network = WalletAdapterNetwork.Devnet;
+  const network  = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   const wallets = useMemo(
@@ -64,9 +65,19 @@ function App() {
         appearance: {
           theme: "dark",
           accentColor: "#00d4ff",
-          walletList: ["phantom", "solflare", "coinbase_wallet", "detected_solana_wallets"],
+          // Added EVM wallets alongside existing Solana wallets
+          walletList: [
+            "metamask",
+            "phantom",
+            "solflare",
+            "coinbase_wallet",
+            "detected_solana_wallets",
+            "detected_wallets",
+          ],
         },
-
+        // Arc testnet as the supported EVM chain
+        defaultChain: arcTestnet,
+        supportedChains: [arcTestnet],
       }}
     >
       <ConnectionProvider endpoint={endpoint}>
