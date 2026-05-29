@@ -7,7 +7,7 @@ import { createBetShare } from './utils/betShare'
 import { getStartingOdds, getInPlayOdds, OddsResult } from './services/oddsEngine'
 import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useWallets } from '@privy-io/react-auth'
+import { useWallets, usePrivy } from '@privy-io/react-auth'
 import { useArcArena } from './arc/useArcArena'
 import { ArcSide } from './arc/contracts'
 
@@ -51,6 +51,7 @@ export default function BattleDetailPage() {
   const navigate = useNavigate()
   const { publicKey, connected } = useWallet()
   const { wallets } = useWallets()
+  const { connectWallet } = usePrivy()
 
   // ── Chain selector: 'solana' | 'arc' ────────────────────────────────────────
   const [chain, setChain] = useState<'solana' | 'arc'>('solana')
@@ -556,7 +557,7 @@ export default function BattleDetailPage() {
           ) : isArc ? (
             !arcConnected ? (
               <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)' }}>
-                <p style={{ color: '#a78bfa' }}>Connect an EVM wallet (MetaMask) to bet on Arc</p>
+                <button onClick={() => connectWallet()} style={{ background: 'rgba(124,58,237,0.8)', color: 'white', border: 'none', borderRadius: 12, padding: '12px 0', width: '100%', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>Connect Wallet for Arc</button>
               </div>
             ) : (
               <button
