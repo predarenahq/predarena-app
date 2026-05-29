@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { createPublicClient, createWalletClient, http, privateKeyToAccount } from 'viem'
+import { ethers } from 'ethers'
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -8,44 +8,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
 )
 
-const arcTestnet = {
-  id: 5042002,
-  name: 'Arc Testnet',
-  nativeCurrency: { decimals: 6, name: 'USD Coin', symbol: 'USDC' },
-  rpcUrls: { default: { http: ['https://rpc.testnet.arc.network'] } },
-  blockExplorers: { default: { name: 'ArcScan', url: 'https://testnet.arcscan.app' } },
-}
-
-const PREDARENA_ADDRESS = '0xA6D45CA5DF71F064193Fcbb139252032D5950a9E'
+const ARC_RPC     = 'https://rpc.testnet.arc.network'
+const PREDARENA   = '0xA6D45CA5DF71F064193Fcbb139252032D5950a9E'
 
 const KEEPER_ABI = [
-  {
-    type: 'function', name: 'createBattle', stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'coinA',        type: 'string'  },
-      { name: 'coinB',        type: 'string'  },
-      { name: 'league',       type: 'string'  },
-      { name: 'duration',     type: 'string'  },
-      { name: 'startTime',    type: 'uint256' },
-      { name: 'endTime',      type: 'uint256' },
-      { name: 'startPriceA',  type: 'uint256' },
-      { name: 'startPriceB',  type: 'uint256' },
-    ],
-    outputs: [{ name: 'battleId', type: 'uint256' }],
-  },
-  {
-    type: 'function', name: 'settleBattle', stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'battleId',    type: 'uint256' },
-      { name: 'finalPriceA', type: 'uint256' },
-      { name: 'finalPriceB', type: 'uint256' },
-    ],
-    outputs: [],
-  },
-  {
-    type: 'function', name: 'nextBattleId', stateMutability: 'view',
-    inputs: [], outputs: [{ name: '', type: 'uint256' }],
-  },
+  'function createBattle(string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB) returns (uint256 battleId)',
+  'function settleBattle(uint256 battleId, uint256 finalPriceA, uint256 finalPriceB)',
+  'function nextBattleId() view returns (uint256)',
 ]
 
 const PYTH_FEEDS = {
@@ -64,108 +33,74 @@ const PYTH_FEEDS = {
   BONK: '0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419',
 }
 
-// Convert USD float to uint256 with 8 decimal places
-// e.g. 65000.5 → 6500050000000n
-function toContractPrice(usdPrice) {
-  return BigInt(Math.round(usdPrice * 1e8))
+// USD float → uint256 with 8 decimal places (e.g. 65000.5 → 6500050000000n)
+function toPrice(usd) {
+  return BigInt(Math.round(usd * 1e8))
 }
 
-// Fetch live Pyth prices for a list of tickers
 async function getPythPrices(tickers) {
   const results = {}
-  const valid = tickers.filter(t => PYTH_FEEDS[t])
-  await Promise.all(valid.map(async (ticker) => {
+  await Promise.all(tickers.filter(t => PYTH_FEEDS[t]).map(async (ticker) => {
     try {
-      const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${PYTH_FEEDS[ticker]}`
-      const res  = await fetch(url)
-      if (!res.ok) return
-      const data   = await res.json()
-      const parsed = data?.parsed?.[0]
-      if (!parsed) return
-      results[ticker] = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
-    } catch (err) {
-      console.error(`Pyth error for ${ticker}:`, err.message)
-    }
+      const res  = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${PYTH_FEEDS[ticker]}`)
+      const data = await res.json()
+      const p    = data?.parsed?.[0]
+      if (p) results[ticker] = Number(p.price.price) * Math.pow(10, p.price.expo)
+    } catch {}
   }))
   return results
 }
 
 // ── Create Arc battles ────────────────────────────────────────────────────────
-// Mirrors Supabase 'live' battles onto the Arc contract.
-// Skips battles that already have an arc_battle_id or have already ended.
 
-async function createArcBattles(walletClient, publicClient, keeperAccount) {
+async function createArcBattles(contract) {
   const now = new Date().toISOString()
-
   const { data: battles } = await supabase
     .from('battles')
     .select('*')
     .is('arc_battle_id', null)
     .eq('status', 'live')
-    .gt('end_time', now)   // only battles still running
+    .gt('end_time', now)
 
   if (!battles?.length) return { created: 0 }
 
   let created = 0
-
-  for (const battle of battles) {
+  for (const b of battles) {
     try {
-      // Read nextBattleId — this will be the ID assigned to the new battle
-      const nextId = await publicClient.readContract({
-        address: PREDARENA_ADDRESS,
-        abi:     KEEPER_ABI,
-        functionName: 'nextBattleId',
-      })
+      const nextId    = await contract.nextBattleId()
+      const startTime = BigInt(Math.floor(new Date(b.start_time).getTime() / 1000))
+      const endTime   = BigInt(Math.floor(new Date(b.end_time).getTime() / 1000))
 
-      const startPriceA = toContractPrice(battle.start_price_a)
-      const startPriceB = toContractPrice(battle.start_price_b)
-      const startTime   = BigInt(Math.floor(new Date(battle.start_time).getTime() / 1000))
-      const endTime     = BigInt(Math.floor(new Date(battle.end_time).getTime() / 1000))
+      const tx = await contract.createBattle(
+        b.coin_a, b.coin_b,
+        b.league   || 'Major',
+        b.duration || '1h',
+        startTime, endTime,
+        toPrice(b.start_price_a),
+        toPrice(b.start_price_b)
+      )
+      await tx.wait()
 
-      const hash = await walletClient.writeContract({
-        address:      PREDARENA_ADDRESS,
-        abi:          KEEPER_ABI,
-        functionName: 'createBattle',
-        args: [
-          battle.coin_a,
-          battle.coin_b,
-          battle.league   || 'Major',
-          battle.duration || '1h',
-          startTime,
-          endTime,
-          startPriceA,
-          startPriceB,
-        ],
-        account: keeperAccount,
-      })
-
-      await publicClient.waitForTransactionReceipt({ hash })
-
-      // Store Arc battle ID back in Supabase
       await supabase.from('battles').update({
         arc_battle_id:     Number(nextId),
         arc_status:        'live',
-        arc_start_price_a: battle.start_price_a,
-        arc_start_price_b: battle.start_price_b,
-      }).eq('id', battle.id)
+        arc_start_price_a: b.start_price_a,
+        arc_start_price_b: b.start_price_b,
+      }).eq('id', b.id)
 
       created++
-      console.log(`✅ Arc battle ${nextId} created for ${battle.coin_a} vs ${battle.coin_b} (Supabase id: ${battle.id})`)
+      console.log(`✅ Arc battle ${nextId} created: ${b.coin_a} vs ${b.coin_b}`)
     } catch (err) {
-      console.error(`❌ Failed to create Arc battle for Supabase ${battle.id}:`, err.message)
+      console.error(`❌ Create failed for ${b.id}:`, err.message)
     }
   }
-
   return { created }
 }
 
 // ── Settle Arc battles ────────────────────────────────────────────────────────
-// Settles expired Arc battles using TWAP prices from price_history.
-// Falls back to live Pyth price if not enough history samples.
 
-async function settleArcBattles(walletClient, publicClient, keeperAccount) {
+async function settleArcBattles(contract) {
   const now = new Date().toISOString()
-
   const { data: battles } = await supabase
     .from('battles')
     .select('*')
@@ -175,60 +110,47 @@ async function settleArcBattles(walletClient, publicClient, keeperAccount) {
 
   if (!battles?.length) return { settled: 0 }
 
-  const tickers = [...new Set(battles.flatMap(b => [b.coin_a, b.coin_b]))]
+  const tickers    = [...new Set(battles.flatMap(b => [b.coin_a, b.coin_b]))]
   const livePrices = await getPythPrices(tickers)
 
   let settled = 0
-
-  for (const battle of battles) {
+  for (const b of battles) {
     try {
       const twapCutoff = new Date(Date.now() - 90 * 1000).toISOString()
-
       const [twapA, twapB] = await Promise.all([
-        supabase.from('price_history').select('price')
-          .eq('coin', battle.coin_a).gte('recorded_at', twapCutoff)
-          .order('recorded_at', { ascending: false }).limit(10),
-        supabase.from('price_history').select('price')
-          .eq('coin', battle.coin_b).gte('recorded_at', twapCutoff)
-          .order('recorded_at', { ascending: false }).limit(10),
+        supabase.from('price_history').select('price').eq('coin', b.coin_a)
+          .gte('recorded_at', twapCutoff).order('recorded_at', { ascending: false }).limit(10),
+        supabase.from('price_history').select('price').eq('coin', b.coin_b)
+          .gte('recorded_at', twapCutoff).order('recorded_at', { ascending: false }).limit(10),
       ])
 
       const finalPriceA = twapA.data?.length >= 2
         ? twapA.data.reduce((s, r) => s + r.price, 0) / twapA.data.length
-        : livePrices[battle.coin_a]
+        : livePrices[b.coin_a]
 
       const finalPriceB = twapB.data?.length >= 2
         ? twapB.data.reduce((s, r) => s + r.price, 0) / twapB.data.length
-        : livePrices[battle.coin_b]
+        : livePrices[b.coin_b]
 
       if (!finalPriceA || !finalPriceB) {
-        console.log(`⚠️ Missing prices for ${battle.coin_a}/${battle.coin_b} — skipping`)
+        console.log(`⚠️ Missing prices for ${b.coin_a}/${b.coin_b}`)
         continue
       }
 
-      const hash = await walletClient.writeContract({
-        address:      PREDARENA_ADDRESS,
-        abi:          KEEPER_ABI,
-        functionName: 'settleBattle',
-        args: [
-          BigInt(battle.arc_battle_id),
-          toContractPrice(finalPriceA),
-          toContractPrice(finalPriceB),
-        ],
-        account: keeperAccount,
-      })
+      const tx = await contract.settleBattle(
+        BigInt(b.arc_battle_id),
+        toPrice(finalPriceA),
+        toPrice(finalPriceB)
+      )
+      await tx.wait()
 
-      await publicClient.waitForTransactionReceipt({ hash })
-
-      await supabase.from('battles').update({ arc_status: 'settled' }).eq('id', battle.id)
-
+      await supabase.from('battles').update({ arc_status: 'settled' }).eq('id', b.id)
       settled++
-      console.log(`✅ Settled Arc battle ${battle.arc_battle_id}: ${battle.coin_a} vs ${battle.coin_b}`)
+      console.log(`✅ Settled Arc battle ${b.arc_battle_id}: ${b.coin_a} vs ${b.coin_b}`)
     } catch (err) {
-      console.error(`❌ Failed to settle Arc battle ${battle.arc_battle_id}:`, err.message)
+      console.error(`❌ Settle failed for arc_battle_id ${b.arc_battle_id}:`, err.message)
     }
   }
-
   return { settled }
 }
 
@@ -236,37 +158,16 @@ async function settleArcBattles(walletClient, publicClient, keeperAccount) {
 
 export default async function handler(req, res) {
   const privateKey = process.env.KEEPER_PRIVATE_KEY
-  if (!privateKey) {
-    return res.status(500).json({ error: 'KEEPER_PRIVATE_KEY not set' })
-  }
+  if (!privateKey) return res.status(500).json({ error: 'KEEPER_PRIVATE_KEY not set' })
 
-  const keeperAccount = privateKeyToAccount(privateKey)
-
-  const publicClient = createPublicClient({
-    chain:     arcTestnet,
-    transport: http('https://rpc.testnet.arc.network'),
-  })
-
-  const walletClient = createWalletClient({
-    chain:     arcTestnet,
-    transport: http('https://rpc.testnet.arc.network'),
-  })
+  const provider = new ethers.JsonRpcProvider(ARC_RPC)
+  const keeper   = new ethers.Wallet(privateKey, provider)
+  const contract = new ethers.Contract(PREDARENA, KEEPER_ABI, keeper)
 
   const results = { ok: true, timestamp: new Date().toISOString() }
 
-  try {
-    results.createArcBattles = await createArcBattles(walletClient, publicClient, keeperAccount)
-  } catch (err) {
-    console.error('createArcBattles error:', err.message)
-    results.createError = err.message
-  }
-
-  try {
-    results.settleArcBattles = await settleArcBattles(walletClient, publicClient, keeperAccount)
-  } catch (err) {
-    console.error('settleArcBattles error:', err.message)
-    results.settleError = err.message
-  }
+  try { results.createArcBattles  = await createArcBattles(contract)  } catch (e) { results.createError  = e.message }
+  try { results.settleArcBattles  = await settleArcBattles(contract)  } catch (e) { results.settleError  = e.message }
 
   res.status(200).json(results)
 }
