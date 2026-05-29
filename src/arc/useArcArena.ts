@@ -50,13 +50,19 @@ export function useArcArena() {
 
   // Build a wallet client from the connected EVM wallet
   const getWalletClient = useCallback(async () => {
-    const evmWallet = getEVMWallet()
-    const provider  = await evmWallet.getEthereumProvider()
+    const evmWallet = wallets.find(w => w.chainId?.startsWith('eip155:'))
+    const provider = evmWallet
+      ? await evmWallet.getEthereumProvider()
+      : (window as any).ethereum
+    if (!provider) throw new Error('No EVM wallet found. Please connect MetaMask.')
+    if (!evmWallet && provider) {
+      await provider.request({ method: 'eth_requestAccounts' })
+    }
     return createWalletClient({
       chain:     arcTestnet,
       transport: custom(provider),
     })
-  }, [getEVMWallet])
+  }, [wallets])
 
   // ── Read: get a single battle ───────────────────────────────────────────────
 

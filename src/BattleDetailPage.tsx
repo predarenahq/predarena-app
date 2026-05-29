@@ -82,7 +82,8 @@ export default function BattleDetailPage() {
 
   // EVM wallet from Privy
   const evmWallet = wallets.find(w => w.chainId?.startsWith('eip155:'))
-  const arcConnected = !!evmWallet
+  const hasMetaMask = typeof window !== "undefined" && !!(window as any).ethereum
+  const arcConnected = !!evmWallet || hasMetaMask
 
   useEffect(() => {
     const sharedSide = searchParams.get('side')
