@@ -283,7 +283,7 @@ export default function BattleDetailPage() {
       const oddsScaled = BigInt(Math.round(selectedOdds * 10_000))
 
       const receipt = await arcPlaceBet(
-        BigInt(battle.id),
+        BigInt(battle.arc_battle_id || battle.id),
         arcSide,
         stake,           // USDC amount as string e.g. "10.00"
         oddsScaled,
@@ -481,7 +481,7 @@ export default function BattleDetailPage() {
               ◎ Solana
             </button>
             <button
-              onClick={() => setChain('arc')}
+              onClick={() => battle.arc_battle_id && setChain('arc')}
               className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
               style={{
                 background: isArc ? 'rgba(124,58,237,0.2)' : 'transparent',

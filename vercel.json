@@ -1,6 +1,13 @@
 {
+  "crons": [
+    { "path": "/api/cron",        "schedule": "* * * * *" },
+    { "path": "/api/arc-keeper",  "schedule": "* * * * *" }
+  ],
   "functions": {
     "api/cron.mjs": {
+      "maxDuration": 60
+    },
+    "api/arc-keeper.mjs": {
       "maxDuration": 60
     },
     "api/withdraw.mjs": {
