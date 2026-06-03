@@ -1741,19 +1741,20 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
   )
 }
 
-function HistoryPage({ walletAddress }: { walletAddress: string }) {
+function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string, evmAddress?: string }) {
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!walletAddress) { setLoading(false); return }
+    if (!walletAddress && !evmAddress) { setLoading(false); return }
     async function fetchHistory() {
       try {
         const { supabase } = await import('./lib/supabase')
+        const addresses = [walletAddress, evmAddress].filter(Boolean)
         const { data } = await supabase
           .from('tickets')
           .select('*, battles(*)')
-          .eq('wallet_address', walletAddress)
+          .in('wallet_address', addresses)
           .order('created_at', { ascending: false })
         setTickets((data || []).filter((t: any) => t.battles?.status === 'settled'))
       } catch (err) {
@@ -1765,7 +1766,7 @@ function HistoryPage({ walletAddress }: { walletAddress: string }) {
     fetchHistory()
   }, [walletAddress])
 
-  if (!walletAddress) return (
+  if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-white text-lg font-semibold">Connect your wallet to see history</p>
     </div>
@@ -1855,22 +1856,23 @@ function HistoryPage({ walletAddress }: { walletAddress: string }) {
   )
 }
 
-function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
+function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: string, evmAddress?: string }) {
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!walletAddress) {
+    if (!walletAddress && !evmAddress) {
       setLoading(false)
       return
     }
     async function fetchTickets() {
       try {
         const { supabase } = await import('./lib/supabase')
+        const addresses = [walletAddress, evmAddress].filter(Boolean)
         const { data } = await supabase
           .from('tickets')
           .select('*, battles(*)')
-          .eq('wallet_address', walletAddress)
+          .in('wallet_address', addresses)
           .not('battles.status', 'eq', 'settled')
           .order('created_at', { ascending: false })
         setTickets((data || []).filter((t: any) => t.battles && t.battles?.status !== 'settled' && t.battles?.coin_a))
@@ -1883,9 +1885,9 @@ function RunningBetsPage({ walletAddress }: { walletAddress: string }) {
     fetchTickets()
     const interval = setInterval(fetchTickets, 30000)
     return () => clearInterval(interval)
-  }, [walletAddress])
+  }, [walletAddress, evmAddress])
 
-  if (!walletAddress) return (
+  if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-white text-lg font-semibold">Connect your wallet to see your bets</p>
     </div>
@@ -2109,9 +2111,9 @@ export default function PredaLandingDashboardMockup() {
       case "/profile":
         return <ProfilePage />;
       case "/running":
-        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} />;
+        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={typeof window !== "undefined" && (window as any).ethereum?.selectedAddress || ""} />;
       case "/history":
-        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} />;
+        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={typeof window !== "undefined" && (window as any).ethereum?.selectedAddress || ""} />;
       default:
         return (
           <section className="overflow-hidden rounded-[30px] border bg-[#0a0f0a]" style={{ borderColor: COLORS.lineStrong }}>
