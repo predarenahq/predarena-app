@@ -62,6 +62,11 @@ export default function BattleDetailPage() {
   const [selectedSide, setSelectedSide] = useState<number | null>(null)
   const [stake, setStake] = useState('')
   const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState<{msg: string, type: 'success'|'error'} | null>(null)
+  const showToast = (msg: string, type: 'success'|'error' = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 5000)
+  }
   const [userBalance, setUserBalance] = useState(0)
   const [arcUSDCBalance, setArcUSDCBalance] = useState<string>('0.00')
   const [solPrice, setSolPrice] = useState(150)
@@ -291,8 +296,22 @@ export default function BattleDetailPage() {
         oddsScaled,
       )
 
+      // Store Arc bet in Supabase so it appears in history
+      const arcAddress = evmWallet?.address || (window as any).ethereum?.selectedAddress || 'arc-wallet'
+      await supabase.from('tickets').insert({
+        battle_id: battle.id,
+        wallet_address: arcAddress,
+        side: selectedSide,
+        stake: parseFloat(stake),
+        odds: selectedOdds,
+        guaranteed_odds: Math.round(selectedOdds * 100) / 100,
+        guaranteed_payout: Math.round(parseFloat(stake) * selectedOdds * 100) / 100,
+        chain: 'arc',
+        arc_tx_hash: receipt.transactionHash,
+        claimed: false,
+      })
+
       setLastBet({ side: selectedSide!, odds: selectedOdds, stake: parseFloat(stake) })
-      setShareModalOpen(false)
       setStake('')
       setSelectedSide(null)
 
@@ -302,9 +321,9 @@ export default function BattleDetailPage() {
         setArcUSDCBalance(newBal)
       }
 
-      alert(`✅ Bet placed on Arc!\nTx: ${receipt.transactionHash.slice(0, 20)}...`)
+      showToast(`✅ Bet placed on Arc! Tx: ${receipt.transactionHash.slice(0, 10)}...`)
     } catch (e: any) {
-      alert('Arc bet failed: ' + (e.shortMessage || e.message))
+      showToast('Arc bet failed: ' + (e.shortMessage || e.message), 'error')
     }
   }
 
@@ -590,6 +609,18 @@ export default function BattleDetailPage() {
           )}
         </div>
       </div>
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(244,63,94,0.95)',
+          color: 'white', padding: '12px 24px', borderRadius: 12, fontWeight: 600,
+          fontSize: 14, zIndex: 9999, boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          maxWidth: '90vw', textAlign: 'center',
+        }}>
+          {toast.msg}
+        </div>
+      )}
     </div>
   )
 }
