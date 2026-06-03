@@ -58,6 +58,26 @@ export function useArcArena() {
     if (!evmWallet && provider) {
       await provider.request({ method: 'eth_requestAccounts' })
     }
+    // Auto-switch wallet to Arc Testnet (chain ID 5042002 = 0x4CEF52)
+    try {
+      await provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x4CEF52' }],
+      })
+    } catch (switchErr) {
+      if ((switchErr as any).code === 4902) {
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x4CEF52',
+            chainName: 'Arc Testnet',
+            nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 6 },
+            rpcUrls: ['https://rpc.testnet.arc.network'],
+            blockExplorerUrls: ['https://testnet.arcscan.app'],
+          }]
+        })
+      }
+    }
     return createWalletClient({
       chain:     arcTestnet,
       transport: custom(provider),
