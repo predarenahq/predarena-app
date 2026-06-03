@@ -2113,7 +2113,7 @@ export default function PredaLandingDashboardMockup() {
       case "/running":
         return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
       case "/history":
-        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={typeof window !== "undefined" && (window as any).ethereum?.selectedAddress || ""} />;
+        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
       default:
         return (
           <section className="overflow-hidden rounded-[30px] border bg-[#0a0f0a]" style={{ borderColor: COLORS.lineStrong }}>
