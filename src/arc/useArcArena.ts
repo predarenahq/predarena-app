@@ -41,7 +41,7 @@ export function useArcArena() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
 
-  // Get the connected EVM wallet from Privy
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getEVMWallet = useCallback(() => {
     const evmWallet = wallets.find(w => w.chainId?.startsWith("eip155:"))
     if (!evmWallet) throw new Error('No EVM wallet connected. Please connect a wallet first.')
