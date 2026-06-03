@@ -1764,7 +1764,7 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
       }
     }
     fetchHistory()
-  }, [walletAddress])
+  }, [walletAddress, evmAddress])
 
   if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -2111,7 +2111,7 @@ export default function PredaLandingDashboardMockup() {
       case "/profile":
         return <ProfilePage />;
       case "/running":
-        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={typeof window !== "undefined" && (window as any).ethereum?.selectedAddress || ""} />;
+        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
       case "/history":
         return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={typeof window !== "undefined" && (window as any).ethereum?.selectedAddress || ""} />;
       default:
