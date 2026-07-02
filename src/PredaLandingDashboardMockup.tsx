@@ -1132,6 +1132,23 @@ function MarketCard({
   const [chartOpen, setChartOpen] = React.useState(false)
   const navigate = useNavigate()
   const isSettling = match.endTime ? Date.now() > new Date(match.endTime).getTime() : false
+
+  const LEAGUE_COLORS: Record<string, string> = {
+    Major: "#2563eb", Altcoins: "#0891b2", L1: "#7c3aed", L2: "#4f46e5",
+    DeFi: "#d97706", Meme: "#db2777", AI: "#059669",
+  }
+  const leagueColor = LEAGUE_COLORS[match.league] || "#585866"
+
+  const elapsedPct = (match.startTime && match.endTime)
+    ? Math.min(100, Math.max(0, ((Date.now() - new Date(match.startTime).getTime()) / (new Date(match.endTime).getTime() - new Date(match.startTime).getTime())) * 100))
+    : null
+
+  const invL = 1 / match.left.odds, invR = 1 / match.right.odds, invD = 1 / match.draw.odds
+  const leadPct = Math.round((invL / (invL + invR + invD)) * 100)
+
+  const isNeg = (v: any) => String(v).trim().startsWith("-")
+  const metaCols = match.pool > 0 ? "grid-cols-4" : "grid-cols-3"
+
   return (
     <>
     <PriceChartModal
@@ -1143,49 +1160,93 @@ function MarketCard({
       startPriceA={match.startPriceA || 0}
       startPriceB={match.startPriceB || 0}
     />
-    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -3 }} transition={{ duration: 0.18 }} className="rounded-[24px] border bg-[#0b110b] p-5 cursor-pointer" style={{ borderColor: COLORS.lineStrong }} onClick={() => navigate(`/battle/${match.id}`)}>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.18 }} className="rounded-[18px] border bg-white p-5 cursor-pointer shadow-sm hover:shadow-lg" style={{ borderColor: "#ececf1" }} onClick={() => navigate(`/battle/${match.id}`)}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-[7px] h-[7px] rounded-[2px]" style={{ background: leagueColor }} />
+          <span className="text-[10.5px] font-extrabold uppercase tracking-[0.06em]" style={{ color: "#585866" }}>{match.league}</span>
+        </div>
+        <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: match.board === "Live" ? "#d1fae5" : "#fef3c7", color: match.board === "Live" ? "#047857" : "#92400e" }}>
+          {match.board === "Live" && <span className="inline-block w-[5px] h-[5px] rounded-full" style={{ background: "#059669" }} />}
+          {match.board}
+        </span>
+      </div>
+
+      <h3 className="text-[19px] font-extrabold tracking-[-0.4px]" style={{ color: "#0f1115" }}>{match.title}</h3>
+      <p className="mt-1 mb-4 text-[11.5px] font-semibold" style={{ color: "#a5a5b3" }}>{match.duration} · {match.subtitle}</p>
+
+      <div className="flex items-baseline gap-2 mb-3">
+        <span className="text-[28px] font-extrabold tracking-[-0.8px]" style={{ color: "#0f1115" }}>{match.left.odds.toFixed(2)}×</span>
+        <span className="text-[13px] font-bold" style={{ color: "#a5a5b3" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
+        <span className="ml-auto text-[11px] font-extrabold px-2.5 py-1 rounded-lg" style={{ background: leagueColor + "1A", color: leagueColor }}>{leadPct}% lead</span>
+      </div>
+
+      {elapsedPct !== null && (
+        <>
+          <div className="h-[7px] rounded-md overflow-hidden mb-2" style={{ background: "#f0f0f3" }}>
+            <div className="h-full rounded-md" style={{ width: `${elapsedPct}%`, background: leagueColor }} />
+          </div>
+          <div className="flex items-center justify-between text-[11.5px] font-semibold mb-4" style={{ color: "#75758a" }}>
+            <span>{isSettling ? "Settling..." : `${match.timer} left`}</span>
+            <span>{Math.round(elapsedPct)}% elapsed</span>
+          </div>
+        </>
+      )}
+
+      <div className={`grid ${metaCols} gap-2 py-3 my-1 border-t border-b`} style={{ borderColor: "#f0f0f3" }}>
+        <div>
+          <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>ENTRIES</div>
+          <div className="text-[14px] font-extrabold" style={{ color: "#0f1115" }}>{match.entries}</div>
+        </div>
+        {match.pool > 0 && (
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: COLORS.textSoft }}>
-              {match.league}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: match.board === "Live" ? "rgba(16,185,129,0.12)" : "rgba(250,204,21,0.12)", color: match.board === "Live" ? "#86efac" : "#fde68a" }}>
-                {match.board}
-              </span>
-              <span className="rounded-full border px-3 py-1 text-xs text-white" style={{ borderColor: COLORS.line }}>
-                3-Way
-              </span>
-              <span className="rounded-full border px-3 py-1 text-xs" style={{ borderColor: COLORS.line, color: COLORS.accent }}>
-                {match.duration}
-              </span>
-            </div>
-            <h3 className="mt-4 text-xl font-semibold text-white">{match.title}</h3>
-            <p className="mt-1 text-sm" style={{ color: COLORS.textSoft }}>
-              {match.subtitle}
-            </p>
+            <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>POOL</div>
+            <div className="text-[14px] font-extrabold" style={{ color: "#0f1115" }}>{`${match.pool.toLocaleString()}`}</div>
           </div>
+        )}
+        <div>
+          <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>{match.left.ticker}</div>
+          <div className="text-[14px] font-extrabold" style={{ color: isNeg(match.left.change) ? "#dc2626" : "#059669" }}>{match.left.change}</div>
+        </div>
+        <div>
+          <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>{match.right.ticker}</div>
+          <div className="text-[14px] font-extrabold" style={{ color: isNeg(match.right.change) ? "#dc2626" : "#059669" }}>{match.right.change}</div>
+        </div>
+      </div>
 
-          <div className="flex gap-2 text-sm">
-{match.pool > 0 && <StatBox label="Pool" value={`$${match.pool.toLocaleString()}`} />}
-            <StatBox label="Entries" value={String(match.entries)} />
-            <StatBox label="Timer" value={isSettling ? "🔒" : match.timer} />
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}
+          className="flex flex-col items-center gap-1 rounded-xl py-3 border transition-all"
+          >
+          <div style={{
+            width: "100%", borderRadius: 12, padding: "10px 4px",
+            background: selectedSide === "left" ? leagueColor + "1A" : "#f8f8fa",
+            border: selectedSide === "left" ? `1px solid ${leagueColor}66` : "1px solid #ececf1",
+          }}>
+            <div className="text-[9.5px] font-extrabold" style={{ color: "#75758a" }}>{match.left.ticker}</div>
+            <div className="text-[17px] font-extrabold" style={{ color: "#0f1115" }}>{match.left.odds.toFixed(2)}×</div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
-            <SelectionButton active={selectedSide === "left"} label={match.left.ticker} odds={match.left.odds} meta={match.left.change} ticker={match.left.ticker} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "draw"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
-            <SelectionButton active={selectedSide === "draw"} label="Draw" odds={match.draw.odds} meta={match.draw.change} ticker="DRAW" />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "right"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
-            <SelectionButton active={selectedSide === "right"} label={match.right.ticker} odds={match.right.odds} meta={match.right.change} ticker={match.right.ticker} />
-          </button>
-        </div>
-
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "draw"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
+          <div style={{
+            width: "100%", borderRadius: 12, padding: "10px 4px",
+            background: selectedSide === "draw" ? leagueColor + "1A" : "#f8f8fa",
+            border: selectedSide === "draw" ? `1px solid ${leagueColor}66` : "1px solid #ececf1",
+          }}>
+            <div className="text-[9.5px] font-extrabold" style={{ color: "#75758a" }}>DRAW</div>
+            <div className="text-[17px] font-extrabold" style={{ color: "#0f1115" }}>{match.draw.odds.toFixed(2)}×</div>
+          </div>
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "right"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
+          <div style={{
+            width: "100%", borderRadius: 12, padding: "10px 4px",
+            background: selectedSide === "right" ? leagueColor + "1A" : "#f8f8fa",
+            border: selectedSide === "right" ? `1px solid ${leagueColor}66` : "1px solid #ececf1",
+          }}>
+            <div className="text-[9.5px] font-extrabold" style={{ color: "#75758a" }}>{match.right.ticker}</div>
+            <div className="text-[17px] font-extrabold" style={{ color: "#0f1115" }}>{match.right.odds.toFixed(2)}×</div>
+          </div>
+        </button>
       </div>
     </motion.div>
     </>
