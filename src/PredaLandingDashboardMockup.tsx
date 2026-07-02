@@ -1250,7 +1250,7 @@ function MarketCard({
     </>
   );
 }
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-black/20 px-3 py-3" style={{ borderColor: COLORS.line }}>
