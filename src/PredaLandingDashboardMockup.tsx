@@ -1134,10 +1134,10 @@ function MarketCard({
   const isSettling = match.endTime ? Date.now() > new Date(match.endTime).getTime() : false
 
   const LEAGUE_COLORS: Record<string, string> = {
-    Major: "#2563eb", Altcoins: "#0891b2", L1: "#7c3aed", L2: "#4f46e5",
-    DeFi: "#d97706", Meme: "#db2777", AI: "#059669",
+    Major: "#7c3aed", Altcoins: "#a855f7", L1: "#8b5cf6", L2: "#6d28d9",
+    DeFi: "#c026d3", Meme: "#db2777", AI: "#9333ea",
   }
-  const leagueColor = LEAGUE_COLORS[match.league] || "#585866"
+  const leagueColor = LEAGUE_COLORS[match.league] || "#7c3aed"
 
   const elapsedPct = (match.startTime && match.endTime)
     ? Math.min(100, Math.max(0, ((Date.now() - new Date(match.startTime).getTime()) / (new Date(match.endTime).getTime() - new Date(match.startTime).getTime())) * 100))
@@ -1160,91 +1160,89 @@ function MarketCard({
       startPriceA={match.startPriceA || 0}
       startPriceB={match.startPriceB || 0}
     />
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.18 }} className="rounded-[18px] border bg-white p-5 cursor-pointer shadow-sm hover:shadow-lg" style={{ borderColor: "#ececf1" }} onClick={() => navigate(`/battle/${match.id}`)}>
-      <div className="flex items-center justify-between mb-3">
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.18 }} className="rounded-[16px] border border-[#F0ECF7] bg-white p-4 md:p-5 cursor-pointer shadow-[0px_1px_2px_0px_#1212170D] hover:shadow-[0px_8px_16px_0px_rgba(124,58,237,0.08)]" onClick={() => navigate(`/battle/${match.id}`)}>
+      <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <span className="inline-block w-[7px] h-[7px] rounded-[2px]" style={{ background: leagueColor }} />
-          <span className="text-[10.5px] font-extrabold uppercase tracking-[0.06em]" style={{ color: "#585866" }}>{match.league}</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "#8B8B9A" }}>{match.league}</span>
         </div>
-        <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: match.board === "Live" ? "#d1fae5" : "#fef3c7", color: match.board === "Live" ? "#047857" : "#92400e" }}>
-          {match.board === "Live" && <span className="inline-block w-[5px] h-[5px] rounded-full" style={{ background: "#059669" }} />}
+        <span className="flex items-center gap-[6px] rounded-[20px] px-[10px] py-[4px] text-[12px] font-medium" style={{ background: match.board === "Live" ? "#F3E8FD" : "#FFF3E0", color: match.board === "Live" ? "#7c3aed" : "#B45309" }}>
+          {match.board === "Live" && <span className="inline-block w-[6px] h-[6px] rounded-full shrink-0" style={{ background: "#7c3aed" }} />}
           {match.board}
         </span>
       </div>
 
-      <h3 className="text-[19px] font-extrabold tracking-[-0.4px]" style={{ color: "#0f1115" }}>{match.title}</h3>
-      <p className="mt-1 mb-4 text-[11.5px] font-semibold" style={{ color: "#a5a5b3" }}>{match.duration} · {match.subtitle}</p>
+      <h3 className="text-[19px] font-bold tracking-[-0.02em]" style={{ color: "#1A1A1A" }}>{match.title}</h3>
+      <p className="mt-1 mb-4 text-[13px]" style={{ color: "#8B8B9A" }}>{match.duration} · {match.subtitle}</p>
 
       <div className="flex items-baseline gap-2 mb-3">
-        <span className="text-[28px] font-extrabold tracking-[-0.8px]" style={{ color: "#0f1115" }}>{match.left.odds.toFixed(2)}×</span>
-        <span className="text-[13px] font-bold" style={{ color: "#a5a5b3" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
-        <span className="ml-auto text-[11px] font-extrabold px-2.5 py-1 rounded-lg" style={{ background: leagueColor + "1A", color: leagueColor }}>{leadPct}% lead</span>
+        <span className="text-[28px] font-bold tracking-[-0.02em]" style={{ color: "#1A1A1A" }}>{match.left.odds.toFixed(2)}×</span>
+        <span className="text-[13px] font-medium" style={{ color: "#8B8B9A" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
+        <span className="ml-auto text-[11px] font-bold px-[10px] py-[4px] rounded-[20px]" style={{ background: leagueColor + "14", color: leagueColor }}>{leadPct}% lead</span>
       </div>
 
       {elapsedPct !== null && (
         <>
-          <div className="h-[7px] rounded-md overflow-hidden mb-2" style={{ background: "#f0f0f3" }}>
-            <div className="h-full rounded-md" style={{ width: `${elapsedPct}%`, background: leagueColor }} />
+          <div className="h-[6px] rounded-full overflow-hidden mb-2" style={{ background: "#F3F0FA" }}>
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${elapsedPct}%`, background: `linear-gradient(90deg, ${leagueColor}, #db2777)` }} />
           </div>
-          <div className="flex items-center justify-between text-[11.5px] font-semibold mb-4" style={{ color: "#75758a" }}>
+          <div className="flex items-center justify-between text-[12px] font-medium mb-4" style={{ color: "#8B8B9A" }}>
             <span>{isSettling ? "Settling..." : match.timer}</span>
             <span>{Math.round(elapsedPct)}% elapsed</span>
           </div>
         </>
       )}
 
-      <div className={`grid ${metaCols} gap-2 py-3 my-1 border-t border-b`} style={{ borderColor: "#f0f0f3" }}>
+      <div className={`grid ${metaCols} gap-3 p-3 my-1 rounded-[12px]`} style={{ background: "#FAF9FC", border: "1px solid #F0ECF7" }}>
         <div>
-          <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>ENTRIES</div>
-          <div className="text-[14px] font-extrabold" style={{ color: "#0f1115" }}>{match.entries}</div>
+          <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>Entries</div>
+          <div className="text-[14px] font-bold" style={{ color: "#1A1A1A" }}>{match.entries}</div>
         </div>
         {match.pool > 0 && (
           <div>
-            <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>POOL</div>
-            <div className="text-[14px] font-extrabold" style={{ color: "#0f1115" }}>{`${match.pool.toLocaleString()}`}</div>
+            <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>Pool</div>
+            <div className="text-[14px] font-bold" style={{ color: "#1A1A1A" }}>{`$${match.pool.toLocaleString()}`}</div>
           </div>
         )}
         <div>
-          <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>{match.left.ticker}</div>
-          <div className="text-[14px] font-extrabold" style={{ color: isNeg(match.left.change) ? "#dc2626" : "#059669" }}>{match.left.change}</div>
+          <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>{match.left.ticker}</div>
+          <div className="text-[14px] font-bold" style={{ color: isNeg(match.left.change) ? "#DC2626" : "#059669" }}>{match.left.change}</div>
         </div>
         <div>
-          <div className="text-[9px] font-extrabold tracking-[0.04em]" style={{ color: "#a5a5b3" }}>{match.right.ticker}</div>
-          <div className="text-[14px] font-extrabold" style={{ color: isNeg(match.right.change) ? "#dc2626" : "#059669" }}>{match.right.change}</div>
+          <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>{match.right.ticker}</div>
+          <div className="text-[14px] font-bold" style={{ color: isNeg(match.right.change) ? "#DC2626" : "#059669" }}>{match.right.change}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-3">
-        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}
-          className="flex flex-col items-center gap-1 rounded-xl py-3 border transition-all"
-          >
+        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
           <div style={{
-            width: "100%", borderRadius: 12, padding: "10px 4px",
-            background: selectedSide === "left" ? leagueColor + "1A" : "#f8f8fa",
-            border: selectedSide === "left" ? `1px solid ${leagueColor}66` : "1px solid #ececf1",
+            width: "100%", borderRadius: 12, padding: "10px 6px",
+            background: selectedSide === "left" ? `linear-gradient(140deg, ${leagueColor}12, #db277712)` : "#FAF9FC",
+            border: selectedSide === "left" ? `1px solid ${leagueColor}55` : "1px solid #F0ECF7",
           }}>
-            <div className="text-[9.5px] font-extrabold" style={{ color: "#75758a" }}>{match.left.ticker}</div>
-            <div className="text-[17px] font-extrabold" style={{ color: "#0f1115" }}>{match.left.odds.toFixed(2)}×</div>
+            <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>{match.left.ticker}</div>
+            <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.left.odds.toFixed(2)}×</div>
           </div>
         </button>
         <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "draw"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
           <div style={{
-            width: "100%", borderRadius: 12, padding: "10px 4px",
-            background: selectedSide === "draw" ? leagueColor + "1A" : "#f8f8fa",
-            border: selectedSide === "draw" ? `1px solid ${leagueColor}66` : "1px solid #ececf1",
+            width: "100%", borderRadius: 12, padding: "10px 6px",
+            background: selectedSide === "draw" ? `linear-gradient(140deg, ${leagueColor}12, #db277712)` : "#FAF9FC",
+            border: selectedSide === "draw" ? `1px solid ${leagueColor}55` : "1px solid #F0ECF7",
           }}>
-            <div className="text-[9.5px] font-extrabold" style={{ color: "#75758a" }}>DRAW</div>
-            <div className="text-[17px] font-extrabold" style={{ color: "#0f1115" }}>{match.draw.odds.toFixed(2)}×</div>
+            <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>DRAW</div>
+            <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.draw.odds.toFixed(2)}×</div>
           </div>
         </button>
         <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "right"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
           <div style={{
-            width: "100%", borderRadius: 12, padding: "10px 4px",
-            background: selectedSide === "right" ? leagueColor + "1A" : "#f8f8fa",
-            border: selectedSide === "right" ? `1px solid ${leagueColor}66` : "1px solid #ececf1",
+            width: "100%", borderRadius: 12, padding: "10px 6px",
+            background: selectedSide === "right" ? `linear-gradient(140deg, ${leagueColor}12, #db277712)` : "#FAF9FC",
+            border: selectedSide === "right" ? `1px solid ${leagueColor}55` : "1px solid #F0ECF7",
           }}>
-            <div className="text-[9.5px] font-extrabold" style={{ color: "#75758a" }}>{match.right.ticker}</div>
-            <div className="text-[17px] font-extrabold" style={{ color: "#0f1115" }}>{match.right.odds.toFixed(2)}×</div>
+            <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>{match.right.ticker}</div>
+            <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.right.odds.toFixed(2)}×</div>
           </div>
         </button>
       </div>
@@ -1253,7 +1251,6 @@ function MarketCard({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-black/20 px-3 py-3" style={{ borderColor: COLORS.line }}>
