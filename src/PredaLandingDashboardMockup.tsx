@@ -522,21 +522,21 @@ function DesktopHeader({
   onLogoClick: () => void;
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#0a0512]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-white/95 backdrop-blur-xl lg:block" style={{ borderColor: "#ececf1" }}>
       <div className="flex h-full items-center justify-between">
-        <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
+        <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: "#ececf1" }}>
           <motion.div
             whileHover={{ rotate: -6, scale: 1.04 }}
             onClick={(e) => {
               e.stopPropagation();
               onLogoClick();
             }}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border text-sm font-bold"
-            style={{ borderColor: COLORS.lineStrong, background: COLORS.accentSoft, color: COLORS.accent }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-sm font-bold text-white"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}
           >
             P
           </motion.div>
-          {expanded && <span className="text-lg font-semibold text-white">PREDA</span>}
+          {expanded && <span className="text-lg font-extrabold tracking-[-0.3px]" style={{ color: "#0f1115" }}>PREDA</span>}
         </button>
 
         <div className="flex items-center flex-1 px-5">
@@ -569,11 +569,11 @@ function SidebarAccordion({
             className="mb-2 w-full text-left"
           >
             {expanded ? (
-              <p className="px-2 text-[10px] uppercase tracking-[0.22em]" style={{ color: COLORS.textSoft }}>
+              <p className="px-2 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#a5a5b3" }}>
                 {section.title}
               </p>
             ) : (
-              <p className="text-center text-[10px] uppercase tracking-[0.18em]" style={{ color: COLORS.textSoft }}>
+              <p className="text-center text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#a5a5b3" }}>
                 {section.title.slice(0, 1)}
               </p>
             )}
@@ -589,17 +589,16 @@ function SidebarAccordion({
                       <button
                         key={item.label}
                         onClick={() => onNavigate(item.path)}
-                        className="flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition hover:bg-white/[0.04]"
+                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition"
                         style={{
-                          borderColor: active ? COLORS.lineStrong : COLORS.line,
-                          background: active ? COLORS.accentSoft : "transparent",
+                          background: active ? "#f2f0fb" : "transparent",
                         }}
                       >
-                        <span className={cx("text-sm", active ? "text-white" : "text-slate-300")}>
+                        <span className={cx("text-sm font-semibold", active ? "" : "")} style={{ color: active ? "#0f1115" : "#585866" }}>
                           {expanded ? item.label : item.label.slice(0, 1)}
                         </span>
                         {expanded && item.soon ? (
-                          <span className="rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.18em]" style={{ borderColor: COLORS.line, color: COLORS.textSoft }}>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em]" style={{ background: "#f0f0f3", color: "#a5a5b3" }}>
                             Soon
                           </span>
                         ) : null}
@@ -903,13 +902,13 @@ function DesktopSidebar({
   currentPath: string;
 }) {
   return (
-    <aside className={cx("fixed bottom-0 left-0 top-[72px] z-40 hidden border-r bg-[#0c0618] transition-all duration-300 lg:block", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
+    <aside className={cx("fixed bottom-0 left-0 top-[72px] z-40 hidden border-r bg-white transition-all duration-300 lg:block", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: "#ececf1" }}>
       <div className="preda-scrollbar-hide flex h-full flex-col justify-between overflow-y-auto px-3 py-4">
         <div>
           <SidebarAccordion expanded={expanded} openSection={openSection} setOpenSection={setOpenSection} currentPath={currentPath} onNavigate={onNavigate} />
         </div>
 
-        <div className="space-y-3 border-t pt-4" style={{ borderColor: COLORS.line }}>
+        <div className="space-y-3 border-t pt-4" style={{ borderColor: "#ececf1" }}>
           {expanded ? (
             <UserBalancePanel />
           ) : null}
@@ -938,17 +937,17 @@ function MobileShell({
 }) {
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#0a0512]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
-        <button onClick={() => setOpen(true)} className="rounded-xl border p-2 text-white" style={{ borderColor: COLORS.line }}>
+      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-white/95 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: "#ececf1" }}>
+        <button onClick={() => setOpen(true)} className="rounded-xl border p-2" style={{ borderColor: "#ececf1", color: "#0f1115" }}>
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center justify-between w-full gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[16px] border text-sm font-bold" style={{ borderColor: COLORS.lineStrong, background: COLORS.accentSoft, color: COLORS.accent }}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
             P
           </div>
-          <span className="text-base font-semibold text-white">PREDA</span>
+          <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "#0f1115" }}>PREDA</span>
         </div>
-        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-semibold text-black" style={{ background: COLORS.accent }}>
+        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-white" style={{ background: "#0f1115" }}>
           Connect
         </button>
       </div>
@@ -956,15 +955,15 @@ function MobileShell({
       <AnimatePresence>
         {open ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 lg:hidden">
-            <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-[#0c0618]" style={{ borderColor: COLORS.lineStrong }}>
-              <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: COLORS.line }}>
+            <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-white" style={{ borderColor: "#ececf1" }}>
+              <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: "#ececf1" }}>
                 <div className="flex items-center justify-between w-full gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[16px] border text-sm font-bold" style={{ borderColor: COLORS.lineStrong, background: COLORS.accentSoft, color: COLORS.accent }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
                     P
                   </div>
-                  <span className="text-base font-semibold text-white">PREDA</span>
+                  <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "#0f1115" }}>PREDA</span>
                 </div>
-                <button onClick={() => setOpen(false)} className="rounded-xl border p-2 text-white" style={{ borderColor: COLORS.line }}>
+                <button onClick={() => setOpen(false)} className="rounded-xl border p-2" style={{ borderColor: "#ececf1", color: "#0f1115" }}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -1002,31 +1001,31 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
 
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
-      <div className="relative overflow-hidden rounded-[28px] border bg-[linear-gradient(135deg,rgba(11,33,11,0.96),rgba(5,12,5,0.98))] px-6 py-7 sm:px-8" style={{ borderColor: COLORS.lineStrong }}>
-        <div className="absolute inset-y-0 left-0 w-32 bg-[radial-gradient(circle_at_left,rgba(236,72,153,0.14),transparent_62%)]" />
-        <div className="absolute inset-y-0 right-0 w-32 bg-[radial-gradient(circle_at_right,rgba(141,255,79,0.10),transparent_62%)]" />
+      <div className="relative overflow-hidden rounded-[24px] px-6 py-8 sm:px-9 shadow-lg" style={{ background: "linear-gradient(115deg, #7c3aed 0%, #a21caf 55%, #db2777 100%)" }}>
+        <div className="absolute inset-y-0 left-0 w-40 bg-[radial-gradient(circle_at_left,rgba(255,255,255,0.14),transparent_65%)]" />
+        <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_right,rgba(255,255,255,0.10),transparent_65%)]" />
 
         <div className="relative flex items-center justify-between gap-6">
-          <button onClick={() => setCurrent((prev) => (prev - 1 + showSlides.length) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border sm:flex" style={{ borderColor: COLORS.line, color: COLORS.textSoft }}>
+          <button onClick={() => setCurrent((prev) => (prev - 1 + showSlides.length) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 hover:bg-white/10 sm:flex">
             <ChevronLeft className="h-5 w-5" />
           </button>
 
           <div className="min-w-0 flex-1 overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div key={slide.title} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.28 }}>
-                <p className="text-[11px] uppercase tracking-[0.24em]" style={{ color: COLORS.accent }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-pink-100">
                   {slide.title}
                 </p>
-                <p className="mt-3 max-w-4xl text-lg font-semibold text-white sm:text-2xl">{slide.text}</p>
+                <p className="mt-3 max-w-4xl text-lg font-extrabold text-white sm:text-2xl tracking-[-0.3px]">{slide.text}</p>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button onClick={() => onNavigate("/")} className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-black" style={{ background: COLORS.accent }}>
+                  <button onClick={() => onNavigate("/")} className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0f1115] hover:bg-pink-50">
                     {slide.cta}
                     <ArrowRight className="h-4 w-4" />
                   </button>
-                  <span className="rounded-full border px-3 py-1 text-xs" style={{ borderColor: COLORS.line, color: COLORS.textSoft }}>
+                  <span className="rounded-full border border-white/25 px-3 py-1 text-xs font-semibold text-white/85">
                     Built by humans and AI
                   </span>
-                  <span className="rounded-full border px-3 py-1 text-xs" style={{ borderColor: COLORS.line, color: COLORS.textSoft }}>
+                  <span className="rounded-full border border-white/25 px-3 py-1 text-xs font-semibold text-white/85">
                     Coming to Solana
                   </span>
                 </div>
@@ -1034,7 +1033,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
             </AnimatePresence>
           </div>
 
-          <button onClick={() => setCurrent((prev) => (prev + 1) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border sm:flex" style={{ borderColor: COLORS.line, color: COLORS.textSoft }}>
+          <button onClick={() => setCurrent((prev) => (prev + 1) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 hover:bg-white/10 sm:flex">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -1188,7 +1187,7 @@ function MarketCard({
             <div className="h-full rounded-md" style={{ width: `${elapsedPct}%`, background: leagueColor }} />
           </div>
           <div className="flex items-center justify-between text-[11.5px] font-semibold mb-4" style={{ color: "#75758a" }}>
-            <span>{isSettling ? "Settling..." : `${match.timer} left`}</span>
+            <span>{isSettling ? "Settling..." : match.timer}</span>
             <span>{Math.round(elapsedPct)}% elapsed</span>
           </div>
         </>
