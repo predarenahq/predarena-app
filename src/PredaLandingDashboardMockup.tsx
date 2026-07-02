@@ -1160,7 +1160,7 @@ function MarketCard({
       startPriceA={match.startPriceA || 0}
       startPriceB={match.startPriceB || 0}
     />
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.18 }} className="rounded-[16px] border border-[#F0ECF7] bg-white p-4 md:p-5 cursor-pointer shadow-[0px_1px_2px_0px_#1212170D] hover:shadow-[0px_8px_16px_0px_rgba(124,58,237,0.08)]" onClick={() => navigate(`/battle/${match.id}`)}>
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.18 }} className="rounded-[24px] bg-white p-5 cursor-pointer shadow-[0px_2px_8px_0px_rgba(18,18,23,0.06)] hover:shadow-[0px_12px_28px_0px_rgba(124,58,237,0.12)]" onClick={() => navigate(`/battle/${match.id}`)}>
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <span className="inline-block w-[7px] h-[7px] rounded-[2px]" style={{ background: leagueColor }} />
@@ -1193,7 +1193,7 @@ function MarketCard({
         </>
       )}
 
-      <div className={`grid ${metaCols} gap-3 p-3 my-1 rounded-[12px]`} style={{ background: "#FAF9FC", border: "1px solid #F0ECF7" }}>
+      <div className={`grid ${metaCols} gap-3 p-3.5 my-1 rounded-[16px]`} style={{ background: "#FAF9FC" }}>
         <div>
           <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>Entries</div>
           <div className="text-[14px] font-bold" style={{ color: "#1A1A1A" }}>{match.entries}</div>
@@ -1217,9 +1217,9 @@ function MarketCard({
       <div className="grid grid-cols-3 gap-2 mt-3">
         <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
           <div style={{
-            width: "100%", borderRadius: 12, padding: "10px 6px",
-            background: selectedSide === "left" ? `linear-gradient(140deg, ${leagueColor}12, #db277712)` : "#FAF9FC",
-            border: selectedSide === "left" ? `1px solid ${leagueColor}55` : "1px solid #F0ECF7",
+            width: "100%", borderRadius: 16, padding: "12px 6px",
+            background: selectedSide === "left" ? `linear-gradient(140deg, ${leagueColor}18, #db277718)` : "#FAF9FC",
+            boxShadow: selectedSide === "left" ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
           }}>
             <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>{match.left.ticker}</div>
             <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.left.odds.toFixed(2)}×</div>
@@ -1227,9 +1227,9 @@ function MarketCard({
         </button>
         <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "draw"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
           <div style={{
-            width: "100%", borderRadius: 12, padding: "10px 6px",
-            background: selectedSide === "draw" ? `linear-gradient(140deg, ${leagueColor}12, #db277712)` : "#FAF9FC",
-            border: selectedSide === "draw" ? `1px solid ${leagueColor}55` : "1px solid #F0ECF7",
+            width: "100%", borderRadius: 16, padding: "12px 6px",
+            background: selectedSide === "draw" ? `linear-gradient(140deg, ${leagueColor}18, #db277718)` : "#FAF9FC",
+            boxShadow: selectedSide === "draw" ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
           }}>
             <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>DRAW</div>
             <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.draw.odds.toFixed(2)}×</div>
@@ -1237,9 +1237,9 @@ function MarketCard({
         </button>
         <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "right"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
           <div style={{
-            width: "100%", borderRadius: 12, padding: "10px 6px",
-            background: selectedSide === "right" ? `linear-gradient(140deg, ${leagueColor}12, #db277712)` : "#FAF9FC",
-            border: selectedSide === "right" ? `1px solid ${leagueColor}55` : "1px solid #F0ECF7",
+            width: "100%", borderRadius: 16, padding: "12px 6px",
+            background: selectedSide === "right" ? `linear-gradient(140deg, ${leagueColor}18, #db277718)` : "#FAF9FC",
+            boxShadow: selectedSide === "right" ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
           }}>
             <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>{match.right.ticker}</div>
             <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.right.odds.toFixed(2)}×</div>
