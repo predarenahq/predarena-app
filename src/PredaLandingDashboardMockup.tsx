@@ -83,14 +83,16 @@ interface ActiveBet {
 }
 
 const COLORS = {
-  bg: "#080c14",
-  panel: "#0d1420",
-  line: "rgba(0,212,255,0.10)",
-  lineStrong: "rgba(0,212,255,0.22)",
-  accent: "#00d4ff",
-  accentSoft: "rgba(0,212,255,0.10)",
-  accentGlow: "rgba(0,212,255,0.14)",
-  textSoft: "#7ab8c8",
+  bg: "#0a0512",
+  panel: "#150b24",
+  line: "rgba(236,72,153,0.12)",
+  lineStrong: "rgba(236,72,153,0.28)",
+  accent: "#ec4899",
+  accentSoft: "rgba(236,72,153,0.12)",
+  accentGlow: "rgba(236,72,153,0.18)",
+  textSoft: "#c4b5d9",
+  accent2: "#8b5cf6",
+  gradient: "linear-gradient(120deg, #8b5cf6, #ec4899)",
 };
 
 const boardTabs: MatchBoard[] = ["Live", "Upcoming"];
@@ -353,7 +355,7 @@ function LoadingOverlay({ loading }: { loading: boolean }) {
   return (
     <AnimatePresence>
       {loading ? (
-        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#040704]">
+        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0a0512]">
           <div className="text-center">
             <motion.div
               animate={{ rotate: 360 }}
@@ -388,7 +390,7 @@ function AuthModal({
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className="w-full max-w-md overflow-hidden rounded-[28px] border bg-[#0a0f0a] shadow-2xl"
+            className="w-full max-w-md overflow-hidden rounded-[28px] border bg-[#150b24] shadow-2xl"
             style={{ borderColor: COLORS.lineStrong }}
           >
             <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: COLORS.line }}>
@@ -520,7 +522,7 @@ function DesktopHeader({
   onLogoClick: () => void;
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#080c14]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[#0a0512]/92 backdrop-blur-xl lg:block" style={{ borderColor: COLORS.lineStrong }}>
       <div className="flex h-full items-center justify-between">
         <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
           <motion.div
@@ -901,7 +903,7 @@ function DesktopSidebar({
   currentPath: string;
 }) {
   return (
-    <aside className={cx("fixed bottom-0 left-0 top-[72px] z-40 hidden border-r bg-[#070b07] transition-all duration-300 lg:block", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
+    <aside className={cx("fixed bottom-0 left-0 top-[72px] z-40 hidden border-r bg-[#0c0618] transition-all duration-300 lg:block", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: COLORS.lineStrong }}>
       <div className="preda-scrollbar-hide flex h-full flex-col justify-between overflow-y-auto px-3 py-4">
         <div>
           <SidebarAccordion expanded={expanded} openSection={openSection} setOpenSection={setOpenSection} currentPath={currentPath} onNavigate={onNavigate} />
@@ -936,7 +938,7 @@ function MobileShell({
 }) {
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#080c14]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
+      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[#0a0512]/92 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: COLORS.lineStrong }}>
         <button onClick={() => setOpen(true)} className="rounded-xl border p-2 text-white" style={{ borderColor: COLORS.line }}>
           <Menu className="h-5 w-5" />
         </button>
@@ -954,7 +956,7 @@ function MobileShell({
       <AnimatePresence>
         {open ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 lg:hidden">
-            <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-[#070b07]" style={{ borderColor: COLORS.lineStrong }}>
+            <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-[#0c0618]" style={{ borderColor: COLORS.lineStrong }}>
               <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: COLORS.line }}>
                 <div className="flex items-center justify-between w-full gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-[16px] border text-sm font-bold" style={{ borderColor: COLORS.lineStrong, background: COLORS.accentSoft, color: COLORS.accent }}>
@@ -1001,7 +1003,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
       <div className="relative overflow-hidden rounded-[28px] border bg-[linear-gradient(135deg,rgba(11,33,11,0.96),rgba(5,12,5,0.98))] px-6 py-7 sm:px-8" style={{ borderColor: COLORS.lineStrong }}>
-        <div className="absolute inset-y-0 left-0 w-32 bg-[radial-gradient(circle_at_left,rgba(0,212,255,0.10),transparent_62%)]" />
+        <div className="absolute inset-y-0 left-0 w-32 bg-[radial-gradient(circle_at_left,rgba(236,72,153,0.14),transparent_62%)]" />
         <div className="absolute inset-y-0 right-0 w-32 bg-[radial-gradient(circle_at_right,rgba(141,255,79,0.10),transparent_62%)]" />
 
         <div className="relative flex items-center justify-between gap-6">
@@ -1425,7 +1427,7 @@ function PlaceholderPage({
   body: string;
 }) {
   return (
-    <div className="rounded-[30px] border bg-[#0a0f0a] p-6" style={{ borderColor: COLORS.lineStrong }}>
+    <div className="rounded-[30px] border bg-[#150b24] p-6" style={{ borderColor: COLORS.lineStrong }}>
       <h2 className="text-3xl font-semibold text-white">{title}</h2>
       <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: COLORS.textSoft }}>
         {body}
@@ -1436,7 +1438,7 @@ function PlaceholderPage({
 
 function ProfilePage() {
   return (
-    <div className="rounded-[30px] border bg-[#0a0f0a] p-6" style={{ borderColor: COLORS.lineStrong }}>
+    <div className="rounded-[30px] border bg-[#150b24] p-6" style={{ borderColor: COLORS.lineStrong }}>
       <h2 className="text-3xl font-semibold text-white">Profile</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InfoCard label="Username" value={mockProfile.username} />
@@ -1527,7 +1529,7 @@ function AuthSection() {
           <button
             onClick={login}
             className="px-5 py-2 rounded-full text-black font-semibold text-sm transition-opacity hover:opacity-80"
-            style={{ background: "#00d4ff" }}
+            style={{ background: "#ec4899" }}
           >
             Login with X
           </button>
@@ -1543,7 +1545,7 @@ function AuthSection() {
           <button
             onClick={logout}
             className="px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-            style={{ background: "rgba(0,212,255,0.08)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}
+            style={{ background: "rgba(236,72,153,0.12)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.28)" }}
           >
             Logout
           </button>
@@ -1552,7 +1554,7 @@ function AuthSection() {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
-        <WalletMultiButton style={{ borderRadius: "9999px", background: "#00d4ff", color: "#000", fontWeight: 600, fontSize: "14px" }} />
+        <WalletMultiButton style={{ borderRadius: "9999px", background: "#ec4899", color: "#000", fontWeight: 600, fontSize: "14px" }} />
       </div>
     </div>
   );
@@ -1560,7 +1562,7 @@ function AuthSection() {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _PredaAuthControls({
-  accentColor = "#00d4ff",
+  accentColor = "#ec4899",
 }: {
   accentColor?: string;
 }) {
@@ -1590,7 +1592,7 @@ function _PredaAuthControls({
         </div>
       )}
 
-      <WalletMultiButton style={{ borderRadius: "9999px", background: "#00d4ff", color: "#000", fontWeight: 600, fontSize: "14px" }} />
+      <WalletMultiButton style={{ borderRadius: "9999px", background: "#ec4899", color: "#000", fontWeight: 600, fontSize: "14px" }} />
 
       {walletAddress ? (
         <div className="text-xs text-gray-400">
@@ -2116,7 +2118,7 @@ export default function PredaLandingDashboardMockup() {
         return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
       default:
         return (
-          <section className="overflow-hidden rounded-[30px] border bg-[#0a0f0a]" style={{ borderColor: COLORS.lineStrong }}>
+          <section className="overflow-hidden rounded-[30px] border bg-[#150b24]" style={{ borderColor: COLORS.lineStrong }}>
             <div className="px-5 pt-6 sm:px-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
