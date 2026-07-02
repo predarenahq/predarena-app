@@ -1054,23 +1054,23 @@ function Filters({
   setSelectedClass: (v: string) => void;
 }) {
   return (
-    <div className="space-y-4 border-b px-5 py-5 sm:px-6" style={{ borderColor: COLORS.line }}>
+    <div className="space-y-4 border-b px-5 py-5 sm:px-6" style={{ borderColor: "#ececf1" }}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2">
           {boardTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedBoard(tab)} className={cx("rounded-full px-4 py-2 text-sm font-medium", selectedBoard === tab ? "text-black" : "text-white")} style={selectedBoard === tab ? { background: COLORS.accent } : { border: `1px solid ${COLORS.line}`, background: "rgba(255,255,255,0.03)" }}>
+            <button key={tab} onClick={() => setSelectedBoard(tab)} className="rounded-lg px-4 py-2 text-sm font-bold transition" style={selectedBoard === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
               {tab}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button key="All" onClick={() => setSelectedClass("All")} className={cx("rounded-full px-3 py-2 text-sm font-medium", selectedClass === "All" ? "text-black" : "text-white")} style={selectedClass === "All" ? { background: COLORS.accent } : { border: `1px solid ${COLORS.line}`, background: "rgba(255,255,255,0.03)" }}>
+          <button key="All" onClick={() => setSelectedClass("All")} className="rounded-lg px-3 py-2 text-sm font-bold transition" style={selectedClass === "All" ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
             All
           </button>
 
           {classTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedClass(tab)} className={cx("rounded-full px-3 py-2 text-sm font-medium", selectedClass === tab ? "text-black" : "text-white")} style={selectedClass === tab ? { background: COLORS.accent } : { border: `1px solid ${COLORS.line}`, background: "rgba(255,255,255,0.03)" }}>
+            <button key={tab} onClick={() => setSelectedClass(tab)} className="rounded-lg px-3 py-2 text-sm font-bold transition" style={selectedClass === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
               {tab}
             </button>
           ))}
@@ -2180,16 +2180,16 @@ export default function PredaLandingDashboardMockup() {
         return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
       default:
         return (
-          <section className="overflow-hidden rounded-[30px] border bg-[#150b24]" style={{ borderColor: COLORS.lineStrong }}>
+          <section className="overflow-hidden rounded-[24px] border bg-white" style={{ borderColor: "#ececf1" }}>
             <div className="px-5 pt-6 sm:px-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-3xl font-semibold text-white">Arena</h2>
-                  <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>
+                  <h2 className="text-3xl font-extrabold tracking-[-0.5px]" style={{ color: "#0f1115" }}>Arena</h2>
+                  <p className="mt-2 text-sm font-medium" style={{ color: "#75758a" }}>
                     Full market selections with live and upcoming coin battles.
                   </p>
                 </div>
-                <div className="hidden rounded-full border px-3 py-2 text-xs sm:block" style={{ borderColor: COLORS.line, color: COLORS.accent }}>
+                <div className="hidden rounded-full px-3 py-2 text-xs font-bold sm:block" style={{ background: "#f2f0fb", color: "#7c3aed" }}>
                   Hidden Slip Drawer Active
                 </div>
               </div>
@@ -2203,9 +2203,9 @@ export default function PredaLandingDashboardMockup() {
                   <MarketCard key={match.id} match={match} selectedSide={getSelectedSide(match.id)} onPick={handlePick} />
                 ))
               ) : (
-                <div className="rounded-[24px] border border-dashed p-8 text-center xl:col-span-2" style={{ borderColor: COLORS.line }}>
-                  <p className="text-lg font-medium text-white">No markets in this filter right now.</p>
-                  <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>
+                <div className="rounded-[20px] border border-dashed p-8 text-center xl:col-span-2" style={{ borderColor: "#e5e5ec" }}>
+                  <p className="text-lg font-bold" style={{ color: "#0f1115" }}>No markets in this filter right now.</p>
+                  <p className="mt-2 text-sm font-medium" style={{ color: "#a5a5b3" }}>
                     Switch board, token class, or market category.
                   </p>
                 </div>
@@ -2347,7 +2347,7 @@ export default function PredaLandingDashboardMockup() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.bg }}>
+    <div className="min-h-screen" style={{ background: "#f6f6f8" }}>
       <PredaStyles />
       <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(circle at top right, rgba(141,255,79,0.07), transparent 24%), radial-gradient(circle at top left, rgba(141,255,79,0.05), transparent 18%)" }} />
 
