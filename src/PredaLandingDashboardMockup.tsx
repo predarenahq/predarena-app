@@ -359,17 +359,17 @@ function LoadingOverlay({ loading }: { loading: boolean }) {
   return (
     <AnimatePresence>
       {loading ? (
-        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#0a0512]">
+        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#f6f6f8]">
           <div className="text-center">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-              className="mx-auto flex h-20 w-20 items-center justify-center rounded-[24px] border text-2xl font-bold"
-              style={{ borderColor: COLORS.lineStrong, color: COLORS.accent, background: COLORS.accentSoft }}
+              className="mx-auto flex h-20 w-20 items-center justify-center rounded-[22px] text-2xl font-bold text-white"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", boxShadow: "0 8px 28px rgba(124,58,237,0.28)" }}
             >
               P
             </motion.div>
-            <p className="mt-4 text-sm tracking-[0.22em]" style={{ color: COLORS.textSoft }}>
+            <p className="mt-4 text-sm font-medium tracking-[0.22em]" style={{ color: "#a0a0ad" }}>
               LOADING
             </p>
           </div>
@@ -394,7 +394,7 @@ function AuthModal({
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className="w-full max-w-md overflow-hidden rounded-[28px] border bg-[#150b24] shadow-2xl"
+            className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-[0_24px_70px_rgba(20,20,30,0.28)]"
             style={{ borderColor: COLORS.lineStrong }}
           >
             <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: COLORS.line }}>
@@ -1571,11 +1571,11 @@ function ProfilePage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border bg-black/20 p-4" style={{ borderColor: COLORS.line }}>
-      <p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: COLORS.textSoft }}>
+    <div className="rounded-[14px] p-4" style={{ background: "#fafafc", border: "1px solid #f0f0f4" }}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: "#b8b8c2" }}>
         {label}
       </p>
-      <p className="mt-2 font-medium text-white">{value}</p>
+      <p className="mt-2 font-semibold" style={{ color: "#141419" }}>{value}</p>
     </div>
   );
 }
@@ -1753,30 +1753,30 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
   const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
 
   return (
-    <div className="rounded-2xl border p-4" style={{ borderColor: isCombo ? 'rgba(167,139,250,0.3)' : COLORS.lineStrong, background: COLORS.panel }}>
-      <div className="flex items-start justify-between mb-3">
+    <div className="rounded-[18px] p-5 bg-white" style={{ boxShadow: isCombo ? "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.08)" : "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+      <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-white font-semibold">{battle?.coin_a} vs {battle?.coin_b}</p>
-            {isCombo && <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(167,139,250,0.15)', color: '#a78bfa' }}>COMBO LEG</span>}
+            <p className="font-semibold text-[15px]" style={{ color: "#141419" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+            {isCombo && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f3e8fd', color: '#7c3aed' }}>COMBO LEG</span>}
           </div>
-          <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
+          <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>{battle?.league} · {battle?.duration}</p>
         </div>
         <div className="text-right">
-          <div className="text-xs px-3 py-1 rounded-full font-semibold mb-1" style={{ background: `${COLORS.accent}22`, color: COLORS.accent }}>
-            ⏱ {timeLeft}
+          <div className="text-[11px] px-3 py-1 rounded-full font-semibold mb-1" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
+            {timeLeft}
           </div>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
-          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
-          <p className="text-white font-semibold">{pick}</p>
-          <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {ticket.odds}x</p>
+        <div className="rounded-[12px] p-3" style={{ background: "#fafafc" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "#b8b8c2" }}>Your Pick</p>
+          <p className="font-semibold" style={{ color: "#141419" }}>{pick}</p>
+          <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>@ {ticket.odds}x</p>
         </div>
-        <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
-          <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Stake</p>
-          <p className="text-white font-semibold">${ticket.stake}</p>
+        <div className="rounded-[12px] p-3" style={{ background: "#fafafc" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "#b8b8c2" }}>Stake</p>
+          <p className="font-semibold" style={{ color: "#141419" }}>${ticket.stake}</p>
         </div>
         <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
           <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>To Win</p>
