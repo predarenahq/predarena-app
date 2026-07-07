@@ -1344,29 +1344,41 @@ function SlipDrawer({
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
 
   return (
+    <>
+    {/* Backdrop — tap to close, mobile only */}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[44] bg-black/20 backdrop-blur-[2px] lg:hidden"
+        />
+      )}
+    </AnimatePresence>
     <motion.aside
-      animate={{ x: open ? 0 : 420, opacity: open ? 1 : 0.96 }}
-      transition={{ type: "spring", stiffness: 280, damping: 28 }}
-      className="fixed bottom-0 right-0 left-0 top-auto z-[45] w-full overflow-hidden rounded-t-[30px] border-t border-l border-r bg-[#0b110b] shadow-2xl lg:bottom-20 lg:right-5 lg:left-auto lg:top-[92px] lg:w-[380px] lg:rounded-[30px] lg:border"
-      style={{ borderColor: COLORS.lineStrong }}
+      initial={false}
+      animate={open
+        ? { x: 0, y: 0, opacity: 1, pointerEvents: "auto" }
+        : { x: 0, y: "110%", opacity: 0, pointerEvents: "none" }}
+      transition={{ type: "spring", stiffness: 320, damping: 32 }}
+      className="fixed bottom-0 right-0 left-0 top-auto z-[45] max-h-[85vh] w-full overflow-hidden rounded-t-[28px] bg-white shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
     >
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between px-4 py-4" style={{ background: COLORS.accent }}>
-          <div className="flex items-center gap-3 text-black">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/10">
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#f0f0f4" }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
               <LayoutGrid className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-base font-semibold">My Slip</p>
-              <p className="text-xs text-black/70">{items.length} selections</p>
+              <p className="text-[15px] font-semibold" style={{ color: "#141419" }}>My Slip</p>
+              <p className="text-xs" style={{ color: "#a0a0ad" }}>{items.length} selections</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="rounded-full border border-black/15 px-3 py-1 text-xs font-semibold text-black/80">AUTO</div>
-            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-black/10">
-              <X className="h-4 w-4 text-black" />
-            </button>
-          </div>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8" }}>
+            <X className="h-4 w-4" style={{ color: "#585866" }} />
+          </button>
         </div>
 
         <div className="grid grid-cols-3 text-sm">
@@ -1374,7 +1386,7 @@ function SlipDrawer({
             const active = items.length <= 1 ? "Single" : "Combo";
             const disabled = tab === "System";
             return (
-              <div key={tab} className="border-b px-3 py-3 text-center font-medium" style={{ borderColor: active === tab ? COLORS.accent : COLORS.line, color: disabled ? "#4e5e49" : active === tab ? COLORS.accent : COLORS.textSoft }}>
+              <div key={tab} className="px-3 py-3 text-center text-[13px] font-medium transition-colors" style={{ borderBottom: active === tab ? "2px solid #7c3aed" : "2px solid transparent", color: disabled ? "#c4c4cf" : active === tab ? "#7c3aed" : "#9b9ba8" }}>
                 {tab}
               </div>
             );
@@ -1384,44 +1396,44 @@ function SlipDrawer({
         <div className="preda-scrollbar-hide min-h-0 flex-1 overflow-y-auto">
           {items.length ? (
             items.map((item) => (
-              <div key={item.matchId} className="flex gap-3 border-b bg-white/[0.02] px-3 py-4" style={{ borderColor: COLORS.line }}>
-                <button onClick={() => onRemove(item.matchId)} className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-slate-400" style={{ borderColor: COLORS.line }}>
+              <div key={item.matchId} className="flex gap-3 border-b px-5 py-4" style={{ borderColor: "#f4f4f7" }}>
+                <button onClick={() => onRemove(item.matchId)} className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8", color: "#9b9ba8" }}>
                   <X className="h-4 w-4" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-white">{item.pickLabel}</p>
-                  <p className="mt-1 text-sm" style={{ color: COLORS.textSoft }}>
+                  <p className="font-semibold text-[14px]" style={{ color: "#141419" }}>{item.pickLabel}</p>
+                  <p className="mt-0.5 text-[13px]" style={{ color: "#9b9ba8" }}>
                     {item.matchTitle}
                   </p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.16em]" style={{ color: COLORS.textSoft }}>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: "#b8b8c2" }}>
                     3-Way · {item.duration}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-semibold" style={{ color: COLORS.accent }}>
+                  <p className="text-[17px] font-semibold" style={{ color: "#7c3aed", fontVariantNumeric: "tabular-nums" }}>
                     {formatOdds(item.oddsAtPick)}
                   </p>
                 </div>
               </div>
             ))
           ) : (
-            <div className="px-5 py-8 text-center">
-              <p className="font-medium text-white">Your slip is empty</p>
-              <p className="mt-2 text-sm leading-6" style={{ color: COLORS.textSoft }}>
+            <div className="px-6 py-12 text-center">
+              <p className="font-semibold text-[15px]" style={{ color: "#141419" }}>Your slip is empty</p>
+              <p className="mt-2 text-[13px] leading-6" style={{ color: "#9b9ba8" }}>
                 Pick left, draw, or right and your selections stack here automatically.
               </p>
             </div>
           )}
 
-          <div className="border-t px-4 py-4" style={{ borderColor: COLORS.line }}>
-            <div className="flex items-center gap-2 rounded-2xl border bg-black/20 px-4 py-3" style={{ borderColor: COLORS.line }}>
-              <CircleDollarSign className="h-4 w-4" style={{ color: COLORS.textSoft }} />
-              <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500" placeholder="Enter stake" />
+          <div className="border-t px-5 py-4" style={{ borderColor: "#f0f0f4", background: "#fafafc" }}>
+            <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "#fff", border: "1px solid #ececf1" }}>
+              <CircleDollarSign className="h-4 w-4" style={{ color: "#b8b8c2" }} />
+              <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm outline-none" style={{ color: "#141419" }} placeholder="Enter stake" />
             </div>
 
             <div className="mt-3 grid grid-cols-4 gap-2">
               {quickStakes.map((size) => (
-                <button key={size} onClick={() => setStake(String(size))} className="rounded-xl border px-3 py-2 text-sm font-medium text-white transition hover:bg-white/[0.04]" style={{ borderColor: COLORS.line }}>
+                <button key={size} onClick={() => setStake(String(size))} className="rounded-[10px] px-3 py-2 text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-[#f0f0f4] active:scale-[0.97]" style={{ background: "#fff", border: "1px solid #ececf1", color: "#585866" }}>
                   {size}
                 </button>
               ))}
@@ -1435,35 +1447,36 @@ function SlipDrawer({
                   </p>
                 </div>
               )}
-              <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
+              <div className="flex items-center justify-between" style={{ color: "#9b9ba8" }}>
                 <span>{items.length > 1 ? 'Combined Odds' : 'Odds'}</span>
-                <span className="font-medium text-white">{items.length ? formatOdds(totalOdds) : "--"}</span>
+                <span className="font-semibold" style={{ color: "#141419" }}>{items.length ? formatOdds(totalOdds) : "--"}</span>
               </div>
-              <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
+              <div className="flex items-center justify-between" style={{ color: "#9b9ba8" }}>
                 <span>Stake</span>
-                <span className="font-medium text-white">{stake ? `$${stake}` : "--"}</span>
+                <span className="font-semibold" style={{ color: "#141419" }}>{stake ? `${stake}` : "--"}</span>
               </div>
               {items.length > 1 && (
-                <div className="flex items-center justify-between" style={{ color: COLORS.textSoft }}>
+                <div className="flex items-center justify-between" style={{ color: "#9b9ba8" }}>
                   <span>Legs</span>
-                  <span className="font-medium text-white">{items.length} selections</span>
+                  <span className="font-semibold" style={{ color: "#141419" }}>{items.length} selections</span>
                 </div>
               )}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-base font-semibold text-white">Potential Win</span>
-                <span className="text-lg font-semibold" style={{ color: COLORS.accent }}>
-                  {items.length ? `$${projected.toFixed(2)}` : "--"}
+              <div className="flex items-center justify-between pt-2 mt-1 border-t" style={{ borderColor: "#f0f0f4" }}>
+                <span className="text-[15px] font-semibold" style={{ color: "#141419" }}>Potential Win</span>
+                <span className="text-[18px] font-semibold" style={{ color: "#7c3aed", fontVariantNumeric: "tabular-nums" }}>
+                  {items.length ? `${projected.toFixed(2)}` : "--"}
                 </span>
               </div>
             </div>
 
-            <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40" style={{ background: COLORS.accent }}>
+            <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
               {items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
             </button>
           </div>
         </div>
       </div>
     </motion.aside>
+    </>
   );
 }
 
