@@ -359,18 +359,26 @@ function LoadingOverlay({ loading }: { loading: boolean }) {
   return (
     <AnimatePresence>
       {loading ? (
-        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#f6f6f8]">
-          <div className="text-center">
+        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#f6f6f8]">
+          <div className="flex flex-col items-center">
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-              className="mx-auto flex h-20 w-20 items-center justify-center rounded-[22px] text-2xl font-bold text-white"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", boxShadow: "0 8px 28px rgba(124,58,237,0.28)" }}
+              animate={{ scale: [1, 1.06, 1], opacity: [1, 0.85, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              className="flex h-16 w-16 items-center justify-center rounded-[18px] text-xl font-bold text-white"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", boxShadow: "0 8px 28px rgba(124,58,237,0.24)" }}
             >
               P
             </motion.div>
-            <p className="mt-4 text-sm font-medium tracking-[0.22em]" style={{ color: "#a0a0ad" }}>
-              LOADING
+            <div className="mt-5 h-1 w-32 overflow-hidden rounded-full" style={{ background: "#ececf1" }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, #7c3aed, #db2777)" }}
+                animate={{ x: ["-100%", "250%"] }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+            <p className="mt-4 text-sm" style={{ color: "#9b9ba8" }}>
+              Loading arena…
             </p>
           </div>
         </motion.div>
@@ -402,9 +410,9 @@ function AuthModal({
                 <p className="text-[11px] uppercase tracking-[0.24em]" style={{ color: COLORS.accent }}>
                   PREDA Access
                 </p>
-                <h3 className="mt-1 text-xl font-semibold text-white">Wallet + Social Login</h3>
+                <h3 className="mt-1 text-xl font-semibold" style={{ color: "#141419" }}>Wallet + Social Login</h3>
               </div>
-              <button onClick={onClose} className="rounded-full border p-2 text-slate-400 transition hover:text-white" style={{ borderColor: COLORS.line }}>
+              <button onClick={onClose} className="rounded-full p-2 transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8", color: "#585866" }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -799,7 +807,7 @@ function UserBalancePanel() {
   if (!connected) {
     return (
       <div className="rounded-2xl border p-3" style={{ borderColor: COLORS.line }}>
-        <p className="text-sm font-medium text-white">User Profile</p>
+        <p className="text-sm font-semibold" style={{ color: "#141419" }}>User Profile</p>
         <p className="mt-1 text-xs" style={{ color: COLORS.textSoft }}>Connect wallet to see balance</p>
       </div>
     )
@@ -808,7 +816,7 @@ function UserBalancePanel() {
   return (
     <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: COLORS.line }}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-white">User Profile</p>
+        <p className="text-sm font-semibold" style={{ color: "#141419" }}>User Profile</p>
         <button
           onClick={() => setCurrency(currency === 'USD' ? 'SOL' : 'USD')}
           className="text-xs px-2 py-1 rounded-full"
@@ -837,14 +845,14 @@ function UserBalancePanel() {
             placeholder="Amount in SOL"
             value={depositAmount}
             onChange={e => setDepositAmount(e.target.value)}
-            className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
-            style={{ background: COLORS.panel, border: `1px solid ${COLORS.line}` }}
+            className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
+            style={{ background: "#fff", border: "1px solid #ececf1", color: "#141419" }}
           />
           <button
             onClick={handleDeposit}
             disabled={loading}
-            className="w-full rounded-xl py-2 text-sm font-semibold text-black"
-            style={{ background: COLORS.accent }}
+            className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}
           >
             {loading ? 'Processing...' : 'Confirm Deposit'}
           </button>
@@ -858,14 +866,14 @@ function UserBalancePanel() {
             placeholder="Amount in SOL"
             value={withdrawAmount}
             onChange={e => setWithdrawAmount(e.target.value)}
-            className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
-            style={{ background: COLORS.panel, border: `1px solid ${COLORS.line}` }}
+            className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
+            style={{ background: "#fff", border: "1px solid #ececf1", color: "#141419" }}
           />
           <button
             onClick={handleWithdraw}
             disabled={loading}
-            className="w-full rounded-xl py-2 text-sm font-semibold text-black"
-            style={{ background: COLORS.accent }}
+            className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}
           >
             {loading ? 'Processing...' : 'Confirm Withdraw'}
           </button>
@@ -1110,7 +1118,7 @@ function SelectionButton({
             <TokenMark ticker={ticker} />
           )}
           <div>
-            <p className="text-sm font-medium text-white">{label}</p>
+            <p className="text-sm font-medium" style={{ color: "#141419" }}>{label}</p>
             <p className="mt-1 text-[11px]" style={{ color: COLORS.textSoft }}>
               {meta}
             </p>
@@ -1698,7 +1706,7 @@ function _PredaAuthControls({
           Login with X
         </button>
       ) : (
-        <div className="text-sm text-white">
+        <div className="text-sm" style={{ color: "#141419" }}>
           {twitterUsername || "Connected"}
         </div>
       )}
@@ -1802,19 +1810,19 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
   const timeLeft = useCountdown(latestEnd)
 
   return (
-    <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(167,139,250,0.4)', background: COLORS.panel }}>
-      <div className="flex items-start justify-between mb-3">
+    <div className="rounded-[18px] p-5 bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.1)" }}>
+      <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-white font-semibold">Combo Bet</p>
-            <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(167,139,250,0.2)', color: '#a78bfa' }}>
+            <p className="font-semibold text-[15px]" style={{ color: "#141419" }}>Combo Bet</p>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f3e8fd', color: '#7c3aed' }}>
               {legs.length} LEGS
             </span>
           </div>
-          <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>All legs must win · {comboOdds.toFixed(2)}x combined</p>
+          <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>All legs must win · {comboOdds.toFixed(2)}x combined</p>
         </div>
-        <div className="text-xs px-3 py-1 rounded-full font-semibold" style={{ background: `${COLORS.accent}22`, color: COLORS.accent }}>
-          ⏱ {timeLeft}
+        <div className="text-[11px] px-3 py-1 rounded-full font-semibold" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
+          {timeLeft}
         </div>
       </div>
 
@@ -1824,10 +1832,10 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
           const b = leg.battles
           const pick = leg.side === 1 ? b?.coin_a : leg.side === 2 ? b?.coin_b : 'Draw'
           return (
-            <div key={leg.id} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <span className="text-xs" style={{ color: COLORS.textSoft }}>Leg {i + 1}</span>
-              <span className="text-white text-sm font-medium">{b?.coin_a} vs {b?.coin_b}</span>
-              <span style={{ color: COLORS.accent }} className="text-sm font-semibold">{pick}</span>
+            <div key={leg.id} className="flex items-center justify-between px-3 py-2.5 rounded-[10px]" style={{ background: '#fafafc' }}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: "#b8b8c2" }}>Leg {i + 1}</span>
+              <span className="text-sm font-medium" style={{ color: "#141419" }}>{b?.coin_a} vs {b?.coin_b}</span>
+              <span style={{ color: "#7c3aed" }} className="text-sm font-semibold">{pick}</span>
             </div>
           )
         })}
@@ -1881,7 +1889,7 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
 
   if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-white text-lg font-semibold">Connect your wallet to see history</p>
+      <p className="text-lg font-semibold" style={{ color: "#141419" }}>Connect your wallet to see history</p>
     </div>
   )
 
@@ -1893,14 +1901,14 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
 
   if (!tickets.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-white text-lg font-semibold">No settled bets yet</p>
+      <p className="text-lg font-semibold" style={{ color: "#141419" }}>No settled bets yet</p>
       <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>Your completed battles will appear here</p>
     </div>
   )
 
   return (
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
-      <h2 className="text-2xl font-bold text-white mb-6">Bet History</h2>
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "#141419" }}>Bet History</h2>
       <div className="grid gap-4">
         {tickets.map((ticket) => {
           const battle = ticket.battles
@@ -1914,11 +1922,11 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
             : null
 
           return (
-            <div key={ticket.id} className="rounded-2xl border p-4" style={{ borderColor: COLORS.lineStrong, background: COLORS.panel }}>
+            <div key={ticket.id} className="rounded-[18px] p-5 bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-white font-semibold text-lg">{battle?.coin_a} vs {battle?.coin_b}</p>
-                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>{battle?.league} · {battle?.duration}</p>
+                  <p className="font-semibold text-[17px]" style={{ color: "#141419" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>{battle?.league} · {battle?.duration}</p>
                 </div>
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
                   background: won ? `${COLORS.accent}22` : '#ef444422',
@@ -1931,7 +1939,7 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
                   <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
-                  <p className="text-white font-semibold">
+                  <p className="font-semibold" style={{ color: "#141419" }}>
                     {ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
                   </p>
                   <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {ticket.odds}x</p>
@@ -2002,7 +2010,7 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
 
   if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-white text-lg font-semibold">Connect your wallet to see your bets</p>
+      <p className="text-lg font-semibold" style={{ color: "#141419" }}>Connect your wallet to see your bets</p>
     </div>
   )
 
@@ -2014,7 +2022,7 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
 
   if (!tickets.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-white text-lg font-semibold">No bets yet</p>
+      <p className="text-lg font-semibold" style={{ color: "#141419" }}>No bets yet</p>
       <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>Place your first bet on the Arena</p>
     </div>
   )
@@ -2034,7 +2042,7 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
 
   return (
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
-      <h2 className="text-2xl font-bold text-white mb-6">My Bets</h2>
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "#141419" }}>My Bets</h2>
       <div className="grid gap-4">
         {/* Combo bets grouped */}
         {Object.entries(comboGroups).map(([comboId, legs]) => (
