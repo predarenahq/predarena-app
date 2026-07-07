@@ -369,49 +369,57 @@ export default function BattleDetailPage() {
       />}
 
       {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b" style={{ borderColor: COLORS.lineStrong }}>
-        <button onClick={() => navigate('/')} className="p-2 rounded-xl" style={{ background: COLORS.panel }}>
-          <ChevronLeft size={20} color="white" />
+      <div className="flex items-center gap-4 px-6 py-4 border-b bg-white sticky top-0 z-20" style={{ borderColor: "#f0f0f4" }}>
+        <button onClick={() => navigate('/')} className="flex items-center gap-1.5 h-9 pl-2 pr-3 rounded-[10px] text-sm font-medium transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8", color: "#585866" }}>
+          <ChevronLeft size={18} />
+          Arena
         </button>
         <div>
           <h1 className="text-xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{battle.coin_a} vs {battle.coin_b}</h1>
-          <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle.league} · {battle.duration}</p>
+          <p className="text-xs font-medium" style={{ color: "#9b9ba8" }}>{battle.league} · {battle.duration}</p>
         </div>
-        <div className="ml-auto text-right">
-          <p className="text-xs" style={{ color: COLORS.textSoft }}>Time Left</p>
-          <p className="font-mono font-semibold" style={{ color: "#141419" }}>{countdown}</p>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Time Left</p>
+            <p className="font-mono font-semibold text-sm" style={{ color: countdown === "Ended" ? "#9b9ba8" : "#141419" }}>{countdown}</p>
+          </div>
+          {countdown === "Ended" && (
+            <button onClick={() => navigate('/history')} className="h-9 px-4 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+              View in History
+            </button>
+          )}
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Live Score */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-2xl p-4 text-center" style={{ background: `${COLORS.coinA}10`, border: `1px solid ${COLORS.coinA}30` }}>
-            <p className="text-xs mb-1 font-medium" style={{ color: COLORS.textSoft }}>{battle.coin_a}</p>
-            <p className="text-2xl font-bold" style={{ color: COLORS.coinA }}>
+          <div className="rounded-[20px] p-5 text-center bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.06)" }}>
+            <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "#b8b8c2" }}>{battle.coin_a}</p>
+            <p className="text-[26px] font-semibold tracking-[-0.03em]" style={{ color: COLORS.coinA, fontVariantNumeric: "tabular-nums" }}>
               {latestA >= 0 ? '+' : ''}{latestA.toFixed(4)}%
             </p>
-            <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>since battle start</p>
+            <p className="text-[11px] mt-1 font-medium" style={{ color: "#a0a0ad" }}>since battle start</p>
           </div>
-          <div className="rounded-2xl p-4 text-center flex flex-col items-center justify-center" style={{ background: COLORS.panel }}>
+          <div className="rounded-[20px] p-5 text-center flex flex-col items-center justify-center bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
             {leadingCoin ? (
               <>
-                <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Leading</p>
-                <p className="font-semibold" style={{ color: "#141419" }}>{leadingCoin}</p>
-                <p className="text-xs mt-1" style={{ color: leadingCoin === battle.coin_a ? COLORS.coinA : COLORS.coinB }}>
+                <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "#b8b8c2" }}>Leading</p>
+                <p className="text-[19px] font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{leadingCoin}</p>
+                <p className="text-xs mt-1 font-semibold" style={{ color: leadingCoin === battle.coin_a ? COLORS.coinA : COLORS.coinB, fontVariantNumeric: "tabular-nums" }}>
                   +{Math.abs(latestA - latestB).toFixed(4)}%
                 </p>
               </>
             ) : (
-              <p className="text-sm font-semibold" style={{ color: "#141419" }}>TIED</p>
+              <p className="text-lg font-semibold" style={{ color: "#141419" }}>TIED</p>
             )}
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: `${COLORS.coinB}10`, border: `1px solid ${COLORS.coinB}30` }}>
-            <p className="text-xs mb-1 font-medium" style={{ color: COLORS.textSoft }}>{battle.coin_b}</p>
-            <p className="text-2xl font-bold" style={{ color: COLORS.coinB }}>
+          <div className="rounded-[20px] p-5 text-center bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(219,39,119,0.06)" }}>
+            <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "#b8b8c2" }}>{battle.coin_b}</p>
+            <p className="text-[26px] font-semibold tracking-[-0.03em]" style={{ color: COLORS.coinB, fontVariantNumeric: "tabular-nums" }}>
               {latestB >= 0 ? '+' : ''}{latestB.toFixed(4)}%
             </p>
-            <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>since battle start</p>
+            <p className="text-[11px] mt-1 font-medium" style={{ color: "#a0a0ad" }}>since battle start</p>
           </div>
         </div>
 
