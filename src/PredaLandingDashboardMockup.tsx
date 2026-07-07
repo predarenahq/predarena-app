@@ -7,7 +7,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useTransform, animate, useInView } from "framer-motion";
 import {
   ArrowRight,
   Bell,
@@ -1120,6 +1120,22 @@ function SelectionButton({
   );
 }
 
+// Animated counting number — counts up to `value` on mount, respects tabular figures
+function CountUp({ value, decimals = 2, className, style }: { value: number; decimals?: number; className?: string; style?: React.CSSProperties }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true, margin: "-40px" })
+  const mv = useMotionValue(0)
+  const rounded = useTransform(mv, (v) => v.toFixed(decimals))
+  const [display, setDisplay] = React.useState("0." + "0".repeat(decimals))
+  React.useEffect(() => {
+    if (!inView) return
+    const controls = animate(mv, value, { duration: 0.5, ease: [0.22, 1, 0.36, 1] })
+    const unsub = rounded.on("change", (v) => setDisplay(v))
+    return () => { controls.stop(); unsub() }
+  }, [inView, value]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <span ref={ref} className={className} style={style}>{display}</span>
+}
+
 function MarketCard({
   match,
   selectedSide,
@@ -1147,7 +1163,26 @@ function MarketCard({
   const leadPct = Math.round((invL / (invL + invR + invD)) * 100)
 
   const isNeg = (v: any) => String(v).trim().startsWith("-")
-  const metaCols = match.pool > 0 ? "grid-cols-4" : "grid-cols-3"
+
+  const Pick = ({ side, label, odds }: { side: Side; label: string; odds: number }) => {
+    const sel = selectedSide === side
+    return (
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        transition={{ duration: 0.12 }}
+        onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, side); }}
+        style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer",
+          flex: 1, textAlign: "center", padding: "16px 8px", borderRadius: 18,
+          background: sel ? `linear-gradient(150deg, ${leagueColor}17, #db277712)` : "#faf9fc",
+          boxShadow: sel ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
+          border: "none", transition: "background 0.18s",
+        }}
+      >
+        <div className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: "#a0a0ad", marginBottom: 7 }}>{label}</div>
+        <div className="text-[19px] font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}×</div>
+      </motion.button>
+    )
+  }
 
   return (
     <>
@@ -1160,97 +1195,96 @@ function MarketCard({
       startPriceA={match.startPriceA || 0}
       startPriceB={match.startPriceB || 0}
     />
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }} transition={{ duration: 0.18 }} className="rounded-[24px] bg-white p-5 cursor-pointer shadow-[0px_2px_8px_0px_rgba(18,18,23,0.06)] hover:shadow-[0px_12px_28px_0px_rgba(124,58,237,0.12)]" onClick={() => navigate(`/battle/${match.id}`)}>
-      <div className="flex items-center justify-between gap-3 mb-3">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-[26px] bg-white p-6 cursor-pointer"
+      style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}
+      onClick={() => navigate(`/battle/${match.id}`)}
+    >
+      <div className="flex items-center justify-between mb-[22px]">
         <div className="flex items-center gap-2">
-          <span className="inline-block w-[7px] h-[7px] rounded-[2px]" style={{ background: leagueColor }} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.06em]" style={{ color: "#8B8B9A" }}>{match.league}</span>
+          <span className="inline-block w-[6px] h-[6px] rounded-full" style={{ background: leagueColor }} />
+          <span className="text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: "#a0a0ad" }}>{match.league}</span>
         </div>
-        <span className="flex items-center gap-[6px] rounded-[20px] px-[10px] py-[4px] text-[12px] font-medium" style={{ background: match.board === "Live" ? "#F3E8FD" : "#FFF3E0", color: match.board === "Live" ? "#7c3aed" : "#B45309" }}>
-          {match.board === "Live" && <span className="inline-block w-[6px] h-[6px] rounded-full shrink-0" style={{ background: "#7c3aed" }} />}
+        <div className="flex items-center gap-[6px] text-[12px] font-medium" style={{ color: match.board === "Live" ? leagueColor : "#b45309" }}>
+          {match.board === "Live" && (
+            <motion.span
+              className="inline-block w-[6px] h-[6px] rounded-full"
+              style={{ background: leagueColor }}
+              animate={{ boxShadow: [`0 0 0 0 ${leagueColor}66`, `0 0 0 6px ${leagueColor}00`, `0 0 0 0 ${leagueColor}00`] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+            />
+          )}
           {match.board}
-        </span>
+        </div>
       </div>
 
-      <h3 className="text-[19px] font-bold tracking-[-0.02em]" style={{ color: "#1A1A1A" }}>{match.title}</h3>
-      <p className="mt-1 mb-4 text-[13px]" style={{ color: "#8B8B9A" }}>{match.duration} · {match.subtitle}</p>
+      <h3 className="text-[23px] font-semibold tracking-[-0.03em]" style={{ color: "#141419" }}>{match.title}</h3>
+      <p className="mt-1.5 mb-6 text-[13px] font-normal" style={{ color: "#a0a0ad" }}>{match.duration} · {match.subtitle}</p>
 
-      <div className="flex items-baseline gap-2 mb-3">
-        <span className="text-[28px] font-bold tracking-[-0.02em]" style={{ color: "#1A1A1A" }}>{match.left.odds.toFixed(2)}×</span>
-        <span className="text-[13px] font-medium" style={{ color: "#8B8B9A" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
-        <span className="ml-auto text-[11px] font-bold px-[10px] py-[4px] rounded-[20px]" style={{ background: leagueColor + "14", color: leagueColor }}>{leadPct}% lead</span>
+      <div className="flex items-baseline gap-[10px] mb-[18px]">
+        <span className="text-[34px] font-semibold tracking-[-0.04em]" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>
+          <CountUp value={match.left.odds} />
+          <span className="text-[22px] font-normal" style={{ color: "#c4c4cf" }}>×</span>
+        </span>
+        <span className="text-[13px] font-normal" style={{ color: "#a0a0ad", fontVariantNumeric: "tabular-nums" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
+        <span className="ml-auto text-[12px] font-medium" style={{ color: leagueColor }}>{leadPct}% lead</span>
       </div>
 
       {elapsedPct !== null && (
         <>
-          <div className="h-[6px] rounded-full overflow-hidden mb-2" style={{ background: "#F3F0FA" }}>
-            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${elapsedPct}%`, background: `linear-gradient(90deg, ${leagueColor}, #db2777)` }} />
+          <div className="h-[4px] rounded-full overflow-hidden mb-[10px]" style={{ background: "#f0f0f4" }}>
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: `linear-gradient(90deg, ${leagueColor}, #db2777)` }}
+              initial={{ width: 0 }}
+              whileInView={{ width: `${elapsedPct}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            />
           </div>
-          <div className="flex items-center justify-between text-[12px] font-medium mb-4" style={{ color: "#8B8B9A" }}>
+          <div className="flex items-center justify-between text-[12px] font-normal mb-[26px]" style={{ color: "#a0a0ad", fontVariantNumeric: "tabular-nums" }}>
             <span>{isSettling ? "Settling..." : match.timer}</span>
             <span>{Math.round(elapsedPct)}% elapsed</span>
           </div>
         </>
       )}
 
-      <div className={`grid ${metaCols} gap-3 p-3.5 my-1 rounded-[16px]`} style={{ background: "#FAF9FC" }}>
-        <div>
-          <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>Entries</div>
-          <div className="text-[14px] font-bold" style={{ color: "#1A1A1A" }}>{match.entries}</div>
+      <div className="flex justify-between py-5 mb-[22px]" style={{ borderTop: "1px solid #f2f2f5", borderBottom: "1px solid #f2f2f5" }}>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Entries</span>
+          <span className="text-[15px] font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{match.entries}</span>
         </div>
         {match.pool > 0 && (
-          <div>
-            <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>Pool</div>
-            <div className="text-[14px] font-bold" style={{ color: "#1A1A1A" }}>{`$${match.pool.toLocaleString()}`}</div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Pool</span>
+            <span className="text-[15px] font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{`$${match.pool.toLocaleString()}`}</span>
           </div>
         )}
-        <div>
-          <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>{match.left.ticker}</div>
-          <div className="text-[14px] font-bold" style={{ color: isNeg(match.left.change) ? "#DC2626" : "#059669" }}>{match.left.change}</div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>{match.left.ticker}</span>
+          <span className="text-[15px] font-semibold" style={{ color: isNeg(match.left.change) ? "#dc2626" : "#059669", fontVariantNumeric: "tabular-nums" }}>{match.left.change}</span>
         </div>
-        <div>
-          <div className="text-[9px] font-bold tracking-[0.06em] uppercase" style={{ color: "#B0AEBB" }}>{match.right.ticker}</div>
-          <div className="text-[14px] font-bold" style={{ color: isNeg(match.right.change) ? "#DC2626" : "#059669" }}>{match.right.change}</div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>{match.right.ticker}</span>
+          <span className="text-[15px] font-semibold" style={{ color: isNeg(match.right.change) ? "#dc2626" : "#059669", fontVariantNumeric: "tabular-nums" }}>{match.right.change}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-3">
-        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "left"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
-          <div style={{
-            width: "100%", borderRadius: 16, padding: "12px 6px",
-            background: selectedSide === "left" ? `linear-gradient(140deg, ${leagueColor}18, #db277718)` : "#FAF9FC",
-            boxShadow: selectedSide === "left" ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
-          }}>
-            <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>{match.left.ticker}</div>
-            <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.left.odds.toFixed(2)}×</div>
-          </div>
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "draw"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
-          <div style={{
-            width: "100%", borderRadius: 16, padding: "12px 6px",
-            background: selectedSide === "draw" ? `linear-gradient(140deg, ${leagueColor}18, #db277718)` : "#FAF9FC",
-            boxShadow: selectedSide === "draw" ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
-          }}>
-            <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>DRAW</div>
-            <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.draw.odds.toFixed(2)}×</div>
-          </div>
-        </button>
-        <button onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, "right"); }} style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer" }}>
-          <div style={{
-            width: "100%", borderRadius: 16, padding: "12px 6px",
-            background: selectedSide === "right" ? `linear-gradient(140deg, ${leagueColor}18, #db277718)` : "#FAF9FC",
-            boxShadow: selectedSide === "right" ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
-          }}>
-            <div className="text-[9.5px] font-bold" style={{ color: "#8B8B9A" }}>{match.right.ticker}</div>
-            <div className="text-[17px] font-bold" style={{ color: "#1A1A1A" }}>{match.right.odds.toFixed(2)}×</div>
-          </div>
-        </button>
+      <div className="flex gap-[10px]">
+        <Pick side="left" label={match.left.ticker} odds={match.left.odds} />
+        <Pick side="draw" label="Draw" odds={match.draw.odds} />
+        <Pick side="right" label={match.right.ticker} odds={match.right.odds} />
       </div>
     </motion.div>
     </>
   );
 }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-black/20 px-3 py-3" style={{ borderColor: COLORS.line }}>
