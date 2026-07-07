@@ -12,16 +12,16 @@ import { useArcArena } from './arc/useArcArena'
 import { ArcSide } from './arc/contracts'
 
 const COLORS = {
-  bg: '#060d14',
-  panel: '#0d1520',
-  accent: '#00f0ff',
-  lineStrong: 'rgba(255,255,255,0.08)',
-  line: 'rgba(255,255,255,0.12)',
-  textSoft: 'rgba(255,255,255,0.45)',
-  coinA: '#00f0ff',
-  coinB: '#a78bfa',
-  green: '#10b981',
-  red: '#f43f5e',
+  bg: '#f6f6f8',
+  panel: '#ffffff',
+  accent: '#7c3aed',
+  lineStrong: '#ececf1',
+  line: '#f0f0f4',
+  textSoft: '#9b9ba8',
+  coinA: '#7c3aed',
+  coinB: '#db2777',
+  green: '#059669',
+  red: '#dc2626',
   arc: '#7c3aed',
 }
 
@@ -374,12 +374,12 @@ export default function BattleDetailPage() {
           <ChevronLeft size={20} color="white" />
         </button>
         <div>
-          <h1 className="text-white text-xl font-bold">{battle.coin_a} vs {battle.coin_b}</h1>
+          <h1 className="text-xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{battle.coin_a} vs {battle.coin_b}</h1>
           <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle.league} · {battle.duration}</p>
         </div>
         <div className="ml-auto text-right">
           <p className="text-xs" style={{ color: COLORS.textSoft }}>Time Left</p>
-          <p className="text-white font-mono font-bold">{countdown}</p>
+          <p className="font-mono font-semibold" style={{ color: "#141419" }}>{countdown}</p>
         </div>
       </div>
 
@@ -397,13 +397,13 @@ export default function BattleDetailPage() {
             {leadingCoin ? (
               <>
                 <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Leading</p>
-                <p className="font-bold text-white">{leadingCoin}</p>
+                <p className="font-semibold" style={{ color: "#141419" }}>{leadingCoin}</p>
                 <p className="text-xs mt-1" style={{ color: leadingCoin === battle.coin_a ? COLORS.coinA : COLORS.coinB }}>
                   +{Math.abs(latestA - latestB).toFixed(4)}%
                 </p>
               </>
             ) : (
-              <p className="text-sm font-bold text-white">TIED</p>
+              <p className="text-sm font-semibold" style={{ color: "#141419" }}>TIED</p>
             )}
           </div>
           <div className="rounded-2xl p-4 text-center" style={{ background: `${COLORS.coinB}10`, border: `1px solid ${COLORS.coinB}30` }}>
@@ -418,8 +418,8 @@ export default function BattleDetailPage() {
         {/* Chart */}
         <div className="rounded-2xl p-5" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Settlement Price Chart</h2>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(0,240,255,0.1)', color: COLORS.accent }}>
+            <h2 className="font-semibold" style={{ color: "#141419" }}>Settlement Price Chart</h2>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#f3e8fd', color: '#7c3aed' }}>
               Powered by Pyth Network
             </span>
           </div>
@@ -468,7 +468,7 @@ export default function BattleDetailPage() {
           ].map(({ label, value }) => (
             <div key={label} className="rounded-2xl p-4 text-center" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
               <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{label}</p>
-              <p className="text-white font-bold">{value}</p>
+              <p className="font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{value}</p>
             </div>
           ))}
         </div>
@@ -476,7 +476,7 @@ export default function BattleDetailPage() {
         {/* Betting */}
         <div className="rounded-2xl p-5 space-y-4" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
           <div className="flex items-center justify-between">
-            <h2 className="text-white font-semibold">Place Your Bet</h2>
+            <h2 className="font-semibold text-[17px]" style={{ color: "#141419" }}>Place Your Bet</h2>
             {/* Balance display */}
             {isArc && arcConnected && (
               <p className="text-xs" style={{ color: COLORS.textSoft }}>
@@ -494,7 +494,7 @@ export default function BattleDetailPage() {
               onClick={() => setChain('solana')}
               className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
               style={{
-                background: !isArc ? 'rgba(0,240,255,0.15)' : 'transparent',
+                background: !isArc ? '#f3e8fd' : 'transparent',
                 color: !isArc ? COLORS.accent : COLORS.textSoft,
                 border: !isArc ? `1px solid ${COLORS.accent}40` : '1px solid transparent',
               }}
@@ -540,7 +540,7 @@ export default function BattleDetailPage() {
                 }}
               >
                 <p className="text-xs mb-1" style={{ color: selectedSide === side ? color : COLORS.textSoft }}>{label}</p>
-                <p className="font-bold text-white">{odds.toFixed(2)}x</p>
+                <p className="font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}x</p>
               </button>
             ))}
           </div>
@@ -552,11 +552,11 @@ export default function BattleDetailPage() {
               placeholder={isArc ? 'Stake in USDC' : 'Stake in USD'}
               value={stake}
               onChange={e => setStake(e.target.value)}
-              className="flex-1 rounded-xl px-4 py-3 text-white outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${COLORS.line}` }}
+              className="flex-1 rounded-[10px] px-4 py-3 outline-none text-sm"
+              style={{ color: "#141419", background: "#fff", border: "1px solid #ececf1" }}
             />
             {stakeUSD > 0 && selectedSide && (
-              <div className="rounded-xl px-4 py-3 text-right" style={{ background: 'rgba(0,240,255,0.05)', border: `1px solid ${COLORS.accent}30` }}>
+              <div className="rounded-[10px] px-4 py-3 text-right" style={{ background: '#faf5ff', border: '1px solid #eaddf7' }}>
                 <p className="text-xs" style={{ color: COLORS.textSoft }}>Max Win</p>
                 <p className="font-bold" style={{ color: COLORS.accent }}>${potentialWin}</p>
               </div>
