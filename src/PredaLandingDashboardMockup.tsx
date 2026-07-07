@@ -15,10 +15,14 @@ import {
   ChevronRight,
   CircleDollarSign,
   LayoutGrid,
-
   Menu,
   Wallet,
   X,
+  Swords,
+  Target,
+  ClipboardList,
+  BarChart3,
+  Newspaper,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -485,17 +489,17 @@ function BreakingNewsPopup() {
   return (
     <AnimatePresence>
       {open ? (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-20 right-5 z-[60] w-full max-w-sm rounded-[24px] border bg-[#0b110b]/95 p-4 shadow-2xl backdrop-blur" style={{ borderColor: COLORS.lineStrong }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-24 right-5 z-[38] w-full max-w-sm rounded-[20px] p-4 bg-white lg:bottom-5 lg:right-[404px]" style={{ boxShadow: "0 12px 40px rgba(20,20,30,0.16)", border: "1px solid #f0f0f4" }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: COLORS.accentSoft, color: COLORS.accent }}>
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
                 <Bell className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.18em]" style={{ color: COLORS.accent }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#7c3aed" }}>
                   {news.source}
                 </p>
-                <a href={news.url} target="_blank" rel="noreferrer" onClick={(e) => { e.preventDefault(); if(news.url !== '#') window.open(news.url, '_blank') }} className="mt-1 text-sm font-medium text-white hover:underline line-clamp-2 block cursor-pointer">
+                <a href={news.url} target="_blank" rel="noreferrer" onClick={(e) => { e.preventDefault(); if(news.url !== '#') window.open(news.url, '_blank') }} className="mt-1 text-sm font-medium hover:underline line-clamp-2 block cursor-pointer" style={{ color: "#141419" }}>
                   {news.title}
                 </a>
               </div>
@@ -1310,12 +1314,12 @@ function SlipHandle({
       onClick={() => setOpen(!open)}
       animate={count > 0 && !open ? { scale: [1, 1.05, 1] } : { scale: 1 }}
       transition={{ duration: 1.4, repeat: count > 0 && !open ? Infinity : 0, ease: "easeInOut" }}
-      className="fixed right-3 top-1/2 z-40 hidden -translate-y-1/2 rounded-2xl border px-3 py-3 text-sm font-semibold text-white shadow-xl lg:block"
-      style={{ borderColor: COLORS.lineStrong, background: open ? COLORS.panel : COLORS.accentSoft }}
+      className="fixed right-4 top-1/2 z-[36] hidden -translate-y-1/2 rounded-[14px] px-4 py-3 text-sm font-semibold lg:block transition-all active:scale-95"
+      style={{ background: "#fff", color: "#141419", boxShadow: "0 4px 16px rgba(20,20,30,0.12)", border: "1px solid #ececf1" }}
     >
       <div className="flex items-center gap-2">
-        <span style={{ color: open ? "white" : COLORS.accent }}>Slip</span>
-        <span className="rounded-full px-2 py-0.5 text-xs text-black" style={{ background: COLORS.accent }}>
+        <span>Slip</span>
+        <span className="rounded-full px-2 py-0.5 text-xs font-semibold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
           {count}
         </span>
       </div>
@@ -1491,32 +1495,33 @@ function BottomNav({
   const path = location.pathname
 
   const items = [
-    { label: 'Home', icon: '⚔️', route: '/' },
-    { label: 'Running', icon: '🎯', route: '/running' },
-    { label: 'Slip', icon: '📋', route: '__slip__' },
-    { label: 'History', icon: '📊', route: '/history' },
-    { label: 'News', icon: '📰', route: '/news' },
+    { label: 'Home', Icon: Swords, route: '/' },
+    { label: 'Running', Icon: Target, route: '/running' },
+    { label: 'Slip', Icon: ClipboardList, route: '__slip__' },
+    { label: 'History', Icon: BarChart3, route: '/history' },
+    { label: 'News', Icon: Newspaper, route: '/news' },
   ]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur lg:hidden"
-      style={{ borderColor: COLORS.lineStrong, background: 'rgba(6,10,18,0.97)' }}>
-      <div className="flex items-center justify-around px-1 py-1 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t lg:hidden"
+      style={{ borderColor: '#ececf1', background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(12px)' }}>
+      <div className="flex items-center justify-around px-1 py-1.5 pb-safe">
         {items.map(item => {
           const isActive = item.route === '__slip__' ? false : path === item.route
+          const Ico = item.Icon
           return (
             <button
               key={item.label}
               onClick={() => item.route === '__slip__' ? onOpenSlip() : onNavigate(item.route)}
-              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
+              className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-[12px] transition-all active:scale-95"
               style={{
-                color: isActive ? COLORS.accent : 'rgba(255,255,255,0.45)',
-                background: isActive ? 'rgba(0,240,255,0.08)' : 'transparent',
+                color: isActive ? '#7c3aed' : '#a0a0ad',
+                background: isActive ? '#f3e8fd' : 'transparent',
                 minWidth: 56,
               }}
             >
-              <span className="text-lg leading-none">{item.icon}</span>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <Ico className="h-[18px] w-[18px]" strokeWidth={2.2} />
+              <span className="text-[10px] font-semibold">{item.label}</span>
             </button>
           )
         })}
@@ -1533,9 +1538,9 @@ function PlaceholderPage({
   body: string;
 }) {
   return (
-    <div className="rounded-[30px] border bg-[#150b24] p-6" style={{ borderColor: COLORS.lineStrong }}>
-      <h2 className="text-3xl font-semibold text-white">{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: COLORS.textSoft }}>
+    <div className="rounded-[24px] bg-white p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{title}</h2>
+      <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "#9b9ba8" }}>
         {body}
       </p>
     </div>
@@ -1544,8 +1549,8 @@ function PlaceholderPage({
 
 function ProfilePage() {
   return (
-    <div className="rounded-[30px] border bg-[#150b24] p-6" style={{ borderColor: COLORS.lineStrong }}>
-      <h2 className="text-3xl font-semibold text-white">Profile</h2>
+    <div className="rounded-[24px] bg-white p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>Profile</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InfoCard label="Username" value={mockProfile.username} />
         <InfoCard label="Wallet" value={mockProfile.walletAddress} />
