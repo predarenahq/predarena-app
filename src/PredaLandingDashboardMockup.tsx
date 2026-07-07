@@ -1564,43 +1564,43 @@ function InfoCard({ label, value }: { label: string; value: string }) {
 
 function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
   return (
-    <footer className="mt-12 border-t bg-black/20" style={{ borderColor: COLORS.line }}>
-      <div className="mx-auto grid max-w-[1700px] gap-8 px-4 py-10 sm:px-6 xl:grid-cols-[1.2fr_1fr_1fr] xl:px-8">
+    <footer className="mt-12 border-t bg-white" style={{ borderColor: "#ececf1" }}>
+      <div className="mx-auto grid max-w-[1700px] gap-8 px-4 py-12 sm:px-6 xl:grid-cols-[1.2fr_1fr_1fr] xl:px-8">
         <div>
-          <p className="text-2xl font-semibold text-white">PREDA</p>
-          <p className="mt-3 max-w-lg text-sm leading-7" style={{ color: COLORS.textSoft }}>
-            <span className="font-medium text-white">First crypto competition market.</span>{" "}
+          <p className="text-2xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>PREDA</p>
+          <p className="mt-3 max-w-lg text-sm leading-7" style={{ color: "#9B9BA8" }}>
+            <span className="font-medium" style={{ color: "#141419" }}>First crypto competition market.</span>{" "}
             Battle coins, build parlays, and set records.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-3 text-sm">
-            <span className="rounded-full border px-3 py-1 text-white" style={{ borderColor: COLORS.line }}>
+          <div className="mt-5 flex flex-wrap gap-2.5 text-sm">
+            <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "#f4f4f7", color: "#585866" }}>
               Built by humans and AI
             </span>
-            <span className="rounded-full border px-3 py-1" style={{ borderColor: COLORS.line, color: COLORS.accent }}>
+            <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
               Coming to Solana
             </span>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-medium text-white">Product</p>
-          <div className="mt-3 space-y-2 text-sm" style={{ color: COLORS.textSoft }}>
-            <button onClick={() => onNavigate("/")} className="block transition hover:text-white">Arena</button>
-            <button onClick={() => onNavigate("/news")} className="block transition hover:text-white">News</button>
-            <button onClick={() => onNavigate("/leaderboard")} className="block transition hover:text-white">Leaderboard</button>
-            <button onClick={() => onNavigate("/how-to-play")} className="block transition hover:text-white">How to Play</button>
-            <button onClick={() => onNavigate("/support")} className="block transition hover:text-white">Support</button>
+          <p className="text-sm font-semibold" style={{ color: "#141419" }}>Product</p>
+          <div className="mt-4 space-y-2.5 text-sm" style={{ color: "#9B9BA8" }}>
+            <button onClick={() => onNavigate("/")} className="block transition hover:text-[#141419]">Arena</button>
+            <button onClick={() => onNavigate("/news")} className="block transition hover:text-[#141419]">News</button>
+            <button onClick={() => onNavigate("/leaderboard")} className="block transition hover:text-[#141419]">Leaderboard</button>
+            <button onClick={() => onNavigate("/how-to-play")} className="block transition hover:text-[#141419]">How to Play</button>
+            <button onClick={() => onNavigate("/support")} className="block transition hover:text-[#141419]">Support</button>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-medium text-white">Community</p>
-          <div className="mt-3 space-y-2 text-sm" style={{ color: COLORS.textSoft }}>
-            <a href="https://x.com" target="_blank" rel="noreferrer" className="block transition hover:text-white">X / Twitter</a>
-            <a href="https://discord.com" target="_blank" rel="noreferrer" className="block transition hover:text-white">Discord</a>
-            <a href="https://t.me" target="_blank" rel="noreferrer" className="block transition hover:text-white">Telegram</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="block transition hover:text-white">GitHub</a>
+          <p className="text-sm font-semibold" style={{ color: "#141419" }}>Community</p>
+          <div className="mt-4 space-y-2.5 text-sm" style={{ color: "#9B9BA8" }}>
+            <a href="https://x.com" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">X / Twitter</a>
+            <a href="https://discord.com" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">Discord</a>
+            <a href="https://t.me" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">Telegram</a>
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">GitHub</a>
           </div>
         </div>
       </div>
@@ -1621,13 +1621,13 @@ function AuthSection() {
         {!authenticated ? (
           <button
             onClick={login}
-            className="px-5 py-2 rounded-full text-black font-semibold text-sm transition-opacity hover:opacity-80"
-            style={{ background: "#ec4899" }}
+            className="px-5 py-2.5 rounded-[14px] text-white font-semibold text-sm transition-all hover:opacity-90"
+            style={{ background: "#141419" }}
           >
             Login with X
           </button>
         ) : (
-          <div className="text-cyan-400 text-sm font-medium">
+          <div className="text-sm font-semibold" style={{ color: "#141419" }}>
             @{user?.twitter?.username || "User"}
           </div>
         )}
@@ -1637,8 +1637,8 @@ function AuthSection() {
         {authenticated && (
           <button
             onClick={logout}
-            className="px-4 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
-            style={{ background: "rgba(236,72,153,0.12)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.28)" }}
+            className="px-4 py-2.5 rounded-[14px] text-sm font-semibold transition-all hover:bg-[#efeef2]"
+            style={{ background: "#f4f4f7", color: "#585866" }}
           >
             Logout
           </button>
@@ -1647,7 +1647,7 @@ function AuthSection() {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
-        <WalletMultiButton style={{ borderRadius: "9999px", background: "#ec4899", color: "#000", fontWeight: 600, fontSize: "14px" }} />
+        <WalletMultiButton style={{ borderRadius: "14px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 600, fontSize: "14px", padding: "10px 20px" }} />
       </div>
     </div>
   );
@@ -1685,7 +1685,7 @@ function _PredaAuthControls({
         </div>
       )}
 
-      <WalletMultiButton style={{ borderRadius: "9999px", background: "#ec4899", color: "#000", fontWeight: 600, fontSize: "14px" }} />
+      <WalletMultiButton style={{ borderRadius: "14px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 600, fontSize: "14px", padding: "10px 20px" }} />
 
       {walletAddress ? (
         <div className="text-xs text-gray-400">
