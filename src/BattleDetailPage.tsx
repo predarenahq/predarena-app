@@ -73,6 +73,7 @@ export default function BattleDetailPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareCode, setShareCode] = useState('')
   const [lastBet, setLastBet] = useState<{side: number, odds: number, stake: number} | null>(null)
+  const [hasUserBet, setHasUserBet] = useState(false)
   const [engineOdds, setEngineOdds] = useState<OddsResult | null>(null)
   const [baseOdds, setBaseOdds] = useState<OddsResult | null>(null)
   const [searchParams] = useSearchParams()
@@ -90,6 +91,18 @@ export default function BattleDetailPage() {
   const evmWallet = wallets.find(w => w.chainId?.startsWith('eip155:'))
   const hasMetaMask = typeof window !== "undefined" && !!(window as any).ethereum
   const arcConnected = !!evmWallet || hasMetaMask
+
+  useEffect(() => {
+    if (!id) return
+    const solAddr = connected && publicKey ? publicKey.toBase58() : ''
+    const evmAddr = (evmWallet?.address) || (typeof window !== 'undefined' && (window as any).ethereum?.selectedAddress) || ''
+    const addrs = [solAddr, evmAddr].filter(Boolean)
+    if (!addrs.length) { setHasUserBet(false); return }
+    ;(async () => {
+      const { data } = await supabase.from('tickets').select('id').eq('battle_id', id).in('wallet_address', addrs).limit(1)
+      setHasUserBet(!!(data && data.length))
+    })()
+  }, [id, connected, publicKey, evmWallet?.address])
 
   useEffect(() => {
     const sharedSide = searchParams.get('side')
@@ -383,7 +396,7 @@ export default function BattleDetailPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Time Left</p>
             <p className="font-mono font-semibold text-sm" style={{ color: countdown === "Ended" ? "#9b9ba8" : "#141419" }}>{countdown}</p>
           </div>
-          {countdown === "Ended" && (
+          {countdown === "Ended" && hasUserBet && (
             <button onClick={() => navigate('/history')} className="h-9 px-4 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
               View in History
             </button>
@@ -573,13 +586,18 @@ export default function BattleDetailPage() {
 
           {/* Action area */}
           {isClosed ? (
-            <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}>
-              <p className="font-semibold" style={{ color: '#f43f5e' }}>
-                {battle?.status === 'settled' ? '🏁 Battle Settled' : '🔒 Betting Closed — Settling...'}
+            <div className="flex flex-col items-center text-center py-5 rounded-[14px]" style={{ background: '#fafafc', border: '1px solid #f0f0f4' }}>
+              <p className="font-semibold" style={{ color: '#141419' }}>
+                {battle?.status === 'settled' ? 'Battle settled' : 'Betting closed'}
               </p>
-              <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>
-                {isSettling ? 'Waiting for oracle confirmation' : 'Check History for results'}
+              <p className="text-[13px] mt-1" style={{ color: '#9b9ba8' }}>
+                {isSettling ? 'Waiting for oracle confirmation…' : hasUserBet ? 'Your result is ready to view' : 'This battle has ended'}
               </p>
+              {battle?.status === 'settled' && hasUserBet && (
+                <button onClick={() => navigate('/history')} className="mt-3 h-9 px-5 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}>
+                  View your result
+                </button>
+              )}
             </div>
           ) : isArc ? (
             !arcConnected ? (
