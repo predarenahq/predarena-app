@@ -1058,19 +1058,19 @@ function Filters({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2">
           {boardTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedBoard(tab)} className="rounded-lg px-4 py-2 text-sm font-bold transition" style={selectedBoard === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
+            <button key={tab} onClick={() => setSelectedBoard(tab)} className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedBoard === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
               {tab}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button key="All" onClick={() => setSelectedClass("All")} className="rounded-lg px-3 py-2 text-sm font-bold transition" style={selectedClass === "All" ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
+          <button key="All" onClick={() => setSelectedClass("All")} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === "All" ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
             All
           </button>
 
           {classTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedClass(tab)} className="rounded-lg px-3 py-2 text-sm font-bold transition" style={selectedClass === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
+            <button key={tab} onClick={() => setSelectedClass(tab)} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
               {tab}
             </button>
           ))}
@@ -1621,7 +1621,7 @@ function AuthSection() {
         {!authenticated ? (
           <button
             onClick={login}
-            className="px-5 py-2.5 rounded-[14px] text-white font-semibold text-sm transition-all hover:opacity-90"
+            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-white font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
             style={{ background: "#141419" }}
           >
             Login with X
@@ -1637,7 +1637,7 @@ function AuthSection() {
         {authenticated && (
           <button
             onClick={logout}
-            className="px-4 py-2.5 rounded-[14px] text-sm font-semibold transition-all hover:bg-[#efeef2]"
+            className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[#ebebf0] active:scale-[0.98]"
             style={{ background: "#f4f4f7", color: "#585866" }}
           >
             Logout
@@ -1647,7 +1647,7 @@ function AuthSection() {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
-        <WalletMultiButton style={{ borderRadius: "14px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 600, fontSize: "14px", padding: "10px 20px" }} />
+        <WalletMultiButton style={{ borderRadius: "8px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
       </div>
     </div>
   );
@@ -1685,7 +1685,7 @@ function _PredaAuthControls({
         </div>
       )}
 
-      <WalletMultiButton style={{ borderRadius: "14px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 600, fontSize: "14px", padding: "10px 20px" }} />
+      <WalletMultiButton style={{ borderRadius: "8px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
 
       {walletAddress ? (
         <div className="text-xs text-gray-400">
