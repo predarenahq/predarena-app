@@ -2,8 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Neutrals — light theme */
+  --bg:            #f6f6f8;
+  --panel:         #ffffff;
+  --panel-2:       #fafafc;
+  --text:          #141419;
+  --text-2:        #585866;
+  --text-soft:     #9b9ba8;
+  --text-muted:    #b8b8c2;
+  --border:        #ececf1;
+  --border-soft:   #f0f0f4;
+  --accent-soft:   #ede9fe;
+
+  /* Brand + semantic — constant across themes */
+  --accent:        #6d28d9;
+  --accent-2:      #be185d;
+  --brand-grad:    linear-gradient(135deg, #5b21b6, #be185d);
+  --accent-ink:    #5b21b6;
+  --pos:           #047857;
+  --neg:           #dc2626;
+
+  /* Shadows — light theme */
+  --shadow-card:   0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05);
+  --shadow-hover:  0 12px 32px rgba(124,58,237,0.12);
+  --shadow-pop:    0 12px 40px rgba(20,20,30,0.16);
+}
+
+[data-theme="dark"] {
+  /* Neutrals — dark theme */
+  --bg:            #0a0a0f;
+  --panel:         #14141b;
+  --panel-2:       #1a1a22;
+  --text:          #f4f4f6;
+  --text-2:        #c4c4cf;
+  --text-soft:     #8a8a97;
+  --text-muted:    #6a6a76;
+  --border:        #26262e;
+  --border-soft:   #1f1f27;
+  --accent-soft:   rgba(124,58,237,0.16);
+
+  /* Brand stays vivid; semantic slightly brighter for dark bg */
+  --accent:        #a78bfa;
+  --accent-2:      #ec4899;
+  --brand-grad:    linear-gradient(135deg, #8b5cf6, #ec4899);
+  --accent-ink:    #c4b5fd;
+  --pos:           #34d399;
+  --neg:           #f87171;
+
+  /* Shadows — dark theme (deeper, less diffuse) */
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  --shadow-hover:  0 12px 32px rgba(139,92,246,0.22);
+  --shadow-pop:    0 12px 40px rgba(0,0,0,0.5);
+}
+
 body {
-  background-color: #080c14;
-  color: white;
+  background-color: var(--bg);
+  color: var(--text);
   margin: 0;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }

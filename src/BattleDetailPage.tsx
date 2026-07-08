@@ -12,17 +12,17 @@ import { useArcArena } from './arc/useArcArena'
 import { ArcSide } from './arc/contracts'
 
 const COLORS = {
-  bg: '#f6f6f8',
-  panel: '#ffffff',
-  accent: '#7c3aed',
-  lineStrong: '#ececf1',
-  line: '#f0f0f4',
-  textSoft: '#9b9ba8',
-  coinA: '#7c3aed',
-  coinB: '#db2777',
-  green: '#059669',
-  red: '#dc2626',
-  arc: '#7c3aed',
+  bg: 'var(--bg)',
+  panel: 'var(--panel)',
+  accent: 'var(--accent)',
+  lineStrong: 'var(--border)',
+  line: 'var(--border-soft)',
+  textSoft: 'var(--text-soft)',
+  coinA: 'var(--accent)',
+  coinB: 'var(--accent-2)',
+  green: 'var(--pos)',
+  red: 'var(--neg)',
+  arc: 'var(--accent)',
 }
 
 function formatTime(iso: string): string {
@@ -382,22 +382,22 @@ export default function BattleDetailPage() {
       />}
 
       {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b bg-white sticky top-0 z-20" style={{ borderColor: "#f0f0f4" }}>
-        <button onClick={() => navigate('/')} className="flex items-center gap-1.5 h-9 pl-2 pr-3 rounded-[10px] text-sm font-medium transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8", color: "#585866" }}>
+      <div className="flex items-center gap-4 px-6 py-4 border-b bg-[var(--panel)] sticky top-0 z-20" style={{ borderColor: "var(--border-soft)" }}>
+        <button onClick={() => navigate('/')} className="flex items-center gap-1.5 h-9 pl-2 pr-3 rounded-[10px] text-sm font-medium transition-all hover:bg-[var(--border-soft)] active:scale-95" style={{ background: "var(--bg)", color: "var(--text-2)" }}>
           <ChevronLeft size={18} />
           Arena
         </button>
         <div>
-          <h1 className="text-xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{battle.coin_a} vs {battle.coin_b}</h1>
-          <p className="text-xs font-medium" style={{ color: "#9b9ba8" }}>{battle.league} · {battle.duration}</p>
+          <h1 className="text-xl font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>{battle.coin_a} vs {battle.coin_b}</h1>
+          <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>{battle.league} · {battle.duration}</p>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Time Left</p>
-            <p className="font-mono font-semibold text-sm" style={{ color: countdown === "Ended" ? "#9b9ba8" : "#141419" }}>{countdown}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>Time Left</p>
+            <p className="font-mono font-semibold text-sm" style={{ color: countdown === "Ended" ? "var(--text-soft)" : "var(--text)" }}>{countdown}</p>
           </div>
           {countdown === "Ended" && hasUserBet && (
-            <button onClick={() => navigate('/history')} className="h-9 px-4 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+            <button onClick={() => navigate('/history')} className="h-9 px-4 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: "var(--brand-grad)" }}>
               View in History
             </button>
           )}
@@ -407,40 +407,40 @@ export default function BattleDetailPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Live Score */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-[20px] p-5 text-center bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.06)" }}>
-            <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "#b8b8c2" }}>{battle.coin_a}</p>
+          <div className="rounded-[20px] p-5 text-center bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.06)" }}>
+            <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>{battle.coin_a}</p>
             <p className="text-[26px] font-semibold tracking-[-0.03em]" style={{ color: COLORS.coinA, fontVariantNumeric: "tabular-nums" }}>
               {latestA >= 0 ? '+' : ''}{latestA.toFixed(4)}%
             </p>
-            <p className="text-[11px] mt-1 font-medium" style={{ color: "#a0a0ad" }}>since battle start</p>
+            <p className="text-[11px] mt-1 font-medium" style={{ color: "var(--text-soft)" }}>since battle start</p>
           </div>
-          <div className="rounded-[20px] p-5 text-center flex flex-col items-center justify-center bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+          <div className="rounded-[20px] p-5 text-center flex flex-col items-center justify-center bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
             {leadingCoin ? (
               <>
-                <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "#b8b8c2" }}>Leading</p>
-                <p className="text-[19px] font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{leadingCoin}</p>
+                <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Leading</p>
+                <p className="text-[19px] font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>{leadingCoin}</p>
                 <p className="text-xs mt-1 font-semibold" style={{ color: leadingCoin === battle.coin_a ? COLORS.coinA : COLORS.coinB, fontVariantNumeric: "tabular-nums" }}>
                   +{Math.abs(latestA - latestB).toFixed(4)}%
                 </p>
               </>
             ) : (
-              <p className="text-lg font-semibold" style={{ color: "#141419" }}>TIED</p>
+              <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>TIED</p>
             )}
           </div>
-          <div className="rounded-[20px] p-5 text-center bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(219,39,119,0.06)" }}>
-            <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "#b8b8c2" }}>{battle.coin_b}</p>
+          <div className="rounded-[20px] p-5 text-center bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(219,39,119,0.06)" }}>
+            <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>{battle.coin_b}</p>
             <p className="text-[26px] font-semibold tracking-[-0.03em]" style={{ color: COLORS.coinB, fontVariantNumeric: "tabular-nums" }}>
               {latestB >= 0 ? '+' : ''}{latestB.toFixed(4)}%
             </p>
-            <p className="text-[11px] mt-1 font-medium" style={{ color: "#a0a0ad" }}>since battle start</p>
+            <p className="text-[11px] mt-1 font-medium" style={{ color: "var(--text-soft)" }}>since battle start</p>
           </div>
         </div>
 
         {/* Chart */}
         <div className="rounded-2xl p-5" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold" style={{ color: "#141419" }}>Settlement Price Chart</h2>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#f3e8fd', color: '#7c3aed' }}>
+            <h2 className="font-semibold" style={{ color: "var(--text)" }}>Settlement Price Chart</h2>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
               Powered by Pyth Network
             </span>
           </div>
@@ -489,7 +489,7 @@ export default function BattleDetailPage() {
           ].map(({ label, value }) => (
             <div key={label} className="rounded-2xl p-4 text-center" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
               <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{label}</p>
-              <p className="font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{value}</p>
+              <p className="font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{value}</p>
             </div>
           ))}
         </div>
@@ -497,7 +497,7 @@ export default function BattleDetailPage() {
         {/* Betting */}
         <div className="rounded-2xl p-5 space-y-4" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-[17px]" style={{ color: "#141419" }}>Place Your Bet</h2>
+            <h2 className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>Place Your Bet</h2>
             {/* Balance display */}
             {isArc && arcConnected && (
               <p className="text-xs" style={{ color: COLORS.textSoft }}>
@@ -515,9 +515,9 @@ export default function BattleDetailPage() {
               onClick={() => setChain('solana')}
               className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
               style={{
-                background: !isArc ? '#f3e8fd' : 'transparent',
+                background: !isArc ? 'var(--accent-soft)' : 'transparent',
                 color: !isArc ? COLORS.accent : COLORS.textSoft,
-                border: !isArc ? `1px solid ${COLORS.accent}40` : '1px solid transparent',
+                border: !isArc ? '1px solid var(--accent)' : '1px solid transparent',
               }}
             >
               ◎ Solana
@@ -561,7 +561,7 @@ export default function BattleDetailPage() {
                 }}
               >
                 <p className="text-xs mb-1" style={{ color: selectedSide === side ? color : COLORS.textSoft }}>{label}</p>
-                <p className="font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}x</p>
+                <p className="font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}x</p>
               </button>
             ))}
           </div>
@@ -574,10 +574,10 @@ export default function BattleDetailPage() {
               value={stake}
               onChange={e => setStake(e.target.value)}
               className="flex-1 rounded-[10px] px-4 py-3 outline-none text-sm"
-              style={{ color: "#141419", background: "#fff", border: "1px solid #ececf1" }}
+              style={{ color: "var(--text)", background: "#fff", border: "1px solid var(--border)" }}
             />
             {stakeUSD > 0 && selectedSide && (
-              <div className="rounded-[10px] px-4 py-3 text-right" style={{ background: '#faf5ff', border: '1px solid #eaddf7' }}>
+              <div className="rounded-[10px] px-4 py-3 text-right" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-soft)' }}>
                 <p className="text-xs" style={{ color: COLORS.textSoft }}>Max Win</p>
                 <p className="font-bold" style={{ color: COLORS.accent }}>${potentialWin}</p>
               </div>
@@ -586,15 +586,15 @@ export default function BattleDetailPage() {
 
           {/* Action area */}
           {isClosed ? (
-            <div className="flex flex-col items-center text-center py-5 rounded-[14px]" style={{ background: '#fafafc', border: '1px solid #f0f0f4' }}>
-              <p className="font-semibold" style={{ color: '#141419' }}>
+            <div className="flex flex-col items-center text-center py-5 rounded-[14px]" style={{ background: 'var(--panel-2)', border: '1px solid var(--border-soft)' }}>
+              <p className="font-semibold" style={{ color: 'var(--text)' }}>
                 {battle?.status === 'settled' ? 'Battle settled' : 'Betting closed'}
               </p>
-              <p className="text-[13px] mt-1" style={{ color: '#9b9ba8' }}>
+              <p className="text-[13px] mt-1" style={{ color: 'var(--text-soft)' }}>
                 {isSettling ? 'Waiting for oracle confirmation…' : hasUserBet ? 'Your result is ready to view' : 'This battle has ended'}
               </p>
               {battle?.status === 'settled' && hasUserBet && (
-                <button onClick={() => navigate('/history')} className="mt-3 h-9 px-5 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)' }}>
+                <button onClick={() => navigate('/history')} className="mt-3 h-9 px-5 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-2))' }}>
                   View your result
                 </button>
               )}

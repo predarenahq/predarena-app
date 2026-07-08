@@ -87,16 +87,16 @@ interface ActiveBet {
 }
 
 const COLORS = {
-  bg: "#0a0512",
-  panel: "#150b24",
-  line: "rgba(236,72,153,0.12)",
-  lineStrong: "rgba(236,72,153,0.28)",
-  accent: "#ec4899",
-  accentSoft: "rgba(236,72,153,0.12)",
-  accentGlow: "rgba(236,72,153,0.18)",
-  textSoft: "#c4b5d9",
-  accent2: "#8b5cf6",
-  gradient: "linear-gradient(120deg, #8b5cf6, #ec4899)",
+  bg: "var(--bg)",
+  panel: "var(--panel)",
+  line: "var(--border-soft)",
+  lineStrong: "var(--border)",
+  accent: "var(--accent)",
+  accentSoft: "var(--accent-soft)",
+  accentGlow: "var(--accent-soft)",
+  textSoft: "var(--text-soft)",
+  accent2: "var(--accent)",
+  gradient: "linear-gradient(120deg, var(--accent), var(--accent-2))",
 };
 
 const boardTabs: MatchBoard[] = ["Live", "Upcoming"];
@@ -345,7 +345,7 @@ function TokenMark({ ticker }: { ticker: string }) {
   if (!src) {
     return (
       <div
-        className="flex h-6 w-6 items-center justify-center rounded-full border bg-white/5 text-[10px] font-semibold text-white"
+        className="flex h-6 w-6 items-center justify-center rounded-full border bg-[var(--panel)]/5 text-[10px] font-semibold text-white"
         style={{ borderColor: COLORS.line }}
       >
         {ticker.slice(0, 1)}
@@ -359,25 +359,25 @@ function LoadingOverlay({ loading }: { loading: boolean }) {
   return (
     <AnimatePresence>
       {loading ? (
-        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#f6f6f8]">
+        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--bg)]">
           <div className="flex flex-col items-center">
             <motion.div
               animate={{ scale: [1, 1.06, 1], opacity: [1, 0.85, 1] }}
               transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
               className="flex h-16 w-16 items-center justify-center rounded-[18px] text-xl font-bold text-white"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)", boxShadow: "0 8px 28px rgba(124,58,237,0.24)" }}
+              style={{ background: "var(--brand-grad)", boxShadow: "0 8px 28px rgba(124,58,237,0.24)" }}
             >
               P
             </motion.div>
-            <div className="mt-5 h-1 w-32 overflow-hidden rounded-full" style={{ background: "#ececf1" }}>
+            <div className="mt-5 h-1 w-32 overflow-hidden rounded-full" style={{ background: "var(--border)" }}>
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, #7c3aed, #db2777)" }}
+                style={{ background: "linear-gradient(90deg, var(--accent), var(--accent-2))" }}
                 animate={{ x: ["-100%", "250%"] }}
                 transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
               />
             </div>
-            <p className="mt-4 text-sm" style={{ color: "#9b9ba8" }}>
+            <p className="mt-4 text-sm" style={{ color: "var(--text-soft)" }}>
               Loading arena…
             </p>
           </div>
@@ -402,7 +402,7 @@ function AuthModal({
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-[0_24px_70px_rgba(20,20,30,0.28)]"
+            className="w-full max-w-md overflow-hidden rounded-[24px] bg-[var(--panel)] shadow-[0_24px_70px_rgba(20,20,30,0.28)]"
             style={{ borderColor: COLORS.lineStrong }}
           >
             <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: COLORS.line }}>
@@ -410,9 +410,9 @@ function AuthModal({
                 <p className="text-[11px] uppercase tracking-[0.24em]" style={{ color: COLORS.accent }}>
                   PREDA Access
                 </p>
-                <h3 className="mt-1 text-xl font-semibold" style={{ color: "#141419" }}>Wallet + Social Login</h3>
+                <h3 className="mt-1 text-xl font-semibold" style={{ color: "var(--text)" }}>Wallet + Social Login</h3>
               </div>
-              <button onClick={onClose} className="rounded-full p-2 transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8", color: "#585866" }}>
+              <button onClick={onClose} className="rounded-full p-2 transition-all hover:bg-[var(--border-soft)] active:scale-95" style={{ background: "var(--bg)", color: "var(--text-2)" }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -442,7 +442,7 @@ function AuthButton({
   badge?: string;
 }) {
   return (
-    <button className="flex w-full items-center justify-between rounded-2xl border bg-white/5 px-4 py-3 text-left transition hover:bg-white/[0.07]" style={{ borderColor: COLORS.line }}>
+    <button className="flex w-full items-center justify-between rounded-2xl border bg-[var(--panel)]/5 px-4 py-3 text-left transition hover:bg-[var(--panel)]/[0.07]" style={{ borderColor: COLORS.line }}>
       <div className="flex items-center gap-3 text-sm font-medium text-white">
         <span className="flex h-8 w-8 items-center justify-center rounded-full border bg-black/20 text-slate-200" style={{ borderColor: COLORS.line }}>
           {icon || badge}
@@ -497,17 +497,17 @@ function BreakingNewsPopup() {
   return (
     <AnimatePresence>
       {open ? (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-24 right-5 z-[38] w-full max-w-sm rounded-[20px] p-4 bg-white lg:bottom-5 lg:right-[404px]" style={{ boxShadow: "0 12px 40px rgba(20,20,30,0.16)", border: "1px solid #f0f0f4" }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-24 right-5 z-[38] w-full max-w-sm rounded-[20px] p-4 bg-[var(--panel)] lg:bottom-5 lg:right-[404px]" style={{ boxShadow: "0 12px 40px rgba(20,20,30,0.16)", border: "1px solid var(--border-soft)" }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
                 <Bell className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: "#7c3aed" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--accent)" }}>
                   {news.source}
                 </p>
-                <a href={news.url} target="_blank" rel="noreferrer" onClick={(e) => { e.preventDefault(); if(news.url !== '#') window.open(news.url, '_blank') }} className="mt-1 text-sm font-medium hover:underline line-clamp-2 block cursor-pointer" style={{ color: "#141419" }}>
+                <a href={news.url} target="_blank" rel="noreferrer" onClick={(e) => { e.preventDefault(); if(news.url !== '#') window.open(news.url, '_blank') }} className="mt-1 text-sm font-medium hover:underline line-clamp-2 block cursor-pointer" style={{ color: "var(--text)" }}>
                   {news.title}
                 </a>
               </div>
@@ -534,9 +534,9 @@ function DesktopHeader({
   onLogoClick: () => void;
 }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-white/95 backdrop-blur-xl lg:block" style={{ borderColor: "#ececf1" }}>
+    <header className="fixed inset-x-0 top-0 z-50 hidden h-[72px] border-b bg-[var(--panel)]/95 backdrop-blur-xl lg:block" style={{ borderColor: "var(--border)" }}>
       <div className="flex h-full items-center justify-between">
-        <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: "#ececf1" }}>
+        <button onClick={onToggleSidebar} className={cx("flex h-full items-center gap-3 border-r px-4 text-left transition-all duration-300", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: "var(--border)" }}>
           <motion.div
             whileHover={{ rotate: -6, scale: 1.04 }}
             onClick={(e) => {
@@ -544,11 +544,11 @@ function DesktopHeader({
               onLogoClick();
             }}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-sm font-bold text-white"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}
+            style={{ background: "var(--brand-grad)" }}
           >
             P
           </motion.div>
-          {expanded && <span className="text-lg font-extrabold tracking-[-0.3px]" style={{ color: "#0f1115" }}>PREDA</span>}
+          {expanded && <span className="text-lg font-extrabold tracking-[-0.3px]" style={{ color: "var(--text)" }}>PREDA</span>}
         </button>
 
         <div className="flex items-center flex-1 px-5">
@@ -581,11 +581,11 @@ function SidebarAccordion({
             className="mb-2 w-full text-left"
           >
             {expanded ? (
-              <p className="px-2 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#a5a5b3" }}>
+              <p className="px-2 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--text-soft)" }}>
                 {section.title}
               </p>
             ) : (
-              <p className="text-center text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#a5a5b3" }}>
+              <p className="text-center text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--text-soft)" }}>
                 {section.title.slice(0, 1)}
               </p>
             )}
@@ -603,14 +603,14 @@ function SidebarAccordion({
                         onClick={() => onNavigate(item.path)}
                         className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition"
                         style={{
-                          background: active ? "#f2f0fb" : "transparent",
+                          background: active ? "var(--accent-soft)" : "transparent",
                         }}
                       >
-                        <span className={cx("text-sm font-semibold", active ? "" : "")} style={{ color: active ? "#0f1115" : "#585866" }}>
+                        <span className={cx("text-sm font-semibold", active ? "" : "")} style={{ color: active ? "var(--text)" : "var(--text-2)" }}>
                           {expanded ? item.label : item.label.slice(0, 1)}
                         </span>
                         {expanded && item.soon ? (
-                          <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em]" style={{ background: "#f0f0f3", color: "#a5a5b3" }}>
+                          <span className="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em]" style={{ background: "var(--border-soft)", color: "var(--text-soft)" }}>
                             Soon
                           </span>
                         ) : null}
@@ -807,7 +807,7 @@ function UserBalancePanel() {
   if (!connected) {
     return (
       <div className="rounded-2xl border p-3" style={{ borderColor: COLORS.line }}>
-        <p className="text-sm font-semibold" style={{ color: "#141419" }}>User Profile</p>
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>User Profile</p>
         <p className="mt-1 text-xs" style={{ color: COLORS.textSoft }}>Connect wallet to see balance</p>
       </div>
     )
@@ -816,7 +816,7 @@ function UserBalancePanel() {
   return (
     <div className="rounded-2xl border p-3 space-y-3" style={{ borderColor: COLORS.line }}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold" style={{ color: "#141419" }}>User Profile</p>
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>User Profile</p>
         <button
           onClick={() => setCurrency(currency === 'USD' ? 'SOL' : 'USD')}
           className="text-xs px-2 py-1 rounded-full"
@@ -846,13 +846,13 @@ function UserBalancePanel() {
             value={depositAmount}
             onChange={e => setDepositAmount(e.target.value)}
             className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
-            style={{ background: "#fff", border: "1px solid #ececf1", color: "#141419" }}
+            style={{ background: "#fff", border: "1px solid var(--border)", color: "var(--text)" }}
           />
           <button
             onClick={handleDeposit}
             disabled={loading}
             className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}
+            style={{ background: "var(--brand-grad)" }}
           >
             {loading ? 'Processing...' : 'Confirm Deposit'}
           </button>
@@ -867,13 +867,13 @@ function UserBalancePanel() {
             value={withdrawAmount}
             onChange={e => setWithdrawAmount(e.target.value)}
             className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
-            style={{ background: "#fff", border: "1px solid #ececf1", color: "#141419" }}
+            style={{ background: "#fff", border: "1px solid var(--border)", color: "var(--text)" }}
           />
           <button
             onClick={handleWithdraw}
             disabled={loading}
             className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}
+            style={{ background: "var(--brand-grad)" }}
           >
             {loading ? 'Processing...' : 'Confirm Withdraw'}
           </button>
@@ -914,13 +914,13 @@ function DesktopSidebar({
   currentPath: string;
 }) {
   return (
-    <aside className={cx("fixed bottom-0 left-0 top-[72px] z-40 hidden border-r bg-white transition-all duration-300 lg:block", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: "#ececf1" }}>
+    <aside className={cx("fixed bottom-0 left-0 top-[72px] z-40 hidden border-r bg-[var(--panel)] transition-all duration-300 lg:block", expanded ? "w-[280px]" : "w-[86px]")} style={{ borderColor: "var(--border)" }}>
       <div className="preda-scrollbar-hide flex h-full flex-col justify-between overflow-y-auto px-3 py-4">
         <div>
           <SidebarAccordion expanded={expanded} openSection={openSection} setOpenSection={setOpenSection} currentPath={currentPath} onNavigate={onNavigate} />
         </div>
 
-        <div className="space-y-3 border-t pt-4" style={{ borderColor: "#ececf1" }}>
+        <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
           {expanded ? (
             <UserBalancePanel />
           ) : null}
@@ -949,17 +949,17 @@ function MobileShell({
 }) {
   return (
     <>
-      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-white/95 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: "#ececf1" }}>
-        <button onClick={() => setOpen(true)} className="rounded-xl border p-2" style={{ borderColor: "#ececf1", color: "#0f1115" }}>
+      <div className="sticky top-0 z-50 flex h-[68px] items-center justify-between border-b bg-[var(--panel)]/95 px-4 backdrop-blur-xl lg:hidden" style={{ borderColor: "var(--border)" }}>
+        <button onClick={() => setOpen(true)} className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center justify-between w-full gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "var(--brand-grad)" }}>
             P
           </div>
-          <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "#0f1115" }}>PREDA</span>
+          <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "var(--text)" }}>PREDA</span>
         </div>
-        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-white" style={{ background: "#0f1115" }}>
+        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-white" style={{ background: "var(--text)" }}>
           Connect
         </button>
       </div>
@@ -967,15 +967,15 @@ function MobileShell({
       <AnimatePresence>
         {open ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/70 lg:hidden">
-            <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-white" style={{ borderColor: "#ececf1" }}>
-              <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: "#ececf1" }}>
+            <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-[var(--panel)]" style={{ borderColor: "var(--border)" }}>
+              <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center justify-between w-full gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "var(--brand-grad)" }}>
                     P
                   </div>
-                  <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "#0f1115" }}>PREDA</span>
+                  <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "var(--text)" }}>PREDA</span>
                 </div>
-                <button onClick={() => setOpen(false)} className="rounded-xl border p-2" style={{ borderColor: "#ececf1", color: "#0f1115" }}>
+                <button onClick={() => setOpen(false)} className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -1013,12 +1013,12 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
 
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
-      <div className="relative overflow-hidden rounded-[24px] px-6 py-8 sm:px-9 shadow-lg" style={{ background: "linear-gradient(115deg, #7c3aed 0%, #a21caf 55%, #db2777 100%)" }}>
+      <div className="relative overflow-hidden rounded-[24px] px-6 py-8 sm:px-9 shadow-lg" style={{ background: "linear-gradient(115deg, var(--accent) 0%, #a21caf 55%, var(--accent-2) 100%)" }}>
         <div className="absolute inset-y-0 left-0 w-40 bg-[radial-gradient(circle_at_left,rgba(255,255,255,0.14),transparent_65%)]" />
         <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_right,rgba(255,255,255,0.10),transparent_65%)]" />
 
         <div className="relative flex items-center justify-between gap-6">
-          <button onClick={() => setCurrent((prev) => (prev - 1 + showSlides.length) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 hover:bg-white/10 sm:flex">
+          <button onClick={() => setCurrent((prev) => (prev - 1 + showSlides.length) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 hover:bg-[var(--panel)]/10 sm:flex">
             <ChevronLeft className="h-5 w-5" />
           </button>
 
@@ -1030,7 +1030,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
                 </p>
                 <p className="mt-3 max-w-4xl text-lg font-extrabold text-white sm:text-2xl tracking-[-0.3px]">{slide.text}</p>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button onClick={() => onNavigate("/")} className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#0f1115] hover:bg-pink-50">
+                  <button onClick={() => onNavigate("/")} className="inline-flex items-center gap-2 rounded-2xl bg-[var(--panel)] px-5 py-3 text-sm font-bold text-[var(--text)] hover:bg-pink-50">
                     {slide.cta}
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -1045,7 +1045,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
             </AnimatePresence>
           </div>
 
-          <button onClick={() => setCurrent((prev) => (prev + 1) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 hover:bg-white/10 sm:flex">
+          <button onClick={() => setCurrent((prev) => (prev + 1) % showSlides.length)} className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 hover:bg-[var(--panel)]/10 sm:flex">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -1066,23 +1066,23 @@ function Filters({
   setSelectedClass: (v: string) => void;
 }) {
   return (
-    <div className="space-y-4 border-b px-5 py-5 sm:px-6" style={{ borderColor: "#ececf1" }}>
+    <div className="space-y-4 border-b px-5 py-5 sm:px-6" style={{ borderColor: "var(--border)" }}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2">
           {boardTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedBoard(tab)} className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedBoard === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
+            <button key={tab} onClick={() => setSelectedBoard(tab)} className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedBoard === tab ? { background: "var(--text)", color: "#fff" } : { border: "1px solid var(--border)", background: "#fff", color: "var(--text-2)" }}>
               {tab}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button key="All" onClick={() => setSelectedClass("All")} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === "All" ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
+          <button key="All" onClick={() => setSelectedClass("All")} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === "All" ? { background: "var(--text)", color: "#fff" } : { border: "1px solid var(--border)", background: "#fff", color: "var(--text-2)" }}>
             All
           </button>
 
           {classTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedClass(tab)} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === tab ? { background: "#0f1115", color: "#fff" } : { border: "1px solid #ececf1", background: "#fff", color: "#585866" }}>
+            <button key={tab} onClick={() => setSelectedClass(tab)} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === tab ? { background: "var(--text)", color: "#fff" } : { border: "1px solid var(--border)", background: "#fff", color: "var(--text-2)" }}>
               {tab}
             </button>
           ))}
@@ -1118,7 +1118,7 @@ function SelectionButton({
             <TokenMark ticker={ticker} />
           )}
           <div>
-            <p className="text-sm font-medium" style={{ color: "#141419" }}>{label}</p>
+            <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{label}</p>
             <p className="mt-1 text-[11px]" style={{ color: COLORS.textSoft }}>
               {meta}
             </p>
@@ -1162,10 +1162,10 @@ function MarketCard({
   const isSettling = match.endTime ? Date.now() > new Date(match.endTime).getTime() : false
 
   const LEAGUE_COLORS: Record<string, string> = {
-    Major: "#7c3aed", Altcoins: "#a855f7", L1: "#8b5cf6", L2: "#6d28d9",
-    DeFi: "#c026d3", Meme: "#db2777", AI: "#9333ea",
+    Major: "var(--accent)", Altcoins: "#a855f7", L1: "var(--accent)", L2: "var(--accent)",
+    DeFi: "#c026d3", Meme: "var(--accent-2)", AI: "#9333ea",
   }
-  const leagueColor = LEAGUE_COLORS[match.league] || "#7c3aed"
+  const leagueColor = LEAGUE_COLORS[match.league] || "var(--accent)"
 
   const elapsedPct = (match.startTime && match.endTime)
     ? Math.min(100, Math.max(0, ((Date.now() - new Date(match.startTime).getTime()) / (new Date(match.endTime).getTime() - new Date(match.startTime).getTime())) * 100))
@@ -1185,13 +1185,13 @@ function MarketCard({
         onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, side); }}
         style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer",
           flex: 1, textAlign: "center", padding: "16px 8px", borderRadius: 18,
-          background: sel ? `linear-gradient(150deg, ${leagueColor}17, #db277712)` : "#faf9fc",
+          background: sel ? `linear-gradient(150deg, ${leagueColor}22, ${leagueColor}0d)` : "var(--panel-2)",
           boxShadow: sel ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
           border: "none", transition: "background 0.18s",
         }}
       >
-        <div className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: "#a0a0ad", marginBottom: 7 }}>{label}</div>
-        <div className="text-[19px] font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}×</div>
+        <div className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--text-soft)", marginBottom: 7 }}>{label}</div>
+        <div className="text-[19px] font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}×</div>
       </motion.button>
     )
   }
@@ -1213,14 +1213,14 @@ function MarketCard({
       viewport={{ once: true, margin: "-60px" }}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[26px] bg-white p-6 cursor-pointer"
+      className="rounded-[26px] bg-[var(--panel)] p-6 cursor-pointer"
       style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}
       onClick={() => navigate(`/battle/${match.id}`)}
     >
       <div className="flex items-center justify-between mb-[22px]">
         <div className="flex items-center gap-2">
           <span className="inline-block w-[6px] h-[6px] rounded-full" style={{ background: leagueColor }} />
-          <span className="text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: "#a0a0ad" }}>{match.league}</span>
+          <span className="text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: "var(--text-soft)" }}>{match.league}</span>
         </div>
         <div className="flex items-center gap-[6px] text-[12px] font-medium" style={{ color: match.board === "Live" ? leagueColor : "#b45309" }}>
           {match.board === "Live" && (
@@ -1235,54 +1235,54 @@ function MarketCard({
         </div>
       </div>
 
-      <h3 className="text-[23px] font-semibold tracking-[-0.03em]" style={{ color: "#141419" }}>{match.title}</h3>
-      <p className="mt-1.5 mb-6 text-[13px] font-normal" style={{ color: "#a0a0ad" }}>{match.duration} · {match.subtitle}</p>
+      <h3 className="text-[23px] font-semibold tracking-[-0.03em]" style={{ color: "var(--text)" }}>{match.title}</h3>
+      <p className="mt-1.5 mb-6 text-[13px] font-normal" style={{ color: "var(--text-soft)" }}>{match.duration} · {match.subtitle}</p>
 
       <div className="flex items-baseline gap-[10px] mb-[18px]">
-        <span className="text-[34px] font-semibold tracking-[-0.04em]" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>
+        <span className="text-[34px] font-semibold tracking-[-0.04em]" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
           <CountUp value={match.left.odds} />
-          <span className="text-[22px] font-normal" style={{ color: "#c4c4cf" }}>×</span>
+          <span className="text-[22px] font-normal" style={{ color: "var(--text-muted)" }}>×</span>
         </span>
-        <span className="text-[13px] font-normal" style={{ color: "#a0a0ad", fontVariantNumeric: "tabular-nums" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
+        <span className="text-[13px] font-normal" style={{ color: "var(--text-soft)", fontVariantNumeric: "tabular-nums" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
         <span className="ml-auto text-[12px] font-medium" style={{ color: leagueColor }}>{leadPct}% lead</span>
       </div>
 
       {elapsedPct !== null && (
         <>
-          <div className="h-[4px] rounded-full overflow-hidden mb-[10px]" style={{ background: "#f0f0f4" }}>
+          <div className="h-[4px] rounded-full overflow-hidden mb-[10px]" style={{ background: "var(--border-soft)" }}>
             <motion.div
               className="h-full rounded-full"
-              style={{ background: `linear-gradient(90deg, ${leagueColor}, #db2777)` }}
+              style={{ background: `linear-gradient(90deg, ${leagueColor}, var(--accent-2))` }}
               initial={{ width: 0 }}
               whileInView={{ width: `${elapsedPct}%` }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
             />
           </div>
-          <div className="flex items-center justify-between text-[12px] font-normal mb-[26px]" style={{ color: "#a0a0ad", fontVariantNumeric: "tabular-nums" }}>
+          <div className="flex items-center justify-between text-[12px] font-normal mb-[26px]" style={{ color: "var(--text-soft)", fontVariantNumeric: "tabular-nums" }}>
             <span>{isSettling ? "Settling..." : match.timer}</span>
             <span>{Math.round(elapsedPct)}% elapsed</span>
           </div>
         </>
       )}
 
-      <div className="flex justify-between py-5 mb-[22px]" style={{ borderTop: "1px solid #f2f2f5", borderBottom: "1px solid #f2f2f5" }}>
+      <div className="flex justify-between py-5 mb-[22px]" style={{ borderTop: "1px solid var(--border-soft)", borderBottom: "1px solid var(--border-soft)" }}>
         <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Entries</span>
-          <span className="text-[15px] font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{match.entries}</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>Entries</span>
+          <span className="text-[15px] font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{match.entries}</span>
         </div>
         {match.pool > 0 && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>Pool</span>
-            <span className="text-[15px] font-semibold" style={{ color: "#141419", fontVariantNumeric: "tabular-nums" }}>{`$${match.pool.toLocaleString()}`}</span>
+            <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>Pool</span>
+            <span className="text-[15px] font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{`$${match.pool.toLocaleString()}`}</span>
           </div>
         )}
         <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>{match.left.ticker}</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>{match.left.ticker}</span>
           <span className="text-[15px] font-semibold" style={{ color: isNeg(match.left.change) ? "#dc2626" : "#059669", fontVariantNumeric: "tabular-nums" }}>{match.left.change}</span>
         </div>
         <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "#b8b8c2" }}>{match.right.ticker}</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>{match.right.ticker}</span>
           <span className="text-[15px] font-semibold" style={{ color: isNeg(match.right.change) ? "#dc2626" : "#059669", fontVariantNumeric: "tabular-nums" }}>{match.right.change}</span>
         </div>
       </div>
@@ -1323,11 +1323,11 @@ function SlipHandle({
       animate={count > 0 && !open ? { scale: [1, 1.05, 1] } : { scale: 1 }}
       transition={{ duration: 1.4, repeat: count > 0 && !open ? Infinity : 0, ease: "easeInOut" }}
       className="fixed right-4 top-1/2 z-[36] hidden -translate-y-1/2 rounded-[14px] px-4 py-3 text-sm font-semibold lg:block transition-all active:scale-95"
-      style={{ background: "#fff", color: "#141419", boxShadow: "0 4px 16px rgba(20,20,30,0.12)", border: "1px solid #ececf1" }}
+      style={{ background: "#fff", color: "var(--text)", boxShadow: "0 4px 16px rgba(20,20,30,0.12)", border: "1px solid var(--border)" }}
     >
       <div className="flex items-center gap-2">
         <span>Slip</span>
-        <span className="rounded-full px-2 py-0.5 text-xs font-semibold text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+        <span className="rounded-full px-2 py-0.5 text-xs font-semibold text-white" style={{ background: "var(--brand-grad)" }}>
           {count}
         </span>
       </div>
@@ -1375,21 +1375,21 @@ function SlipDrawer({
         ? { x: 0, y: 0, opacity: 1, pointerEvents: "auto" }
         : { x: 0, y: "110%", opacity: 0, pointerEvents: "none" }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      className="fixed bottom-0 right-0 left-0 top-auto z-[45] max-h-[85vh] w-full overflow-hidden rounded-t-[28px] bg-white shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
+      className="fixed bottom-0 right-0 left-0 top-auto z-[45] max-h-[85vh] w-full overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
     >
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#f0f0f4" }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white" style={{ background: "var(--brand-grad)" }}>
               <LayoutGrid className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-[15px] font-semibold" style={{ color: "#141419" }}>My Slip</p>
-              <p className="text-xs" style={{ color: "#a0a0ad" }}>{items.length} selections</p>
+              <p className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>My Slip</p>
+              <p className="text-xs" style={{ color: "var(--text-soft)" }}>{items.length} selections</p>
             </div>
           </div>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8" }}>
-            <X className="h-4 w-4" style={{ color: "#585866" }} />
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full transition-all hover:bg-[var(--border-soft)] active:scale-95" style={{ background: "var(--bg)" }}>
+            <X className="h-4 w-4" style={{ color: "var(--text-2)" }} />
           </button>
         </div>
 
@@ -1398,7 +1398,7 @@ function SlipDrawer({
             const active = items.length <= 1 ? "Single" : "Combo";
             const disabled = tab === "System";
             return (
-              <div key={tab} className="px-3 py-3 text-center text-[13px] font-medium transition-colors" style={{ borderBottom: active === tab ? "2px solid #7c3aed" : "2px solid transparent", color: disabled ? "#c4c4cf" : active === tab ? "#7c3aed" : "#9b9ba8" }}>
+              <div key={tab} className="px-3 py-3 text-center text-[13px] font-medium transition-colors" style={{ borderBottom: active === tab ? "2px solid var(--accent)" : "2px solid transparent", color: disabled ? "var(--text-muted)" : active === tab ? "var(--accent)" : "var(--text-soft)" }}>
                 {tab}
               </div>
             );
@@ -1408,21 +1408,21 @@ function SlipDrawer({
         <div className="preda-scrollbar-hide min-h-0 flex-1 overflow-y-auto">
           {items.length ? (
             items.map((item) => (
-              <div key={item.matchId} className="flex gap-3 border-b px-5 py-4" style={{ borderColor: "#f4f4f7" }}>
-                <button onClick={() => onRemove(item.matchId)} className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-[#f0f0f4] active:scale-95" style={{ background: "#f6f6f8", color: "#9b9ba8" }}>
+              <div key={item.matchId} className="flex gap-3 border-b px-5 py-4" style={{ borderColor: "var(--panel-2)" }}>
+                <button onClick={() => onRemove(item.matchId)} className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] transition-all hover:bg-[var(--border-soft)] active:scale-95" style={{ background: "var(--bg)", color: "var(--text-soft)" }}>
                   <X className="h-4 w-4" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-[14px]" style={{ color: "#141419" }}>{item.pickLabel}</p>
-                  <p className="mt-0.5 text-[13px]" style={{ color: "#9b9ba8" }}>
+                  <p className="font-semibold text-[14px]" style={{ color: "var(--text)" }}>{item.pickLabel}</p>
+                  <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-soft)" }}>
                     {item.matchTitle}
                   </p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: "#b8b8c2" }}>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] font-medium" style={{ color: "var(--text-muted)" }}>
                     3-Way · {item.duration}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[17px] font-semibold" style={{ color: "#7c3aed", fontVariantNumeric: "tabular-nums" }}>
+                  <p className="text-[17px] font-semibold" style={{ color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
                     {formatOdds(item.oddsAtPick)}
                   </p>
                 </div>
@@ -1430,22 +1430,22 @@ function SlipDrawer({
             ))
           ) : (
             <div className="px-6 py-12 text-center">
-              <p className="font-semibold text-[15px]" style={{ color: "#141419" }}>Your slip is empty</p>
-              <p className="mt-2 text-[13px] leading-6" style={{ color: "#9b9ba8" }}>
+              <p className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>Your slip is empty</p>
+              <p className="mt-2 text-[13px] leading-6" style={{ color: "var(--text-soft)" }}>
                 Pick left, draw, or right and your selections stack here automatically.
               </p>
             </div>
           )}
 
-          <div className="border-t px-5 py-4" style={{ borderColor: "#f0f0f4", background: "#fafafc" }}>
-            <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "#fff", border: "1px solid #ececf1" }}>
-              <CircleDollarSign className="h-4 w-4" style={{ color: "#b8b8c2" }} />
-              <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm outline-none" style={{ color: "#141419" }} placeholder="Enter stake" />
+          <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
+            <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+              <CircleDollarSign className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
+              <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm outline-none" style={{ color: "var(--text)" }} placeholder="Enter stake" />
             </div>
 
             <div className="mt-3 grid grid-cols-4 gap-2">
               {quickStakes.map((size) => (
-                <button key={size} onClick={() => setStake(String(size))} className="rounded-[10px] px-3 py-2 text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-[#f0f0f4] active:scale-[0.97]" style={{ background: "#fff", border: "1px solid #ececf1", color: "#585866" }}>
+                <button key={size} onClick={() => setStake(String(size))} className="rounded-[10px] px-3 py-2 text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-[var(--border-soft)] active:scale-[0.97]" style={{ background: "#fff", border: "1px solid var(--border)", color: "var(--text-2)" }}>
                   {size}
                 </button>
               ))}
@@ -1459,29 +1459,29 @@ function SlipDrawer({
                   </p>
                 </div>
               )}
-              <div className="flex items-center justify-between" style={{ color: "#9b9ba8" }}>
+              <div className="flex items-center justify-between" style={{ color: "var(--text-soft)" }}>
                 <span>{items.length > 1 ? 'Combined Odds' : 'Odds'}</span>
-                <span className="font-semibold" style={{ color: "#141419" }}>{items.length ? formatOdds(totalOdds) : "--"}</span>
+                <span className="font-semibold" style={{ color: "var(--text)" }}>{items.length ? formatOdds(totalOdds) : "--"}</span>
               </div>
-              <div className="flex items-center justify-between" style={{ color: "#9b9ba8" }}>
+              <div className="flex items-center justify-between" style={{ color: "var(--text-soft)" }}>
                 <span>Stake</span>
-                <span className="font-semibold" style={{ color: "#141419" }}>{stake ? `${stake}` : "--"}</span>
+                <span className="font-semibold" style={{ color: "var(--text)" }}>{stake ? `${stake}` : "--"}</span>
               </div>
               {items.length > 1 && (
-                <div className="flex items-center justify-between" style={{ color: "#9b9ba8" }}>
+                <div className="flex items-center justify-between" style={{ color: "var(--text-soft)" }}>
                   <span>Legs</span>
-                  <span className="font-semibold" style={{ color: "#141419" }}>{items.length} selections</span>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>{items.length} selections</span>
                 </div>
               )}
-              <div className="flex items-center justify-between pt-2 mt-1 border-t" style={{ borderColor: "#f0f0f4" }}>
-                <span className="text-[15px] font-semibold" style={{ color: "#141419" }}>Potential Win</span>
-                <span className="text-[18px] font-semibold" style={{ color: "#7c3aed", fontVariantNumeric: "tabular-nums" }}>
+              <div className="flex items-center justify-between pt-2 mt-1 border-t" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>Potential Win</span>
+                <span className="text-[18px] font-semibold" style={{ color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
                   {items.length ? `${projected.toFixed(2)}` : "--"}
                 </span>
               </div>
             </div>
 
-            <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "linear-gradient(135deg, #7c3aed, #db2777)" }}>
+            <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
               {items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
             </button>
           </div>
@@ -1512,7 +1512,7 @@ function BottomNav({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t lg:hidden"
-      style={{ borderColor: '#ececf1', background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(12px)' }}>
+      style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(12px)' }}>
       <div className="flex items-center justify-around px-1 py-1.5 pb-safe">
         {items.map(item => {
           const isActive = item.route === '__slip__' ? false : path === item.route
@@ -1523,8 +1523,8 @@ function BottomNav({
               onClick={() => item.route === '__slip__' ? onOpenSlip() : onNavigate(item.route)}
               className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-[12px] transition-all active:scale-95"
               style={{
-                color: isActive ? '#7c3aed' : '#a0a0ad',
-                background: isActive ? '#f3e8fd' : 'transparent',
+                color: isActive ? 'var(--accent)' : 'var(--text-soft)',
+                background: isActive ? 'var(--accent-soft)' : 'transparent',
                 minWidth: 56,
               }}
             >
@@ -1546,9 +1546,9 @@ function PlaceholderPage({
   body: string;
 }) {
   return (
-    <div className="rounded-[24px] bg-white p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
-      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "#9b9ba8" }}>
+    <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>{title}</h2>
+      <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "var(--text-soft)" }}>
         {body}
       </p>
     </div>
@@ -1557,8 +1557,8 @@ function PlaceholderPage({
 
 function ProfilePage() {
   return (
-    <div className="rounded-[24px] bg-white p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
-      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>Profile</h2>
+    <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>Profile</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InfoCard label="Username" value={mockProfile.username} />
         <InfoCard label="Wallet" value={mockProfile.walletAddress} />
@@ -1579,54 +1579,54 @@ function ProfilePage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[14px] p-4" style={{ background: "#fafafc", border: "1px solid #f0f0f4" }}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: "#b8b8c2" }}>
+    <div className="rounded-[14px] p-4" style={{ background: "var(--panel-2)", border: "1px solid var(--border-soft)" }}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
         {label}
       </p>
-      <p className="mt-2 font-semibold" style={{ color: "#141419" }}>{value}</p>
+      <p className="mt-2 font-semibold" style={{ color: "var(--text)" }}>{value}</p>
     </div>
   );
 }
 
 function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
   return (
-    <footer className="mt-12 border-t bg-white" style={{ borderColor: "#ececf1" }}>
+    <footer className="mt-12 border-t bg-[var(--panel)]" style={{ borderColor: "var(--border)" }}>
       <div className="mx-auto grid max-w-[1700px] gap-8 px-4 py-12 sm:px-6 xl:grid-cols-[1.2fr_1fr_1fr] xl:px-8">
         <div>
-          <p className="text-2xl font-semibold tracking-[-0.02em]" style={{ color: "#141419" }}>PREDA</p>
-          <p className="mt-3 max-w-lg text-sm leading-7" style={{ color: "#9B9BA8" }}>
-            <span className="font-medium" style={{ color: "#141419" }}>First crypto competition market.</span>{" "}
+          <p className="text-2xl font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>PREDA</p>
+          <p className="mt-3 max-w-lg text-sm leading-7" style={{ color: "var(--text-soft)" }}>
+            <span className="font-medium" style={{ color: "var(--text)" }}>First crypto competition market.</span>{" "}
             Battle coins, build parlays, and set records.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2.5 text-sm">
-            <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "#f4f4f7", color: "#585866" }}>
+            <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "var(--panel-2)", color: "var(--text-2)" }}>
               Built by humans and AI
             </span>
-            <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
+            <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
               Coming to Solana
             </span>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-semibold" style={{ color: "#141419" }}>Product</p>
-          <div className="mt-4 space-y-2.5 text-sm" style={{ color: "#9B9BA8" }}>
-            <button onClick={() => onNavigate("/")} className="block transition hover:text-[#141419]">Arena</button>
-            <button onClick={() => onNavigate("/news")} className="block transition hover:text-[#141419]">News</button>
-            <button onClick={() => onNavigate("/leaderboard")} className="block transition hover:text-[#141419]">Leaderboard</button>
-            <button onClick={() => onNavigate("/how-to-play")} className="block transition hover:text-[#141419]">How to Play</button>
-            <button onClick={() => onNavigate("/support")} className="block transition hover:text-[#141419]">Support</button>
+          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Product</p>
+          <div className="mt-4 space-y-2.5 text-sm" style={{ color: "var(--text-soft)" }}>
+            <button onClick={() => onNavigate("/")} className="block transition hover:text-[var(--text)]">Arena</button>
+            <button onClick={() => onNavigate("/news")} className="block transition hover:text-[var(--text)]">News</button>
+            <button onClick={() => onNavigate("/leaderboard")} className="block transition hover:text-[var(--text)]">Leaderboard</button>
+            <button onClick={() => onNavigate("/how-to-play")} className="block transition hover:text-[var(--text)]">How to Play</button>
+            <button onClick={() => onNavigate("/support")} className="block transition hover:text-[var(--text)]">Support</button>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-semibold" style={{ color: "#141419" }}>Community</p>
-          <div className="mt-4 space-y-2.5 text-sm" style={{ color: "#9B9BA8" }}>
-            <a href="https://x.com" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">X / Twitter</a>
-            <a href="https://discord.com" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">Discord</a>
-            <a href="https://t.me" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">Telegram</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="block transition hover:text-[#141419]">GitHub</a>
+          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Community</p>
+          <div className="mt-4 space-y-2.5 text-sm" style={{ color: "var(--text-soft)" }}>
+            <a href="https://x.com" target="_blank" rel="noreferrer" className="block transition hover:text-[var(--text)]">X / Twitter</a>
+            <a href="https://discord.com" target="_blank" rel="noreferrer" className="block transition hover:text-[var(--text)]">Discord</a>
+            <a href="https://t.me" target="_blank" rel="noreferrer" className="block transition hover:text-[var(--text)]">Telegram</a>
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="block transition hover:text-[var(--text)]">GitHub</a>
           </div>
         </div>
       </div>
@@ -1648,12 +1648,12 @@ function AuthSection() {
           <button
             onClick={login}
             className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-white font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
-            style={{ background: "#141419" }}
+            style={{ background: "var(--text)" }}
           >
             Login with X
           </button>
         ) : (
-          <div className="text-sm font-semibold" style={{ color: "#141419" }}>
+          <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>
             @{user?.twitter?.username || "User"}
           </div>
         )}
@@ -1663,8 +1663,8 @@ function AuthSection() {
         {authenticated && (
           <button
             onClick={logout}
-            className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[#ebebf0] active:scale-[0.98]"
-            style={{ background: "#f4f4f7", color: "#585866" }}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[var(--panel-2)] active:scale-[0.98]"
+            style={{ background: "var(--panel-2)", color: "var(--text-2)" }}
           >
             Logout
           </button>
@@ -1673,7 +1673,7 @@ function AuthSection() {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
-        <WalletMultiButton style={{ borderRadius: "8px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
+        <WalletMultiButton style={{ borderRadius: "8px", background: "var(--brand-grad)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
       </div>
     </div>
   );
@@ -1681,7 +1681,7 @@ function AuthSection() {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _PredaAuthControls({
-  accentColor = "#ec4899",
+  accentColor = "var(--accent-2)",
 }: {
   accentColor?: string;
 }) {
@@ -1706,12 +1706,12 @@ function _PredaAuthControls({
           Login with X
         </button>
       ) : (
-        <div className="text-sm" style={{ color: "#141419" }}>
+        <div className="text-sm" style={{ color: "var(--text)" }}>
           {twitterUsername || "Connected"}
         </div>
       )}
 
-      <WalletMultiButton style={{ borderRadius: "8px", background: "linear-gradient(135deg, #7c3aed, #db2777)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
+      <WalletMultiButton style={{ borderRadius: "8px", background: "var(--brand-grad)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
 
       {walletAddress ? (
         <div className="text-xs text-gray-400">
@@ -1761,30 +1761,30 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
   const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
 
   return (
-    <div className="rounded-[18px] p-5 bg-white" style={{ boxShadow: isCombo ? "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.08)" : "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+    <div className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: isCombo ? "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.08)" : "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-[15px]" style={{ color: "#141419" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
-            {isCombo && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f3e8fd', color: '#7c3aed' }}>COMBO LEG</span>}
+            <p className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+            {isCombo && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>COMBO LEG</span>}
           </div>
-          <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>{battle?.league} · {battle?.duration}</p>
+          <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>{battle?.league} · {battle?.duration}</p>
         </div>
         <div className="text-right">
-          <div className="text-[11px] px-3 py-1 rounded-full font-semibold mb-1" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
+          <div className="text-[11px] px-3 py-1 rounded-full font-semibold mb-1" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
             {timeLeft}
           </div>
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-[12px] p-3" style={{ background: "#fafafc" }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "#b8b8c2" }}>Your Pick</p>
-          <p className="font-semibold" style={{ color: "#141419" }}>{pick}</p>
-          <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>@ {ticket.odds}x</p>
+        <div className="rounded-[12px] p-3" style={{ background: "var(--panel-2)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "var(--text-muted)" }}>Your Pick</p>
+          <p className="font-semibold" style={{ color: "var(--text)" }}>{pick}</p>
+          <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>@ {ticket.odds}x</p>
         </div>
-        <div className="rounded-[12px] p-3" style={{ background: "#fafafc" }}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "#b8b8c2" }}>Stake</p>
-          <p className="font-semibold" style={{ color: "#141419" }}>${ticket.stake}</p>
+        <div className="rounded-[12px] p-3" style={{ background: "var(--panel-2)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: "var(--text-muted)" }}>Stake</p>
+          <p className="font-semibold" style={{ color: "var(--text)" }}>${ticket.stake}</p>
         </div>
         <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
           <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>To Win</p>
@@ -1810,18 +1810,18 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
   const timeLeft = useCountdown(latestEnd)
 
   return (
-    <div className="rounded-[18px] p-5 bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.1)" }}>
+    <div className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.1)" }}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-[15px]" style={{ color: "#141419" }}>Combo Bet</p>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: '#f3e8fd', color: '#7c3aed' }}>
+            <p className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>Combo Bet</p>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
               {legs.length} LEGS
             </span>
           </div>
-          <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>All legs must win · {comboOdds.toFixed(2)}x combined</p>
+          <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>All legs must win · {comboOdds.toFixed(2)}x combined</p>
         </div>
-        <div className="text-[11px] px-3 py-1 rounded-full font-semibold" style={{ background: "#f3e8fd", color: "#7c3aed" }}>
+        <div className="text-[11px] px-3 py-1 rounded-full font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
           {timeLeft}
         </div>
       </div>
@@ -1832,10 +1832,10 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
           const b = leg.battles
           const pick = leg.side === 1 ? b?.coin_a : leg.side === 2 ? b?.coin_b : 'Draw'
           return (
-            <div key={leg.id} className="flex items-center justify-between px-3 py-2.5 rounded-[10px]" style={{ background: '#fafafc' }}>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: "#b8b8c2" }}>Leg {i + 1}</span>
-              <span className="text-sm font-medium" style={{ color: "#141419" }}>{b?.coin_a} vs {b?.coin_b}</span>
-              <span style={{ color: "#7c3aed" }} className="text-sm font-semibold">{pick}</span>
+            <div key={leg.id} className="flex items-center justify-between px-3 py-2.5 rounded-[10px]" style={{ background: 'var(--panel-2)' }}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--text-muted)" }}>Leg {i + 1}</span>
+              <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{b?.coin_a} vs {b?.coin_b}</span>
+              <span style={{ color: "var(--accent)" }} className="text-sm font-semibold">{pick}</span>
             </div>
           )
         })}
@@ -1889,7 +1889,7 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
 
   if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "#141419" }}>Connect your wallet to see history</p>
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see history</p>
     </div>
   )
 
@@ -1901,14 +1901,14 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
 
   if (!tickets.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "#141419" }}>No settled bets yet</p>
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>No settled bets yet</p>
       <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>Your completed battles will appear here</p>
     </div>
   )
 
   return (
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
-      <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "#141419" }}>Bet History</h2>
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "var(--text)" }}>Bet History</h2>
       <div className="grid gap-4">
         {tickets.map((ticket) => {
           const battle = ticket.battles
@@ -1922,14 +1922,14 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
             : null
 
           return (
-            <div key={ticket.id} className="rounded-[18px] p-5 bg-white" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+            <div key={ticket.id} className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="font-semibold text-[17px]" style={{ color: "#141419" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
-                  <p className="text-xs mt-1 font-medium" style={{ color: "#9b9ba8" }}>{battle?.league} · {battle?.duration}</p>
+                  <p className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>{battle?.league} · {battle?.duration}</p>
                 </div>
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
-                  background: won ? `${COLORS.accent}22` : '#ef444422',
+                  background: won ? 'var(--accent-soft)' : 'rgba(239,68,68,0.13)',
                   color: won ? COLORS.accent : '#ef4444'
                 }}>
                   {won ? '🏆 Won' : '❌ Lost'}
@@ -1939,7 +1939,7 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
                   <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
-                  <p className="font-semibold" style={{ color: "#141419" }}>
+                  <p className="font-semibold" style={{ color: "var(--text)" }}>
                     {ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
                   </p>
                   <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {ticket.odds}x</p>
@@ -2010,7 +2010,7 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
 
   if (!walletAddress && !evmAddress) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "#141419" }}>Connect your wallet to see your bets</p>
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see your bets</p>
     </div>
   )
 
@@ -2022,7 +2022,7 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
 
   if (!tickets.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "#141419" }}>No bets yet</p>
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>No bets yet</p>
       <p className="mt-2 text-sm" style={{ color: COLORS.textSoft }}>Place your first bet on the Arena</p>
     </div>
   )
@@ -2042,7 +2042,7 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
 
   return (
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
-      <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "#141419" }}>My Bets</h2>
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "var(--text)" }}>My Bets</h2>
       <div className="grid gap-4">
         {/* Combo bets grouped */}
         {Object.entries(comboGroups).map(([comboId, legs]) => (
@@ -2237,16 +2237,16 @@ export default function PredaLandingDashboardMockup() {
         return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
       default:
         return (
-          <section className="overflow-hidden rounded-[24px] border bg-white" style={{ borderColor: "#ececf1" }}>
+          <section className="overflow-hidden rounded-[24px] border bg-[var(--panel)]" style={{ borderColor: "var(--border)" }}>
             <div className="px-5 pt-6 sm:px-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-3xl font-extrabold tracking-[-0.5px]" style={{ color: "#0f1115" }}>Arena</h2>
-                  <p className="mt-2 text-sm font-medium" style={{ color: "#75758a" }}>
+                  <h2 className="text-3xl font-extrabold tracking-[-0.5px]" style={{ color: "var(--text)" }}>Arena</h2>
+                  <p className="mt-2 text-sm font-medium" style={{ color: "var(--text-soft)" }}>
                     Full market selections with live and upcoming coin battles.
                   </p>
                 </div>
-                <div className="hidden rounded-full px-3 py-2 text-xs font-bold sm:block" style={{ background: "#f2f0fb", color: "#7c3aed" }}>
+                <div className="hidden rounded-full px-3 py-2 text-xs font-bold sm:block" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
                   Hidden Slip Drawer Active
                 </div>
               </div>
@@ -2260,9 +2260,9 @@ export default function PredaLandingDashboardMockup() {
                   <MarketCard key={match.id} match={match} selectedSide={getSelectedSide(match.id)} onPick={handlePick} />
                 ))
               ) : (
-                <div className="rounded-[20px] border border-dashed p-8 text-center xl:col-span-2" style={{ borderColor: "#e5e5ec" }}>
-                  <p className="text-lg font-bold" style={{ color: "#0f1115" }}>No markets in this filter right now.</p>
-                  <p className="mt-2 text-sm font-medium" style={{ color: "#a5a5b3" }}>
+                <div className="rounded-[20px] border border-dashed p-8 text-center xl:col-span-2" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-lg font-bold" style={{ color: "var(--text)" }}>No markets in this filter right now.</p>
+                  <p className="mt-2 text-sm font-medium" style={{ color: "var(--text-soft)" }}>
                     Switch board, token class, or market category.
                   </p>
                 </div>
@@ -2404,7 +2404,7 @@ export default function PredaLandingDashboardMockup() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#f6f6f8" }}>
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <PredaStyles />
       <div className="pointer-events-none fixed inset-0" style={{ background: "radial-gradient(circle at top right, rgba(141,255,79,0.07), transparent 24%), radial-gradient(circle at top left, rgba(141,255,79,0.05), transparent 18%)" }} />
 
