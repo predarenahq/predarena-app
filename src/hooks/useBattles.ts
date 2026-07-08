@@ -169,6 +169,7 @@ export function useBattles() {
       clearInterval(fetchTimer)
       clearInterval(tickTimer)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function fetchBattles() {
