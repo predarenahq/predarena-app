@@ -1,9 +1,23 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL!
-const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+if (!supabaseUrl || !supabaseKey) {
+  // Surfaced loudly so a misconfigured deploy fails visibly, not silently
+  console.error(
+    '[Supabase] Missing env vars:',
+    !supabaseUrl ? 'REACT_APP_SUPABASE_URL ' : '',
+    !supabaseKey ? 'REACT_APP_SUPABASE_ANON_KEY' : ''
+  )
+}
+
+export const supabaseConfigured = Boolean(supabaseUrl && supabaseKey)
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseKey || 'placeholder-key'
+)
 
 export type Battle = {
   id: string

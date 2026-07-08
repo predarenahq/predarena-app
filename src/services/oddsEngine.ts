@@ -8,7 +8,7 @@ const COINGECKO_IDS: Record<string, string> = {
   BONK: 'bonk', XRP: 'ripple',
 }
 
-const HOUSE_MARGIN = 1.05
+const HOUSE_MARGIN = 1.30  // 30% overround — heavy SportyBet-style house edge
 const MIN_ODDS = 1.10
 const MAX_ODDS = 30.00
 
@@ -144,12 +144,14 @@ export async function getStartingOdds(coinA: string, coinB: string): Promise<Odd
 function compressOdds(odds: number, timeProgress: number, isLeader: boolean): number {
   if (!isLeader) return odds
 
-  const compressionRate = timeProgress < 0.8
-    ? timeProgress * 0.35                          // gentle early (was 0.5)
-    : 0.28 + (timeProgress - 0.8) * 1.8           // less savage late (was 3.0)
+  // Continuous drift: leader odds tighten the entire battle, hard toward close.
+  // Late bets on the obvious winner earn almost nothing (liability protection).
+  const compressionRate = timeProgress < 0.7
+    ? timeProgress * 0.55                          // steady drift from the start
+    : 0.385 + (timeProgress - 0.7) * 2.05          // accelerates hard in the final third
 
-  const compressed = odds - (odds - 1.05) * compressionRate
-  return Math.max(1.05, Math.round(compressed * 100) / 100)
+  const compressed = odds - (odds - 1.01) * Math.min(0.97, compressionRate)
+  return Math.max(1.01, Math.round(compressed * 100) / 100)
 }
 
 // IN-PLAY ODDS

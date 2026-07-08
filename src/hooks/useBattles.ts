@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase, Battle } from '../lib/supabase'
 import { getStartingOdds, getInPlayOdds, OddsResult } from '../services/oddsEngine'
 
@@ -23,6 +23,8 @@ export type Match = {
   endTime: string
   startPriceA: number
   startPriceB: number
+  bettingLocked: boolean
+  progress: number
 }
 
 function calculateOdds(sidePool: number, totalPool: number): number {
@@ -84,12 +86,60 @@ function battleToMatch(battle: Battle, odds?: OddsResult): Match {
     endTime: battle.end_time,
     startPriceA: battle.start_price_a || 0,
     startPriceB: battle.start_price_b || 0,
+    bettingLocked: computeLocked(battle),
+    progress: computeProgress(battle),
   }
+}
+
+const BETTING_LOCK_THRESHOLD = 0.80  // betting closes at 80% elapsed
+
+function computeProgress(battle: Battle): number {
+  const start = new Date(battle.start_time).getTime()
+  const end = new Date(battle.end_time).getTime()
+  if (end <= start) return 0
+  return Math.min(1, Math.max(0, (Date.now() - start) / (end - start)))
+}
+
+function computeLocked(battle: Battle): boolean {
+  if (battle.status !== 'live') return true          // upcoming/settled/cancelled = no betting
+  return computeProgress(battle) >= BETTING_LOCK_THRESHOLD
 }
 
 export function useBattles() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const rawBattlesRef = useRef<any[]>([])
+
+  // Pure, synchronous: build a Match from a raw row using ALREADY-CACHED starting
+  // odds. Never touches the network. Safe to call on the fast local tick.
+  function buildMatch(b: any): Match {
+    let odds: OddsResult | undefined
+    if (b.status === 'live') {
+      const base = oddsCache[b.id]           // seeded by the async fetch; may be undefined on very first paint
+      if (base && b.start_price_a && b.start_price_b) {
+        const currentA = b.final_price_a || b.start_price_a
+        const currentB = b.final_price_b || b.start_price_b
+        odds = getInPlayOdds(
+          b.coin_a, b.coin_b,
+          currentA, currentB,
+          b.start_price_a, b.start_price_b,
+          new Date(b.start_time).getTime(),
+          new Date(b.end_time).getTime(),
+          base,
+          b.side_a_pool || 0,
+          b.side_b_pool || 0,
+          b.draw_pool || 0
+        )
+      } else {
+        odds = base
+      }
+    }
+    return {
+      ...battleToMatch(b as Battle, odds),
+      entries: b.tickets?.[0]?.count || 0,
+    }
+  }
 
   useEffect(() => {
     fetchBattles()
@@ -101,7 +151,24 @@ export function useBattles() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(sub) }
+    // SLOW CLOCK (15s): pulls fresh pool + price data from Supabase and seeds
+    // starting odds (the async CoinGecko path).
+    const fetchTimer = setInterval(fetchBattles, 15000)
+
+    // FAST CLOCK (2s): pure-local recompute of odds + betting lock from the
+    // rows we already have, using the current timestamp. No network calls.
+    // This is what makes odds drift smoothly toward close and flips the 80%
+    // betting lock within 2s of the threshold.
+    const tickTimer = setInterval(() => {
+      if (rawBattlesRef.current.length === 0) return
+      setMatches(rawBattlesRef.current.map(buildMatch))
+    }, 2000)
+
+    return () => {
+      supabase.removeChannel(sub)
+      clearInterval(fetchTimer)
+      clearInterval(tickTimer)
+    }
   }, [])
 
   async function fetchBattles() {
@@ -113,45 +180,28 @@ export function useBattles() {
 
     if (error) {
       console.error('Error fetching battles:', error)
+      setError(error.message || 'Failed to load battles')
+      setLoading(false)
       return
     }
+    setError(null)
 
-    const matchesWithOdds = await Promise.all((data as any[]).map(async (b) => {
-      // Use engine odds for live battles
-      let odds: OddsResult | undefined
-      if (b.status === 'live') {
-        if (!oddsCache[b.id]) {
-          // Seed starting odds from 24h momentum
+    const rows = (data as any[]) || []
+
+    // Seed starting odds (async, CoinGecko/momentum) for any live battle we
+    // haven't cached yet. Only happens here, on the slow clock.
+    await Promise.all(
+      rows
+        .filter((b) => b.status === 'live' && !oddsCache[b.id])
+        .map(async (b) => {
           oddsCache[b.id] = await getStartingOdds(b.coin_a, b.coin_b)
-        }
-        const base = oddsCache[b.id]
-        // If we have live prices, compute in-play odds
-        if (b.start_price_a && b.start_price_b) {
-          const currentA = b.final_price_a || b.start_price_a
-          const currentB = b.final_price_b || b.start_price_b
-          odds = getInPlayOdds(
-            b.coin_a, b.coin_b,
-            currentA, currentB,
-            b.start_price_a, b.start_price_b,
-            new Date(b.start_time).getTime(),
-            new Date(b.end_time).getTime(),
-            base,
-            b.side_a_pool || 0,
-            b.side_b_pool || 0,
-            b.draw_pool || 0
-          )
-        } else {
-          odds = base
-        }
-      }
-      return {
-        ...battleToMatch(b as Battle, odds),
-        entries: b.tickets?.[0]?.count || 0
-      }
-    }))
-    setMatches(matchesWithOdds)
+        })
+    )
+
+    rawBattlesRef.current = rows
+    setMatches(rows.map(buildMatch))
     setLoading(false)
   }
 
-  return { matches, loading }
+  return { matches, loading, error }
 }
