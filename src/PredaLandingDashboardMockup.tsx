@@ -13,6 +13,7 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CircleDollarSign,
   LayoutGrid,
   Menu,
@@ -23,8 +24,11 @@ import {
   ClipboardList,
   BarChart3,
   Newspaper,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "./useTheme";
 
 type Side = "left" | "draw" | "right";
 type MatchBoard = "Live" | "Upcoming";
@@ -548,7 +552,7 @@ function DesktopHeader({
           >
             P
           </motion.div>
-          {expanded && <span className="text-lg font-extrabold tracking-[-0.3px]" style={{ color: "var(--text)" }}>PREDA</span>}
+          {expanded && <span className="text-lg font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>}
         </button>
 
         <div className="flex items-center flex-1 px-5">
@@ -578,12 +582,15 @@ function SidebarAccordion({
         <div key={section.title} className="mb-5">
           <button
             onClick={() => setOpenSection(openSection === section.title ? null : section.title)}
-            className="mb-2 w-full text-left"
+            className="group mb-2 w-full text-left"
           >
             {expanded ? (
-              <p className="px-2 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--text-soft)" }}>
-                {section.title}
-              </p>
+              <div className="flex items-center justify-between px-2 py-1 rounded-lg transition-colors group-hover:bg-[var(--panel-2)]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] transition-colors" style={{ color: openSection === section.title ? "var(--text)" : "var(--text-soft)" }}>
+                  {section.title}
+                </p>
+                <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200" style={{ color: "var(--text-muted)", transform: openSection === section.title ? "rotate(180deg)" : "rotate(0deg)" }} />
+              </div>
             ) : (
               <p className="text-center text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--text-soft)" }}>
                 {section.title.slice(0, 1)}
@@ -601,7 +608,7 @@ function SidebarAccordion({
                       <button
                         key={item.label}
                         onClick={() => onNavigate(item.path)}
-                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition"
+                        className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--panel-2)]"
                         style={{
                           background: active ? "var(--accent-soft)" : "transparent",
                         }}
@@ -846,7 +853,7 @@ function UserBalancePanel() {
             value={depositAmount}
             onChange={e => setDepositAmount(e.target.value)}
             className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
-            style={{ background: "#fff", border: "1px solid var(--border)", color: "var(--text)" }}
+            style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)" }}
           />
           <button
             onClick={handleDeposit}
@@ -867,7 +874,7 @@ function UserBalancePanel() {
             value={withdrawAmount}
             onChange={e => setWithdrawAmount(e.target.value)}
             className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
-            style={{ background: "#fff", border: "1px solid var(--border)", color: "var(--text)" }}
+            style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)" }}
           />
           <button
             onClick={handleWithdraw}
@@ -957,9 +964,9 @@ function MobileShell({
           <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "var(--brand-grad)" }}>
             P
           </div>
-          <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "var(--text)" }}>PREDA</span>
+          <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>
         </div>
-        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-white" style={{ background: "var(--text)" }}>
+        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-[var(--panel)]" style={{ background: "var(--text)" }}>
           Connect
         </button>
       </div>
@@ -973,7 +980,7 @@ function MobileShell({
                   <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "var(--brand-grad)" }}>
                     P
                   </div>
-                  <span className="text-base font-extrabold tracking-[-0.3px]" style={{ color: "var(--text)" }}>PREDA</span>
+                  <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>
                 </div>
                 <button onClick={() => setOpen(false)} className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
                   <X className="h-4 w-4" />
@@ -1013,7 +1020,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
 
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
-      <div className="relative overflow-hidden rounded-[24px] px-6 py-8 sm:px-9 shadow-lg" style={{ background: "linear-gradient(115deg, var(--accent) 0%, #a21caf 55%, var(--accent-2) 100%)" }}>
+      <div className="relative overflow-hidden rounded-[28px] px-6 py-9 sm:px-10 sm:py-11" style={{ background: "radial-gradient(120% 120% at 12% 18%, rgba(167,139,250,0.42) 0%, transparent 44%), radial-gradient(130% 130% at 90% 88%, rgba(236,72,153,0.40) 0%, transparent 46%), linear-gradient(135deg, #1c0f42 0%, #4c1d95 48%, #7c1d55 100%)", boxShadow: "0 28px 70px -24px rgba(76,29,149,0.7), inset 0 1px 0 rgba(255,255,255,0.09)" }}>
         <div className="absolute inset-y-0 left-0 w-40 bg-[radial-gradient(circle_at_left,rgba(255,255,255,0.14),transparent_65%)]" />
         <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_right,rgba(255,255,255,0.10),transparent_65%)]" />
 
@@ -1028,7 +1035,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-pink-100">
                   {slide.title}
                 </p>
-                <p className="mt-3 max-w-4xl text-lg font-extrabold text-white sm:text-2xl tracking-[-0.3px]">{slide.text}</p>
+                <p className="font-display mt-3 max-w-4xl text-xl text-white sm:text-[28px] leading-[1.14]">{slide.text}</p>
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <button onClick={() => onNavigate("/")} className="inline-flex items-center gap-2 rounded-2xl bg-[var(--panel)] px-5 py-3 text-sm font-bold text-[var(--text)] hover:bg-pink-50">
                     {slide.cta}
@@ -1070,19 +1077,19 @@ function Filters({
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2">
           {boardTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedBoard(tab)} className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedBoard === tab ? { background: "var(--text)", color: "#fff" } : { border: "1px solid var(--border)", background: "#fff", color: "var(--text-2)" }}>
+            <button key={tab} onClick={() => setSelectedBoard(tab)} className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedBoard === tab ? { background: "var(--text)", color: "var(--panel)" } : { border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)" }}>
               {tab}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button key="All" onClick={() => setSelectedClass("All")} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === "All" ? { background: "var(--text)", color: "#fff" } : { border: "1px solid var(--border)", background: "#fff", color: "var(--text-2)" }}>
+          <button key="All" onClick={() => setSelectedClass("All")} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === "All" ? { background: "var(--text)", color: "var(--panel)" } : { border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)" }}>
             All
           </button>
 
           {classTabs.map((tab) => (
-            <button key={tab} onClick={() => setSelectedClass(tab)} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === tab ? { background: "var(--text)", color: "#fff" } : { border: "1px solid var(--border)", background: "#fff", color: "var(--text-2)" }}>
+            <button key={tab} onClick={() => setSelectedClass(tab)} className="inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] active:scale-[0.98]" style={selectedClass === tab ? { background: "var(--text)", color: "var(--panel)" } : { border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)" }}>
               {tab}
             </button>
           ))}
@@ -1191,7 +1198,7 @@ function MarketCard({
         }}
       >
         <div className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: "var(--text-soft)", marginBottom: 7 }}>{label}</div>
-        <div className="text-[19px] font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{odds.toFixed(2)}×</div>
+        <div className="nums text-[19px] font-bold" style={{ color: "var(--text)" }}>{odds.toFixed(2)}×</div>
       </motion.button>
     )
   }
@@ -1213,8 +1220,8 @@ function MarketCard({
       viewport={{ once: true, margin: "-60px" }}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[26px] bg-[var(--panel)] p-6 cursor-pointer"
-      style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}
+      className="rounded-[26px] p-6 cursor-pointer border"
+      style={{ background: "var(--panel)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-card)" }}
       onClick={() => navigate(`/battle/${match.id}`)}
     >
       <div className="flex items-center justify-between mb-[22px]">
@@ -1239,12 +1246,12 @@ function MarketCard({
       <p className="mt-1.5 mb-6 text-[13px] font-normal" style={{ color: "var(--text-soft)" }}>{match.duration} · {match.subtitle}</p>
 
       <div className="flex items-baseline gap-[10px] mb-[18px]">
-        <span className="text-[34px] font-semibold tracking-[-0.04em]" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+        <span className="nums text-[34px] font-bold" style={{ color: "var(--text)" }}>
           <CountUp value={match.left.odds} />
-          <span className="text-[22px] font-normal" style={{ color: "var(--text-muted)" }}>×</span>
+          <span className="nums text-[20px] font-medium" style={{ color: "var(--text-muted)" }}>×</span>
         </span>
-        <span className="text-[13px] font-normal" style={{ color: "var(--text-soft)", fontVariantNumeric: "tabular-nums" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
-        <span className="ml-auto text-[12px] font-medium" style={{ color: leagueColor }}>{leadPct}% lead</span>
+        <span className="nums text-[13px] font-medium" style={{ color: "var(--text-soft)" }}>/ {match.draw.odds.toFixed(2)}× draw</span>
+        <span className="ml-auto nums text-[12px] font-semibold" style={{ color: leagueColor }}>{leadPct}% lead</span>
       </div>
 
       {elapsedPct !== null && (
@@ -1259,7 +1266,7 @@ function MarketCard({
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
             />
           </div>
-          <div className="flex items-center justify-between text-[12px] font-normal mb-[26px]" style={{ color: "var(--text-soft)", fontVariantNumeric: "tabular-nums" }}>
+          <div className="nums flex items-center justify-between text-[11px] font-medium mb-[26px]" style={{ color: "var(--text-soft)" }}>
             <span>{isSettling ? "Settling..." : match.timer}</span>
             <span>{Math.round(elapsedPct)}% elapsed</span>
           </div>
@@ -1299,11 +1306,11 @@ function MarketCard({
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border bg-black/20 px-3 py-3" style={{ borderColor: COLORS.line }}>
+    <div className="rounded-2xl border px-3 py-3" style={{ background: "var(--panel-2)", borderColor: COLORS.line }}>
       <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: COLORS.textSoft }}>
         {label}
       </p>
-      <p className="mt-2 font-medium text-white">{value}</p>
+      <p className="mt-2 font-medium" style={{ color: "var(--text)" }}>{value}</p>
     </div>
   );
 }
@@ -1323,7 +1330,7 @@ function SlipHandle({
       animate={count > 0 && !open ? { scale: [1, 1.05, 1] } : { scale: 1 }}
       transition={{ duration: 1.4, repeat: count > 0 && !open ? Infinity : 0, ease: "easeInOut" }}
       className="fixed right-4 top-1/2 z-[36] hidden -translate-y-1/2 rounded-[14px] px-4 py-3 text-sm font-semibold lg:block transition-all active:scale-95"
-      style={{ background: "#fff", color: "var(--text)", boxShadow: "0 4px 16px rgba(20,20,30,0.12)", border: "1px solid var(--border)" }}
+      style={{ background: "var(--panel)", color: "var(--text)", boxShadow: "0 4px 16px rgba(20,20,30,0.12)", border: "1px solid var(--border)" }}
     >
       <div className="flex items-center gap-2">
         <span>Slip</span>
@@ -1438,14 +1445,14 @@ function SlipDrawer({
           )}
 
           <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
-            <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
               <CircleDollarSign className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
               <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm outline-none" style={{ color: "var(--text)" }} placeholder="Enter stake" />
             </div>
 
             <div className="mt-3 grid grid-cols-4 gap-2">
               {quickStakes.map((size) => (
-                <button key={size} onClick={() => setStake(String(size))} className="rounded-[10px] px-3 py-2 text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-[var(--border-soft)] active:scale-[0.97]" style={{ background: "#fff", border: "1px solid var(--border)", color: "var(--text-2)" }}>
+                <button key={size} onClick={() => setStake(String(size))} className="rounded-[10px] px-3 py-2 text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-[var(--border-soft)] active:scale-[0.97]" style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
                   {size}
                 </button>
               ))}
@@ -1547,7 +1554,7 @@ function PlaceholderPage({
 }) {
   return (
     <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
-      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>{title}</h2>
+      <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>{title}</h2>
       <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "var(--text-soft)" }}>
         {body}
       </p>
@@ -1558,7 +1565,7 @@ function PlaceholderPage({
 function ProfilePage() {
   return (
     <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
-      <h2 className="text-3xl font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>Profile</h2>
+      <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Profile</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <InfoCard label="Username" value={mockProfile.username} />
         <InfoCard label="Wallet" value={mockProfile.walletAddress} />
@@ -1636,6 +1643,7 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 
 function AuthSection() {
   const { login, authenticated, user, logout } = usePrivy();
+  const { theme, toggle } = useTheme();
 
 
 
@@ -1647,7 +1655,7 @@ function AuthSection() {
         {!authenticated ? (
           <button
             onClick={login}
-            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-white font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-[var(--panel)] font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
             style={{ background: "var(--text)" }}
           >
             Login with X
@@ -1673,6 +1681,15 @@ function AuthSection() {
 
       {/* RIGHT GROUP */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={toggle}
+          aria-label="Toggle theme"
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border transition-all hover:bg-[var(--panel-2)] active:scale-[0.96]"
+          style={{ background: "var(--panel)", borderColor: "var(--border)", color: "var(--text-2)" }}
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
         <WalletMultiButton style={{ borderRadius: "8px", background: "var(--brand-grad)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
       </div>
     </div>
@@ -1722,7 +1739,7 @@ function _PredaAuthControls({
       {authenticated ? (
         <button
           onClick={() => logout()}
-          className="rounded-2xl border px-3 py-2 text-sm text-white"
+          className="rounded-2xl border px-3 py-2 text-sm text-[var(--text)]"
           style={{ borderColor: accentColor }}
         >
           Logout
@@ -2241,7 +2258,7 @@ export default function PredaLandingDashboardMockup() {
             <div className="px-5 pt-6 sm:px-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-3xl font-extrabold tracking-[-0.5px]" style={{ color: "var(--text)" }}>Arena</h2>
+                  <h2 className="font-display text-[32px]" style={{ color: "var(--text)" }}>Arena</h2>
                   <p className="mt-2 text-sm font-medium" style={{ color: "var(--text-soft)" }}>
                     Full market selections with live and upcoming coin battles.
                   </p>

@@ -574,7 +574,7 @@ export default function BattleDetailPage() {
               value={stake}
               onChange={e => setStake(e.target.value)}
               className="flex-1 rounded-[10px] px-4 py-3 outline-none text-sm"
-              style={{ color: "var(--text)", background: "#fff", border: "1px solid var(--border)" }}
+              style={{ color: "var(--text)", background: "var(--panel)", border: "1px solid var(--border)" }}
             />
             {stakeUSD > 0 && selectedSide && (
               <div className="rounded-[10px] px-4 py-3 text-right" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-soft)' }}>

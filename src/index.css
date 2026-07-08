@@ -56,9 +56,38 @@
   --shadow-pop:    0 12px 40px rgba(0,0,0,0.5);
 }
 
+/* ── Type system ───────────────────────────── */
+:root {
+  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+}
+
 body {
   background-color: var(--bg);
   color: var(--text);
   margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
+
+/* Display face — hero + section headings */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.022em;
+  font-weight: 700;
+}
+
+/* Monospaced tabular figures — odds, stakes, countdowns, % */
+.nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.03em;
+}
+
+/* Tabular alignment without changing the typeface */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
