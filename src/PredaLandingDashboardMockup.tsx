@@ -65,6 +65,8 @@ type Match = {
   endTime?: string;
   startPriceA?: number;
   startPriceB?: number;
+  bettingLocked?: boolean;
+  progress?: number;
 };
 
 type SlipSelection = {
@@ -1167,6 +1169,7 @@ function MarketCard({
   const [chartOpen, setChartOpen] = React.useState(false)
   const navigate = useNavigate()
   const isSettling = match.endTime ? Date.now() > new Date(match.endTime).getTime() : false
+  const locked = match.bettingLocked || isSettling  // 80% cutoff OR past end
 
   const LEAGUE_COLORS: Record<string, string> = {
     Major: "var(--accent)", Altcoins: "#a855f7", L1: "var(--accent)", L2: "var(--accent)",
@@ -1189,8 +1192,8 @@ function MarketCard({
       <motion.button
         whileTap={{ scale: 0.96 }}
         transition={{ duration: 0.12 }}
-        onClick={(e) => { e.stopPropagation(); if(!isSettling) onPick(match, side); }}
-        style={{ opacity: isSettling ? 0.4 : 1, cursor: isSettling ? "not-allowed" : "pointer",
+        onClick={(e) => { e.stopPropagation(); if(!locked) onPick(match, side); }}
+        style={{ opacity: locked ? 0.4 : 1, cursor: locked ? "not-allowed" : "pointer",
           flex: 1, textAlign: "center", padding: "16px 8px", borderRadius: 18,
           background: sel ? `linear-gradient(150deg, ${leagueColor}22, ${leagueColor}0d)` : "var(--panel-2)",
           boxShadow: sel ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
@@ -1294,11 +1297,20 @@ function MarketCard({
         </div>
       </div>
 
-      <div className="flex gap-[10px]">
-        <Pick side="left" label={match.left.ticker} odds={match.left.odds} />
-        <Pick side="draw" label="Draw" odds={match.draw.odds} />
-        <Pick side="right" label={match.right.ticker} odds={match.right.odds} />
-      </div>
+      {locked ? (
+        <div className="flex items-center justify-center gap-2 rounded-[18px] py-4" style={{ background: "var(--panel-2)", border: "1px dashed var(--border)" }}>
+          <span className="inline-block w-[6px] h-[6px] rounded-full" style={{ background: "var(--text-muted)" }} />
+          <span className="text-[12px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--text-soft)" }}>
+            {isSettling ? "Settling · Awaiting Result" : "Betting Closed"}
+          </span>
+        </div>
+      ) : (
+        <div className="flex gap-[10px]">
+          <Pick side="left" label={match.left.ticker} odds={match.left.odds} />
+          <Pick side="draw" label="Draw" odds={match.draw.odds} />
+          <Pick side="right" label={match.right.ticker} odds={match.right.odds} />
+        </div>
+      )}
     </motion.div>
     </>
   );
@@ -2133,25 +2145,8 @@ export default function PredaLandingDashboardMockup() {
     }
   }, [location.pathname]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveMatches((prev) =>
-        prev.map((match) => ({
-          ...match,
-          left: {
-            ...match.left,
-            odds: Math.max(1.1, Number((match.left.odds + (Math.random() - 0.5) * 0.08).toFixed(2))),
-          },
-          right: {
-            ...match.right,
-            odds: Math.max(1.1, Number((match.right.odds + (Math.random() - 0.5) * 0.08).toFixed(2))),
-          },
-        }))
-      );
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // (Removed) Random odds jitter that used to run every 10s — it was leftover
+  // mockup noise that corrupted the real Pyth-driven odds from useBattles.
 
   useEffect(() => {
     if (slipSelections.length > 0) {
@@ -2193,6 +2188,10 @@ export default function PredaLandingDashboardMockup() {
   }, [liveMatches, selectedBoard, selectedClass, location.pathname]);
 
   const handlePick = (match: Match, side: Side) => {
+    if (match.bettingLocked) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Betting is closed for this battle', type: 'error' } }))
+      return
+    }
     let oddsAtPick = 0;
     let pickLabel = "";
 

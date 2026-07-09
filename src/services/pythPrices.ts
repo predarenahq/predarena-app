@@ -1,5 +1,3 @@
-import { PriceServiceConnection } from '@pythnetwork/price-service-client'
-
 // Pyth price feed IDs (mainnet - same IDs work for devnet endpoint)
 export const PYTH_FEEDS: Record<string, string> = {
   BTC: '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
@@ -31,48 +29,47 @@ export const BATTLE_PAIRS = [
   { coinA: 'ETH', coinB: 'SOL', league: 'L1', duration: '4h' },
 ]
 
-const PYTH_ENDPOINT = 'https://hermes.pyth.network'
+const HERMES_BASE = 'https://hermes.pyth.network/v2/updates/price/latest'
 
-let connection: PriceServiceConnection | null = null
-
-function getConnection(): PriceServiceConnection {
-  if (!connection) {
-    connection = new PriceServiceConnection(PYTH_ENDPOINT, {
-      priceFeedRequestConfig: { binary: false }
-    })
-  }
-  return connection
-}
-
-export async function getPythPrice(ticker: string): Promise<number | null> {
-  const feedId = PYTH_FEEDS[ticker]
-  if (!feedId) return null
-
-  try {
-    const conn = getConnection()
-    const feeds = await conn.getLatestPriceFeeds([feedId])
-    if (!feeds || feeds.length === 0) return null
-
-    const feed = feeds[0]
-    const price = feed.getPriceNoOlderThan(60) // max 60 seconds old
-    if (!price) return null
-
-    return Number(price.price) * Math.pow(10, price.expo)
-  } catch (err) {
-    console.error(`Failed to get Pyth price for ${ticker}:`, err)
-    return null
-  }
-}
-
+// Single REST call to Hermes for a batch of tickers. Returns ticker -> USD price.
+// Uses the same endpoint/parse as the bet flow — no SDK, no module-interop issues.
 export async function getPythPrices(tickers: string[]): Promise<Record<string, number>> {
   const results: Record<string, number> = {}
 
-  await Promise.all(
-    tickers.map(async (ticker) => {
-      const price = await getPythPrice(ticker)
-      if (price !== null) results[ticker] = price
-    })
-  )
+  // Map requested tickers -> feed ids, keeping a reverse lookup to decode the response
+  const feedToTicker: Record<string, string> = {}
+  const params: string[] = []
+  for (const t of tickers) {
+    const feed = PYTH_FEEDS[t]
+    if (!feed) continue
+    const bare = feed.replace(/^0x/, '').toLowerCase()
+    feedToTicker[bare] = t
+    params.push(`ids[]=${feed}`)
+  }
+  if (params.length === 0) return results
+
+  try {
+    const res = await fetch(`${HERMES_BASE}?${params.join('&')}`)
+    if (!res.ok) return results
+    const data = await res.json()
+    const parsed = data?.parsed || []
+    for (const item of parsed) {
+      const id = String(item?.id || '').replace(/^0x/, '').toLowerCase()
+      const ticker = feedToTicker[id]
+      const p = item?.price
+      if (ticker && p && typeof p.price !== 'undefined') {
+        results[ticker] = Number(p.price) * Math.pow(10, p.expo)
+      }
+    }
+  } catch {
+    // Non-fatal: caller falls back to last known / start prices
+  }
 
   return results
+}
+
+// Convenience single-ticker helper, same source.
+export async function getPythPrice(ticker: string): Promise<number | null> {
+  const prices = await getPythPrices([ticker])
+  return prices[ticker] ?? null
 }

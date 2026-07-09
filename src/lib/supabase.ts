@@ -36,7 +36,7 @@ export type Battle = {
   side_b_pool: number
   draw_pool: number
   total_pool: number
-  status: 'upcoming' | 'live' | 'settled' | 'cancelled'
+  status: 'upcoming' | 'live' | 'settled' | 'void' | 'cancelled'
   winner: number
   created_at: string
 }

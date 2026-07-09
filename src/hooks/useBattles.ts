@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase, Battle } from '../lib/supabase'
 import { getStartingOdds, getInPlayOdds, OddsResult } from '../services/oddsEngine'
+import { getPythPrices } from '../services/pythPrices'
 
 type MatchCategory = "Major" | "Altcoins" | "L1" | "L2" | "DeFi" | "Meme" | "AI"
 
@@ -110,6 +111,7 @@ export function useBattles() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const rawBattlesRef = useRef<any[]>([])
+  const livePricesRef = useRef<Record<string, number>>({})
 
   // Pure, synchronous: build a Match from a raw row using ALREADY-CACHED starting
   // odds. Never touches the network. Safe to call on the fast local tick.
@@ -118,8 +120,8 @@ export function useBattles() {
     if (b.status === 'live') {
       const base = oddsCache[b.id]           // seeded by the async fetch; may be undefined on very first paint
       if (base && b.start_price_a && b.start_price_b) {
-        const currentA = b.final_price_a || b.start_price_a
-        const currentB = b.final_price_b || b.start_price_b
+        const currentA = livePricesRef.current[b.coin_a] || b.final_price_a || b.start_price_a
+        const currentB = livePricesRef.current[b.coin_b] || b.final_price_b || b.start_price_b
         odds = getInPlayOdds(
           b.coin_a, b.coin_b,
           currentA, currentB,
@@ -155,10 +157,29 @@ export function useBattles() {
     // starting odds (the async CoinGecko path).
     const fetchTimer = setInterval(fetchBattles, 15000)
 
+    // PRICE POLLER (5s, async): fetch live Pyth prices for all coins currently
+    // in play, into livePricesRef. The DB's final_price_* columns are null, so
+    // this is what actually feeds price movement into the odds engine.
+    async function pollPrices() {
+      const rows = rawBattlesRef.current
+      if (rows.length === 0) return
+      const tickers = Array.from(new Set(rows.flatMap((b) => [b.coin_a, b.coin_b])))
+      try {
+        const prices = await getPythPrices(tickers)
+        if (Object.keys(prices).length > 0) {
+          livePricesRef.current = { ...livePricesRef.current, ...prices }
+        }
+      } catch (e) {
+        // Non-fatal: odds fall back to last known / start prices
+      }
+    }
+    pollPrices()
+    const priceTimer = setInterval(pollPrices, 5000)
+
     // FAST CLOCK (2s): pure-local recompute of odds + betting lock from the
-    // rows we already have, using the current timestamp. No network calls.
-    // This is what makes odds drift smoothly toward close and flips the 80%
-    // betting lock within 2s of the threshold.
+    // rows we already have + cached live prices, using the current timestamp.
+    // No network calls here. This makes odds drift smoothly toward close and
+    // flips the 80% betting lock within 2s of the threshold.
     const tickTimer = setInterval(() => {
       if (rawBattlesRef.current.length === 0) return
       setMatches(rawBattlesRef.current.map(buildMatch))
@@ -167,6 +188,7 @@ export function useBattles() {
     return () => {
       supabase.removeChannel(sub)
       clearInterval(fetchTimer)
+      clearInterval(priceTimer)
       clearInterval(tickTimer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

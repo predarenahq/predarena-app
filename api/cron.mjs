@@ -241,9 +241,11 @@ async function settleBattles() {
       .eq('battle_id', battle.id)
 
     if (!allTickets || allTickets.length === 0) {
-      // No tickets — just mark battle as settled, no payouts needed
+      // No tickets — nothing to settle. Mark 'void' rather than 'settled' so
+      // that `status = 'settled'` always implies a real winner (1/2/3).
+      // Final prices are still recorded for historical charting.
       await supabase.from('battles').update({
-        status: 'settled',
+        status: 'void',
         winner: 0,
         final_price_a: finalPriceA,
         final_price_b: finalPriceB,
@@ -253,9 +255,13 @@ async function settleBattles() {
     }
 
     // Calculate total pot from ALL tickets (losers fund winners)
-    const totalPotUSD = allTickets.reduce((sum, t) => sum + t.stake, 0)
-    const winningTickets = allTickets.filter(t => t.side === winner)
-    const losingTickets = allTickets.filter(t => t.side !== winner)
+    const totalPotUSD = allTickets.reduce((sum, t) => sum + t.stake, 0)  // includes combo stakes — that money is in the pot
+    // Combo legs are settled exclusively by settleComboTickets() using the
+    // all-or-nothing parlay rule. They must NOT be paid here as singles —
+    // doing so pays each leg independently AND double-credits winning combos.
+    const singleTickets = allTickets.filter(t => !t.combo_id)
+    const winningTickets = singleTickets.filter(t => t.side === winner)
+    const losingTickets = singleTickets.filter(t => t.side !== winner)
 
     // Total stake on winning side
     const winnerStakeTotal = winningTickets.reduce((sum, t) => sum + t.stake, 0)
@@ -430,9 +436,14 @@ async function settleComboTickets() {
     const allSettled = legs.every(t => t.battles?.status === 'settled')
     if (!allSettled) continue // wait for all battles to finish
 
-    // Check if all legs won
-    const allWon = legs.every(t => t.battles?.winner === t.side)
-    const anyLost = legs.some(t => t.battles?.status === 'settled' && t.battles?.winner !== t.side && t.battles?.winner !== 0)
+    // A leg wins ONLY if the battle's winner matches the pick exactly.
+    // A drawn battle (winner === 0 / 'draw') loses the leg unless the user
+    // picked draw. Previously draws were excluded from `anyLost`, so a combo
+    // with a drawn leg was neither won nor lost — it was silently claimed
+    // with no payout and no 'lost' status.
+    const legWon = (t) => t.battles?.winner === t.side
+    const allWon = legs.every(legWon)
+    const anyLost = legs.some((t) => t.battles?.status === 'settled' && !legWon(t))
 
     const walletAddr = legs[0].wallet_address
     const stake = legs[0].stake // single stake covers all legs
@@ -449,7 +460,9 @@ async function settleComboTickets() {
         .single()
 
       const solPrice = solPriceData?.price || 100
-      const payoutUSD = stake * comboOdds * (1 - PLATFORM_FEE)
+      // Platform fee is already deducted from the pot in per-battle settlement
+      // (combo stakes are part of totalPotUSD), so do NOT shave it again here.
+      const payoutUSD = stake * comboOdds
       const payoutLamports = Math.floor((payoutUSD / solPrice) * 1_000_000_000)
 
       const { data: userBal } = await supabase
@@ -474,7 +487,8 @@ async function settleComboTickets() {
       console.log(`Combo ${comboId} LOST: one or more legs failed. Stake=$${stake} forfeited.`)
     }
 
-    // Mark all legs as claimed so we don't process again
+    // Mark all legs claimed AND write their status so History can render the
+    // combo result. Previously only `claimed` was set, leaving status stale.
     for (const leg of legs) {
       await supabase.from('tickets')
         .update({ claimed: true })
