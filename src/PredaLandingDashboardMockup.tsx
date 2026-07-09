@@ -1473,8 +1473,11 @@ function SlipDrawer({
               </p>
             </div>
           )}
+        </div>
 
-          <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
+        {/* Footer sits OUTSIDE the scroll container so the Place Ticket button
+            stays reachable no matter how many legs are in the slip. */}
+        <div className="shrink-0 border-t px-5 py-4" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
             <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
               <CircleDollarSign className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
               <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm outline-none" style={{ color: "var(--text)" }} placeholder="Enter stake" />
@@ -1518,10 +1521,9 @@ function SlipDrawer({
               </div>
             </div>
 
-            <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
-              {items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
-            </button>
-          </div>
+          <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
+            {items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
+          </button>
         </div>
       </div>
     </motion.aside>
