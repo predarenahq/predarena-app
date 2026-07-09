@@ -215,6 +215,10 @@ export default function BattleDetailPage() {
 
   // ── Solana bet handler (unchanged) ──────────────────────────────────────────
   async function handlePlaceBet() {
+    if (bettingLocked) {
+      showToast('Betting is closed for this battle', 'error')
+      return
+    }
     if (!connected || !publicKey || !selectedSide || !stake || !battle) return
     setLoading(true)
     try {
@@ -289,6 +293,10 @@ export default function BattleDetailPage() {
 
   // ── Arc bet handler ──────────────────────────────────────────────────────────
   async function handlePlaceBetArc() {
+    if (bettingLocked) {
+      showToast('Betting is closed for this battle', 'error')
+      return
+    }
     if (!selectedSide || !stake || !battle) return
     try {
       // Map UI side (1/2/3) to Solidity enum (CoinA/CoinB/Draw)
@@ -358,7 +366,15 @@ export default function BattleDetailPage() {
   const now = Date.now()
   const battleEndTime = battle ? new Date(battle.end_time).getTime() : 0
   const isSettling = battleEndTime > 0 && now > battleEndTime && battle?.status === 'live'
-  const isClosed = battle?.status === 'settled' || isSettling
+
+  // Betting closes at 80% elapsed — matches BETTING_LOCK_THRESHOLD in useBattles
+  const battleStartTime = battle ? new Date(battle.start_time).getTime() : 0
+  const battleProgress = battleEndTime > battleStartTime
+    ? Math.min(1, Math.max(0, (now - battleStartTime) / (battleEndTime - battleStartTime)))
+    : 0
+  const bettingLocked = battle?.status !== 'live' || battleProgress >= 0.80
+
+  const isClosed = battle?.status === 'settled' || isSettling || bettingLocked
 
   const stakeUSD = parseFloat(stake) || 0
   const selectedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw

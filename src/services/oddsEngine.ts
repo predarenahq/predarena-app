@@ -141,16 +141,23 @@ export async function getStartingOdds(coinA: string, coinB: string): Promise<Odd
 
 // Time-based leader odds compression
 // Fix: softer late-game compression — was too aggressive, punished late bettors too hard
+const BETTING_LOCK_AT = 0.80  // betting closes here — odds must bottom out by then
+
 function compressOdds(odds: number, timeProgress: number, isLeader: boolean): number {
   if (!isLeader) return odds
 
-  // Continuous drift: leader odds tighten the entire battle, hard toward close.
-  // Late bets on the obvious winner earn almost nothing (liability protection).
-  const compressionRate = timeProgress < 0.7
-    ? timeProgress * 0.55                          // steady drift from the start
-    : 0.385 + (timeProgress - 0.7) * 2.05          // accelerates hard in the final third
+  // The leader's odds must reach the 1.01 floor by the time betting LOCKS
+  // (80% elapsed), not by the time the battle ends — nobody can bet after the
+  // lock, so compression that peaks at t=1.0 never actually reaches the user.
+  //
+  // We rescale progress against the lock point and use a quadratic ease so the
+  // drift is gentle early and collapses hard as the window closes. Time alone
+  // drags the leader down: at 80% elapsed the leader pays ~1.01x regardless of
+  // how narrow the lead is. That's the liability protection.
+  const t = Math.min(1, timeProgress / BETTING_LOCK_AT)
+  const certainty = t * t                          // quadratic: slow start, sharp finish
 
-  const compressed = odds - (odds - 1.01) * Math.min(0.97, compressionRate)
+  const compressed = odds - (odds - 1.01) * certainty
   return Math.max(1.01, Math.round(compressed * 100) / 100)
 }
 
