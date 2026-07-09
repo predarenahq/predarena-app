@@ -161,6 +161,11 @@ const PLATFORM_FEE = 0.05 // 5% house cut
 const TREASURY_WALLET = '4xjEzpBki9ekwx56oRSynsrbQ8uXaUa2wxmPhZXeHHNz'
 
 async function settleBattles() {
+  // Accumulates credits that were attempted but failed, across all battles.
+  // Returned to the handler so failures reach the response + Vercel logs
+  // instead of dying inside the loop.
+  const allPayoutFailures = []
+
   const now = new Date().toISOString()
   const { data: battles } = await supabase
     .from('battles')
@@ -321,7 +326,7 @@ async function settleBattles() {
 
     // Collected rather than thrown: one failed credit must not abandon the
     // remaining winners mid-battle. Surfaced in the handler's results.errors.
-    const payoutFailures = []
+    const payoutFailures = allPayoutFailures
 
     if (winningTickets.length > 0 && winnerStakeTotal > 0) {
       // Get treasury balance to cover gaps
@@ -434,6 +439,8 @@ async function settleBattles() {
 
   // Settle combo bets that have all legs resolved
   await settleComboTickets()
+
+  return allPayoutFailures
 }
 
 async function settleComboTickets() {
@@ -570,8 +577,15 @@ export default async function handler(req, res) {
   const results = { battlesSettled: 0, battlesCreated: 0, pricesSaved: 0, errors: [] }
   
   try {
-    await settleBattles()
+    const payoutFailures = await settleBattles()
     results.battlesSettled = 1
+    if (payoutFailures && payoutFailures.length > 0) {
+      // A credit was attempted and did not land. Must never be invisible.
+      results.payoutFailures = payoutFailures
+      for (const f of payoutFailures) {
+        results.errors.push(`payout_failed: ${f.wallet} ticket=${f.ticket} $${Number(f.usd).toFixed(2)} (${f.reason})`)
+      }
+    }
   } catch (err) {
     console.error('settleBattles failed:', err.message)
     results.errors.push('settle: ' + err.message)
