@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
+// The anon-key fallback is deliberately removed. Once RLS blocks client writes,
+// falling back to anon means settlement silently credits nobody while logging
+// success. A missing service-role key must be a hard failure, not a quiet one.
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for settlement — refusing to run with anon key')
+}
+
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 // Chainlink Price Feed addresses on Solana Devnet
@@ -286,12 +293,13 @@ async function settleBattles() {
         .single()
 
       if (treasuryBal) {
-        await supabase.from('user_balances')
+        const { error: feeErr } = await supabase.from('user_balances')
           .update({
             balance_lamports: treasuryBal.balance_lamports + feeInLamports,
             updated_at: new Date().toISOString()
           })
           .eq('wallet_address', TREASURY_WALLET)
+        if (feeErr) console.error('TREASURY FEE CREDIT FAILED:', feeErr.message)
       } else {
         await supabase.from('user_balances')
           .insert({
@@ -310,6 +318,10 @@ async function settleBattles() {
     //   A) Their proportional share of the payout pool (parimutuel)
     //   B) Their guaranteed minimum odds payout
     // If pool is too thin, platform treasury covers the gap
+
+    // Collected rather than thrown: one failed credit must not abandon the
+    // remaining winners mid-battle. Surfaced in the handler's results.errors.
+    const payoutFailures = []
 
     if (winningTickets.length > 0 && winnerStakeTotal > 0) {
       // Get treasury balance to cover gaps
@@ -358,14 +370,24 @@ async function settleBattles() {
           .single()
 
         if (userBal) {
-          await supabase.from('user_balances')
+          const { error: payErr } = await supabase.from('user_balances')
             .update({
               balance_lamports: userBal.balance_lamports + finalPayoutLamports,
               updated_at: new Date().toISOString()
             })
             .eq('wallet_address', ticket.wallet_address)
 
-          console.log(`Winner ${ticket.wallet_address}: stake=$${ticket.stake} payout=$${finalPayoutUSD.toFixed(2)} (${actualOdds.toFixed(2)}x) source=${payoutSource} gap=$${treasuryGapUSD.toFixed(2)}`)
+          if (payErr) {
+            // Never log a payout we did not make. Surface loudly and keep going
+            // so the remaining winners still get paid.
+            console.error(`PAYOUT FAILED ${ticket.wallet_address} ticket=${ticket.id} amount=$${finalPayoutUSD.toFixed(2)}:`, payErr.message)
+            payoutFailures.push({ ticket: ticket.id, wallet: ticket.wallet_address, usd: finalPayoutUSD, reason: payErr.message })
+          } else {
+            console.log(`Winner ${ticket.wallet_address}: stake=$${ticket.stake} payout=$${finalPayoutUSD.toFixed(2)} (${actualOdds.toFixed(2)}x) source=${payoutSource} gap=$${treasuryGapUSD.toFixed(2)}`)
+          }
+        } else {
+          console.error(`NO BALANCE ROW for winner ${ticket.wallet_address} ticket=${ticket.id} — owed $${finalPayoutUSD.toFixed(2)}, not credited`)
+          payoutFailures.push({ ticket: ticket.id, wallet: ticket.wallet_address, usd: finalPayoutUSD, reason: 'no_balance_row' })
         }
       }
 
