@@ -224,45 +224,34 @@ export default function BattleDetailPage() {
     try {
       const stakeUSD = parseFloat(stake)
       const walletAddr = publicKey.toBase58()
-
-      const { data: balData } = await supabase.from('user_balances').select('balance_lamports').eq('wallet_address', walletAddr).single()
-      const stakeLamports = Math.floor((stakeUSD / solPrice) * 1_000_000_000)
-      if (!balData || balData.balance_lamports < stakeLamports) {
-        alert('Insufficient balance')
-        return
-      }
-
-      const totalPool = (battle.total_pool || 0) + stakeUSD
-      const sidePool = selectedSide === 1
-        ? (battle.side_a_pool || 0) + stakeUSD
-        : selectedSide === 2
-          ? (battle.side_b_pool || 0) + stakeUSD
-          : (battle.draw_pool || 0) + stakeUSD
-
       const lockedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
-      const guaranteedPayout = stakeUSD * lockedOdds
 
-      await supabase.from('tickets').insert({
-        battle_id: battle.id,
-        wallet_address: walletAddr,
-        side: selectedSide,
-        stake: stakeUSD,
-        odds: lockedOdds,
-        guaranteed_odds: Math.round(lockedOdds * 100) / 100,
-        guaranteed_payout: Math.round(guaranteedPayout * 100) / 100,
-        claimed: false,
+      // Server does the pricing, the atomic debit, the ticket insert and the
+      // pool bump in one transaction. The client no longer writes any of it.
+      const res = await fetch('/api/place-bet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_address: walletAddr,
+          stake: stakeUSD,
+          legs: [{ battle_id: battle.id, side: selectedSide, odds: lockedOdds }],
+        }),
       })
 
-      await supabase.from('user_balances').update({
-        balance_lamports: balData.balance_lamports - stakeLamports,
-        updated_at: new Date().toISOString(),
-      }).eq('wallet_address', walletAddr)
+      const result = await res.json()
 
-      const updateData: any = { total_pool: totalPool, updated_at: new Date().toISOString() }
-      if (selectedSide === 1) updateData.side_a_pool = sidePool
-      else if (selectedSide === 2) updateData.side_b_pool = sidePool
-      else updateData.draw_pool = sidePool
-      await supabase.from('battles').update(updateData).eq('id', battle.id)
+      if (!res.ok) {
+        const messages: Record<string, string> = {
+          betting_locked: 'Betting is closed for this battle',
+          battle_not_live: 'This battle is no longer live',
+          insufficient_balance: 'Insufficient balance. Deposit more SOL to continue.',
+          price_unavailable: 'Price feed unavailable — try again in a moment',
+          invalid_odds: 'Odds changed while you were betting — refresh and retry',
+          stake_too_small: 'Stake is too small',
+        }
+        showToast(messages[result.error] || 'Bet failed', 'error')
+        return
+      }
 
       try {
         const code = await createBetShare({
@@ -317,20 +306,35 @@ export default function BattleDetailPage() {
         oddsScaled,
       )
 
-      // Store Arc bet in Supabase so it appears in history
-      const arcAddress = evmWallet?.address || (window as any).ethereum?.selectedAddress || 'arc-wallet'
-      await supabase.from('tickets').insert({
-        battle_id: battle.id,
-        wallet_address: arcAddress,
-        side: selectedSide,
-        stake: parseFloat(stake),
-        odds: selectedOdds,
-        guaranteed_odds: Math.round(selectedOdds * 100) / 100,
-        guaranteed_payout: Math.round(parseFloat(stake) * selectedOdds * 100) / 100,
-        chain: 'arc',
-        arc_tx_hash: receipt.transactionHash,
-        claimed: false,
+      // The bet is already on-chain. Hand the tx hash to the server, which
+      // fetches the receipt from Arc, decodes the BetPlaced event, and records
+      // the ticket using ONLY chain-derived values (player, side, stake, odds).
+      // The client no longer writes tickets, and the old 'arc-wallet' fallback
+      // address can no longer reach the database.
+      const arcRes = await fetch('/api/place-bet-arc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          battle_id: battle.id,
+          tx_hash: receipt.transactionHash,
+        }),
       })
+
+      if (!arcRes.ok) {
+        const { error } = await arcRes.json()
+        const messages: Record<string, string> = {
+          betting_locked: 'Betting closed before the bet was recorded',
+          tx_already_recorded: 'This bet is already recorded',
+          battle_id_mismatch: 'On-chain battle does not match this page',
+          no_contract_log: 'No PredArena event found in that transaction',
+        }
+        // The on-chain bet succeeded; only the mirror failed. Say so honestly.
+        showToast(
+          (messages[error] || 'Bet placed on Arc but not recorded in history') +
+            ` (tx ${receipt.transactionHash.slice(0, 10)}...)`,
+          'error'
+        )
+      }
 
       setLastBet({ side: selectedSide!, odds: selectedOdds, stake: parseFloat(stake) })
       setStake('')

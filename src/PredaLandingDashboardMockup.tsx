@@ -739,33 +739,39 @@ function UserBalancePanel() {
       )
 
       const sig = await sendTransaction(tx, connection)
-      await connection.confirmTransaction(sig, 'confirmed')
 
-      // Update Supabase balance
-      const { data: existing } = await supabase
-        .from('user_balances')
-        .select('id, balance_lamports, total_deposited')
-        .eq('wallet_address', walletAddr)
-        .single()
+      // 'finalized', not 'confirmed' — /api/deposit will only credit a deposit
+      // that can no longer be rolled back.
+      await connection.confirmTransaction(sig, 'finalized')
 
-      if (existing) {
-        await supabase.from('user_balances').update({
-          balance_lamports: existing.balance_lamports + lamports,
-          total_deposited: existing.total_deposited + lamports,
-          updated_at: new Date().toISOString(),
-        }).eq('wallet_address', walletAddr)
-      } else {
-        await supabase.from('user_balances').insert({
-          wallet_address: walletAddr,
-          balance_lamports: lamports,
-          total_deposited: lamports,
-        })
+      // The server verifies the transaction on-chain (finalized, landed in the
+      // vault, signed by this wallet) and reads the lamports from the chain.
+      // The client no longer touches user_balances at all.
+      const res = await fetch('/api/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature: sig, wallet_address: walletAddr }),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        const messages: Record<string, string> = {
+          tx_not_found_or_not_finalized: 'Transaction not finalized yet — try again in a moment',
+          tx_failed: 'The deposit transaction failed on-chain',
+          not_a_vault_deposit: 'That transaction was not a deposit to the vault',
+          no_vault_credit: 'No funds reached the vault',
+          signer_mismatch: 'That transaction was not signed by your wallet',
+          deposit_already_credited: 'This deposit has already been credited',
+        }
+        throw new Error(messages[result.error] || result.error || 'Deposit could not be credited')
       }
 
-      setBalance(prev => prev + lamports)
+      setBalance(prev => prev + (result.lamports || lamports))
       setDepositAmount('')
       setShowDeposit(false)
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '✅ Deposit successful!', type: 'success' } }))
+      window.dispatchEvent(new Event('balance-refresh'))
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deposit successful', type: 'success' } }))
     } catch (err: any) {
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: '❌ Deposit failed: ' + err.message, type: 'error' } }))
     } finally {
@@ -2298,94 +2304,44 @@ export default function PredaLandingDashboardMockup() {
     const walletAddr = publicKey.toBase58()
     const totalStake = Number(stake)
 
+    const isCombo = slipSelections.length > 1
+    const comboOdds = slipSelections.reduce((acc, sel) => acc * sel.oddsAtPick, 1)
+
     try {
-      const { supabase } = await import('./lib/supabase')
-
-      // Fetch real SOL price
-      let solPriceUsd = 100
-      try {
-        const priceRes = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
-        const priceData = await priceRes.json()
-        const parsed = priceData?.parsed?.[0]
-        if (parsed) solPriceUsd = Number(parsed.price.price) * Math.pow(10, parsed.price.expo)
-      } catch(e) {}
-
-      // Check balance
-      const { data: balData } = await supabase
-        .from('user_balances')
-        .select('balance_lamports')
-        .eq('wallet_address', walletAddr)
-        .single()
-
-      const stakeInLamports = Math.floor((totalStake / solPriceUsd) * 1_000_000_000)
-
-      if (!balData || balData.balance_lamports < stakeInLamports) {
-        window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Insufficient balance. Deposit more SOL to continue.`, type: 'error' } }))
-        return
-      }
-
-      const isCombo = slipSelections.length > 1
-
-      // For combo bets — generate a shared combo_id
-      const comboId = isCombo
-        ? crypto.randomUUID()
-        : null
-
-      // Total combo odds = multiply all individual odds together
-      const comboOdds = slipSelections.reduce((acc, s) => acc * s.oddsAtPick, 1)
-
-      // Gap 1 fix: lock engine odds at bet time (fixed odds model)
-      // guaranteed_odds = the displayed engine odds at moment of bet
-      // Settlement cron pays at least this amount regardless of pool
-      // Insert tickets — all linked by combo_id if combo
-      for (const selection of slipSelections) {
-        const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
-
-        // Lock the displayed odds as the guaranteed payout
-        const guaranteedOdds = isCombo ? comboOdds : selection.oddsAtPick
-
-        await supabase.from('tickets').insert({
-          battle_id: selection.matchId,
+      // The client no longer prices the bet, debits the balance, inserts the
+      // ticket, or bumps the pool. It states intent; the server does the rest
+      // inside one atomic transaction (place_bet), enforcing the 80% lock and
+      // an atomic balance check that no client can race.
+      const res = await fetch('/api/place-bet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           wallet_address: walletAddr,
-          side,
           stake: totalStake,
-          odds: isCombo ? comboOdds : selection.oddsAtPick,
-          guaranteed_odds: Math.round(guaranteedOdds * 100) / 100,
-          guaranteed_payout: Math.round(totalStake * guaranteedOdds * 100) / 100,
-          combo_id: comboId,
-          combo_legs: isCombo ? slipSelections.length : 1,
-          combo_odds: isCombo ? Math.round(comboOdds * 100) / 100 : selection.oddsAtPick,
-          claimed: false,
-        })
-      }
+          legs: slipSelections.map((sel) => ({
+            battle_id: sel.matchId,
+            side: sel.chosenSide === 'left' ? 1 : sel.chosenSide === 'right' ? 2 : 3,
+            odds: sel.oddsAtPick,
+          })),
+        }),
+      })
 
-      // Deduct balance once (single stake covers all legs)
-      await supabase.from('user_balances')
-        .update({ 
-          balance_lamports: balData.balance_lamports - stakeInLamports,
-          updated_at: new Date().toISOString()
-        })
-        .eq('wallet_address', walletAddr)
+      const result = await res.json()
 
-      // Update battle pools for each leg
-      for (const selection of slipSelections) {
-        const side = selection.chosenSide === 'left' ? 1 : selection.chosenSide === 'right' ? 2 : 3
-        const { data: battleData } = await supabase
-          .from('battles')
-          .select('side_a_pool, side_b_pool, draw_pool, total_pool')
-          .eq('id', selection.matchId)
-          .single()
-
-        if (battleData) {
-          const updates: any = {
-            total_pool: (battleData.total_pool || 0) + totalStake,
-          }
-          if (side === 1) updates.side_a_pool = (battleData.side_a_pool || 0) + totalStake
-          else if (side === 2) updates.side_b_pool = (battleData.side_b_pool || 0) + totalStake
-          else updates.draw_pool = (battleData.draw_pool || 0) + totalStake
-
-          await supabase.from('battles').update(updates).eq('id', selection.matchId)
+      if (!res.ok) {
+        const messages: Record<string, string> = {
+          betting_locked: 'Betting is closed for one of your selections',
+          battle_not_live: 'One of your selections is no longer live',
+          battle_not_found: 'A selected battle no longer exists',
+          insufficient_balance: 'Insufficient balance. Deposit more SOL to continue.',
+          price_unavailable: 'Price feed unavailable — try again in a moment',
+          invalid_odds: 'Odds changed while you were betting — refresh and retry',
+          stake_too_small: 'Stake is too small',
         }
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: messages[result.error] || 'Bet failed', type: 'error' }
+        }))
+        return
       }
 
       setSlipSelections([])
