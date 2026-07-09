@@ -1412,10 +1412,10 @@ function SlipDrawer({
         ? { x: 0, y: 0, opacity: 1, pointerEvents: "auto" }
         : { x: 0, y: "110%", opacity: 0, pointerEvents: "none" }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      className="fixed bottom-0 right-0 left-0 top-auto z-[45] max-h-[85vh] w-full overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
+      className="fixed bottom-0 right-0 left-0 top-auto z-[45] flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
     >
-      <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white" style={{ background: "var(--brand-grad)" }}>
               <LayoutGrid className="h-4 w-4" />
@@ -1430,7 +1430,7 @@ function SlipDrawer({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 text-sm">
+        <div className="shrink-0 grid grid-cols-3 text-sm">
           {["Single", "Combo", "System"].map((tab) => {
             const active = items.length <= 1 ? "Single" : "Combo";
             const disabled = tab === "System";
@@ -1442,7 +1442,7 @@ function SlipDrawer({
           })}
         </div>
 
-        <div className="preda-scrollbar-hide min-h-0 flex-1 overflow-y-auto">
+        <div className="preda-scrollbar-hide min-h-[120px] flex-1 overflow-y-auto overscroll-contain">
           {items.length ? (
             items.map((item) => (
               <div key={item.matchId} className="flex gap-3 border-b px-5 py-4" style={{ borderColor: "var(--panel-2)" }}>

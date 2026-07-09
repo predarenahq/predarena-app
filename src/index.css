@@ -91,3 +91,12 @@ body {
 
 /* Tabular alignment without changing the typeface */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+/* Hide the scrollbar chrome while keeping the element scrollable. */
+.preda-scrollbar-hide {
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* IE/Edge */
+}
+.preda-scrollbar-hide::-webkit-scrollbar {
+  display: none;                 /* WebKit */
+}
