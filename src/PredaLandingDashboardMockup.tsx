@@ -1,7 +1,6 @@
 import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { useBattles } from "./hooks/useBattles";
 import PriceChartModal from "./components/PriceChartModal";
-import { supabase } from "./lib/supabase";
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
