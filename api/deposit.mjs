@@ -25,12 +25,20 @@ export default async function handler(req, res) {
   try {
     const connection = new Connection(RPC_URL, 'finalized')
 
-    // 1. Fetch the transaction. 'finalized' — not 'confirmed' — so it can't be rolled back.
-    const tx = await connection.getTransaction(signature, {
-      commitment: 'finalized',
-      maxSupportedTransactionVersion: 0,
-    })
-    if (!tx) return res.status(400).json({ error: 'tx_not_found_or_not_finalized' })
+    // 1. Wait for finality here, not in the browser. Devnet can take >30s, which
+    //    blew the wallet adapter's timeout and left deposits uncredited.
+    //    Poll for up to ~40s. credit_deposit is keyed on the signature, so a
+    //    client retry after a 'pending' response credits exactly once.
+    let tx = null
+    for (let i = 0; i < 20; i++) {
+      tx = await connection.getTransaction(signature, {
+        commitment: 'finalized',
+        maxSupportedTransactionVersion: 0,
+      })
+      if (tx) break
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+    if (!tx) return res.status(202).json({ error: 'deposit_pending', signature })
 
     // 2. It must have succeeded on-chain.
     if (tx.meta?.err) return res.status(400).json({ error: 'tx_failed' })

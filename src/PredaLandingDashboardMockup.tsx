@@ -739,9 +739,10 @@ function UserBalancePanel() {
 
       const sig = await sendTransaction(tx, connection)
 
-      // 'finalized', not 'confirmed' — /api/deposit will only credit a deposit
-      // that can no longer be rolled back.
-      await connection.confirmTransaction(sig, 'finalized')
+      // Confirm quickly, then let the server wait for finality. Blocking the
+      // UI on 'finalized' hit the adapter's 30s timeout on devnet, leaving the
+      // SOL in the vault with nothing credited.
+      await connection.confirmTransaction(sig, 'confirmed')
 
       // The server verifies the transaction on-chain (finalized, landed in the
       // vault, signed by this wallet) and reads the lamports from the chain.
@@ -754,8 +755,20 @@ function UserBalancePanel() {
 
       const result = await res.json()
 
+      if (res.status === 202) {
+        // The transfer landed on-chain but hasn't finalized yet. The signature
+        // is the receipt — crediting is idempotent, so retrying is safe.
+        setDepositAmount('')
+        setShowDeposit(false)
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: 'Deposit sent — confirming on-chain. Your balance will update shortly.', type: 'success' }
+        }))
+        return
+      }
+
       if (!res.ok) {
         const messages: Record<string, string> = {
+          deposit_pending: 'Still confirming — your balance will update shortly',
           tx_not_found_or_not_finalized: 'Transaction not finalized yet — try again in a moment',
           tx_failed: 'The deposit transaction failed on-chain',
           not_a_vault_deposit: 'That transaction was not a deposit to the vault',
