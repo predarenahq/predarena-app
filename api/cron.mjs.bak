@@ -1,8 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { settleBattles as settleBattlesFixed } from './lib/settlement.mjs'
-import { getStartingProbs } from './lib/oddsEngine.mjs'
-import { sweepPendingDeposits, assertSolvency, getVaultLamports } from './lib/cronHelpers.mjs'
-import { verifyDeposit } from './lib/verifyDeposit.mjs'
 
 // The anon-key fallback is deliberately removed. Once RLS blocks client writes,
 // falling back to anon means settlement silently credits nobody while logging
@@ -550,10 +546,6 @@ async function createBattles() {
     const startPriceB = prices[pair.coinB]
     if (!startPriceA || !startPriceB) continue
 
-    // Base probabilities stored on the battle so in-play pricing is
-    // deterministic. Volatility-aware even with neutral momentum.
-    const baseProbs = getStartingProbs(pair.coinA, pair.coinB, 0, 0)
-
     const durationMs = DURATION_MS[pair.duration] || 3600000
     const startTime = new Date(now.getTime() + 2 * 60 * 1000)
     const endTime = new Date(startTime.getTime() + durationMs)
@@ -568,9 +560,6 @@ async function createBattles() {
       start_price_a: startPriceA,
       start_price_b: startPriceB,
       status: 'live',
-      base_prob_a: baseProbs.probA,
-      base_prob_b: baseProbs.probB,
-      base_prob_draw: baseProbs.probDraw,
       side_a_pool: 0,
       side_b_pool: 0,
       draw_pool: 0,
@@ -585,21 +574,10 @@ async function createBattles() {
 }
 
 export default async function handler(req, res) {
-  // Cron auth. cron-job.org sends this header. If CRON_SECRET is unset we
-  // fail OPEN with a warning so deploying this patch doesn't break the cron
-  // before you add the env var — set CRON_SECRET to enforce.
-  if (process.env.CRON_SECRET) {
-    if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
-      return res.status(401).json({ error: 'unauthorized' })
-    }
-  } else {
-    console.warn('⚠️ CRON_SECRET not set — cron endpoint is UNAUTHENTICATED')
-  }
-
   const results = { battlesSettled: 0, battlesCreated: 0, pricesSaved: 0, errors: [] }
   
   try {
-    const payoutFailures = await settleBattlesFixed({ supabase, getPythPrices })
+    const payoutFailures = await settleBattles()
     results.battlesSettled = 1
     if (payoutFailures && payoutFailures.length > 0) {
       // A credit was attempted and did not land. Must never be invisible.
@@ -635,29 +613,6 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('Failed to save price history:', e.message)
     results.errors.push('prices: ' + e.message)
-  }
-
-  // Deposit retry backstop: credit deposits that missed browser finality.
-  try {
-    const sweep = await sweepPendingDeposits({ supabase, verifyDeposit })
-    results.depositsSwept = sweep.swept
-    results.depositsCredited = sweep.credited
-    if (sweep.failures?.length) results.errors.push('sweep: ' + sweep.failures.length + ' failed')
-  } catch (e) {
-    console.error('sweep failed:', e.message)
-    results.errors.push('sweep: ' + e.message)
-  }
-
-  // Read-only solvency monitor. Alerts if the vault can't cover claims.
-  try {
-    const solMap = await getPythPrices(['SOL'])
-    const solPrice = solMap['SOL']
-    if (solPrice > 0) {
-      const vaultLamports = await getVaultLamports(process.env.SOLANA_RPC_URL)
-      results.solvency = await assertSolvency({ supabase, vaultLamports, solPrice })
-    }
-  } catch (e) {
-    console.error('solvency check failed:', e.message)
   }
 
   res.status(200).json({ 

@@ -38,17 +38,7 @@ export default async function handler(req, res) {
       if (tx) break
       await new Promise((r) => setTimeout(r, 2000))
     }
-    if (!tx) {
-      // Finality not reached before the request returned. Record the
-      // signature so the cron sweep credits it once it confirms — otherwise
-      // the deposit is lost if the tab closes. upsert with ignoreDuplicates
-      // makes repeated 202s idempotent (signature is the PK).
-      await supabase.from('pending_deposits').upsert(
-        { signature, wallet_address },
-        { onConflict: 'signature', ignoreDuplicates: true }
-      )
-      return res.status(202).json({ error: 'deposit_pending', signature })
-    }
+    if (!tx) return res.status(202).json({ error: 'deposit_pending', signature })
 
     // 2. It must have succeeded on-chain.
     if (tx.meta?.err) return res.status(400).json({ error: 'tx_failed' })
