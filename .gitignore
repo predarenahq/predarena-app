@@ -24,3 +24,6 @@ yarn-error.log*
 .env
 .vercel
 .env*.local
+
+*.bak
+derive_vault.mjs
