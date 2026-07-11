@@ -722,9 +722,11 @@ function UserBalancePanel() {
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
       const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
       
-      const [vaultPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('platform_vault')],
-        PROGRAM_ID
+      // Custodial vault: one hot wallet holds user SOL. Deposits and
+      // withdrawals use this same address. Set via env at build time.
+      const vaultAddress = new PublicKey(
+        process.env.REACT_APP_PLATFORM_VAULT_ADDRESS ||
+        '5GD6YvnQeTLC1W1xYCD6jPzvg5vcn4wC5JZvKV4nsD3V'
       )
 
       const lamports = Math.floor(Number(depositAmount) * 1_000_000_000)
@@ -732,7 +734,7 @@ function UserBalancePanel() {
       const tx = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
-          toPubkey: vaultPda,
+          toPubkey: vaultAddress,
           lamports,
         })
       )

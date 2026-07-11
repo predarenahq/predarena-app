@@ -9,9 +9,10 @@ const supabase = createClient(
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'
 const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
 
-const [VAULT_PDA] = PublicKey.findProgramAddressSync(
-  [Buffer.from('platform_vault')],
-  PROGRAM_ID
+// Custodial vault hot wallet — the single address deposits land in and
+// withdrawals pay from. One source of truth so the two can't diverge.
+const VAULT_ADDRESS = new PublicKey(
+  process.env.PLATFORM_VAULT_ADDRESS || '5GD6YvnQeTLC1W1xYCD6jPzvg5vcn4wC5JZvKV4nsD3V'
 )
 
 export default async function handler(req, res) {
@@ -56,7 +57,7 @@ export default async function handler(req, res) {
     // 3. Derive the actual lamports delta on the vault account.
     //    Do NOT trust any amount the client sends — read it from the chain.
     const keys = tx.transaction.message.staticAccountKeys ?? tx.transaction.message.accountKeys
-    const vaultIndex = keys.findIndex((k) => k.equals(VAULT_PDA))
+    const vaultIndex = keys.findIndex((k) => k.equals(VAULT_ADDRESS))
     if (vaultIndex === -1) return res.status(400).json({ error: 'not_a_vault_deposit' })
 
     const lamports = tx.meta.postBalances[vaultIndex] - tx.meta.preBalances[vaultIndex]

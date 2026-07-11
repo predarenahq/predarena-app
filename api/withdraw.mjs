@@ -1,135 +1,136 @@
 import { createClient } from '@supabase/supabase-js'
 import { Connection, PublicKey, Keypair, Transaction, SystemProgram } from '@solana/web3.js'
+import nacl from 'tweetnacl'
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
+const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'
+const SOL_FEED = '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d'
+const WITHDRAWAL_FEE = 0.01 // 1% kept in the vault
 
 function getVaultKeypair() {
   const secret = process.env.PLATFORM_VAULT_SECRET
   if (!secret) throw new Error('PLATFORM_VAULT_SECRET not set')
-  const secretKey = Buffer.from(secret, 'base64')
-  return Keypair.fromSecretKey(secretKey)
+  return Keypair.fromSecretKey(Buffer.from(secret, 'base64'))
+}
+
+async function getSolPrice() {
+  const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${SOL_FEED}`)
+  if (!res.ok) return null
+  const p = (await res.json())?.parsed?.[0]?.price
+  if (!p || typeof p.price === 'undefined') return null
+  const price = Number(p.price) * Math.pow(10, p.expo)
+  return price > 0 ? price : null
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
+
+  const { wallet_address, amount_lamports, signature, message } = req.body || {}
+
+  // --- Validate inputs. amount must be a positive integer. ---
+  if (!wallet_address) return res.status(400).json({ error: 'missing_wallet' })
+  const amount = Number(amount_lamports)
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'invalid_amount' })
   }
 
-  const { wallet_address, amount_lamports } = req.body
-  
-  // 1% withdrawal fee — user requests X lamports, receives 99%, platform keeps 1% in vault
-  const WITHDRAWAL_FEE = 0.01
-  const feeAmount = Math.floor(amount_lamports * WITHDRAWAL_FEE)
-  const netAmount = amount_lamports - feeAmount
-
-  if (!wallet_address || !amount_lamports) {
-    return res.status(400).json({ error: 'Missing wallet_address or amount_lamports' })
+  // --- Prove the caller owns wallet_address by verifying an ed25519 signature
+  //     over a message that names the amount. Without this, anyone could force
+  //     a withdrawal for any wallet. (Interim scheme until Privy lands.) ---
+  if (!signature || !message) {
+    return res.status(401).json({ error: 'signature_required' })
   }
+  try {
+    const expectedPrefix = `PredArena withdraw ${amount} to ${wallet_address}`
+    if (!String(message).startsWith(expectedPrefix)) {
+      return res.status(401).json({ error: 'message_mismatch' })
+    }
+    const ok = nacl.sign.detached.verify(
+      new TextEncoder().encode(message),
+      Buffer.from(signature, 'base64'),
+      new PublicKey(wallet_address).toBytes()
+    )
+    if (!ok) return res.status(401).json({ error: 'bad_signature' })
+  } catch {
+    return res.status(401).json({ error: 'bad_signature' })
+  }
+
+  const feeAmount = Math.floor(amount * WITHDRAWAL_FEE)
+  const netAmount = amount - feeAmount
+  if (netAmount <= 0) return res.status(400).json({ error: 'amount_too_small' })
 
   try {
-    // Check user balance in Supabase
-    const { data: balData, error: balError } = await supabase
-      .from('user_balances')
-      .select('balance_lamports')
-      .eq('wallet_address', wallet_address)
-      .single()
-
-    if (balError || !balData) {
-      return res.status(404).json({ error: 'User balance not found' })
+    // --- 1. ATOMIC DEBIT FIRST. The `>= amount` guard lives inside the UPDATE,
+    //        so concurrent withdrawals can't both pass. We debit BEFORE sending
+    //        SOL; if the send fails we refund. This is the reverse of the old
+    //        order (send-then-debit), which lost money on any crash. ---
+    const { data: debited, error: debitErr } = await supabase.rpc('debit_balance', {
+      p_wallet: wallet_address, p_lamports: amount,
+    })
+    if (debitErr) {
+      if (String(debitErr.message).includes('insufficient_balance')) {
+        return res.status(400).json({ error: 'insufficient_balance' })
+      }
+      if (String(debitErr.message).includes('no_balance_row')) {
+        return res.status(404).json({ error: 'balance_not_found' })
+      }
+      throw debitErr
     }
 
-    if (balData.balance_lamports < amount_lamports) {
-      return res.status(400).json({ error: 'Insufficient balance' })
-    }
-
-    const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
-    const vaultKeypair = getVaultKeypair()
-
-    // Find vault PDA
-    const [vaultPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('platform_vault')],
-      PROGRAM_ID
-    )
-
-    // Check vault has enough SOL
-    const vaultBalance = await connection.getBalance(vaultPda)
-    if (vaultBalance < netAmount) {
-      return res.status(400).json({ error: 'Vault has insufficient funds' })
-    }
-
-    // For devnet: send directly from vault keypair to user
-    // On mainnet this would use the program's withdraw instruction
-    const userPubkey = new PublicKey(wallet_address)
-
-    const tx = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: vaultKeypair.publicKey,
-        toPubkey: userPubkey,
-        lamports: netAmount, // user receives 99% of requested amount
-      })
-    )
-
-    const { blockhash } = await connection.getLatestBlockhash()
-    tx.recentBlockhash = blockhash
-    tx.feePayer = vaultKeypair.publicKey
-
-    tx.sign(vaultKeypair)
-    const sig = await connection.sendRawTransaction(tx.serialize())
-    await connection.confirmTransaction(sig, 'confirmed')
-
-    // Deduct full amount from user Supabase balance
-    await supabase.from('user_balances')
-      .update({
-        balance_lamports: balData.balance_lamports - amount_lamports,
-        total_withdrawn: amount_lamports,
-        updated_at: new Date().toISOString()
-      })
-      .eq('wallet_address', wallet_address)
-
-    // Track 1% withdrawal fee in platform_treasury
+    // --- 2. Send net SOL from the custodial vault wallet. ---
+    let sig
     try {
-      const solPriceRes = await fetch(
-        'https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d'
-      )
-      const solPriceData = await solPriceRes.json()
-      const solPrice = solPriceData?.parsed?.[0]
-        ? Number(solPriceData.parsed[0].price.price) * Math.pow(10, solPriceData.parsed[0].price.expo)
-        : 85
-      const feeUSD = (feeAmount / 1_000_000_000) * solPrice
+      const connection = new Connection(RPC_URL, 'confirmed')
+      const vault = getVaultKeypair()
 
-      const { data: treasury } = await supabase
-        .from('platform_treasury')
-        .select('*')
-        .single()
+      const vaultBalance = await connection.getBalance(vault.publicKey)
+      if (vaultBalance < netAmount) {
+        // Refund the ledger — we never sent anything.
+        await supabase.rpc('credit_balance', { p_wallet: wallet_address, p_lamports: amount })
+        return res.status(503).json({ error: 'vault_insufficient_funds' })
+      }
 
-      if (treasury) {
-        await supabase.from('platform_treasury')
-          .update({
-            balance_usd: (treasury.balance_usd || 0) + feeUSD,
-            total_earned_usd: (treasury.total_earned_usd || 0) + feeUSD,
-            updated_at: new Date().toISOString()
-          })
-        console.log(`Withdrawal fee: ${feeAmount} lamports ($${feeUSD.toFixed(4)}) credited to treasury`)
+      const tx = new Transaction().add(SystemProgram.transfer({
+        fromPubkey: vault.publicKey,
+        toPubkey: new PublicKey(wallet_address),
+        lamports: netAmount,
+      }))
+      const { blockhash } = await connection.getLatestBlockhash()
+      tx.recentBlockhash = blockhash
+      tx.feePayer = vault.publicKey
+      tx.sign(vault)
+      sig = await connection.sendRawTransaction(tx.serialize())
+      await connection.confirmTransaction(sig, 'confirmed')
+    } catch (sendErr) {
+      // Send failed after the debit — refund so the user isn't charged for SOL
+      // they never received. credit_balance is atomic.
+      await supabase.rpc('credit_balance', { p_wallet: wallet_address, p_lamports: amount })
+      console.error('withdraw send failed, refunded:', sendErr.message)
+      return res.status(502).json({ error: 'send_failed' })
+    }
+
+    // --- 3. Bookkeeping: lifetime total (incremented) + fee ledger. Best-effort;
+    //        the money already moved correctly, so these must not fail the call. ---
+    await supabase.rpc('increment_withdrawn', { p_wallet: wallet_address, p_lamports: amount })
+
+    try {
+      const solPrice = await getSolPrice()
+      if (solPrice) {
+        const feeUsd = (feeAmount / 1_000_000_000) * solPrice
+        // atomic ledger update, scoped to the single treasury row
+        await supabase.rpc('apply_treasury_delta', { p_stakes_in: feeUsd, p_payouts_out: 0 })
       }
     } catch (feeErr) {
-      console.error('Failed to track withdrawal fee:', feeErr.message)
-      // Don't fail the withdrawal if fee tracking fails
+      console.error('withdraw fee accounting failed (non-fatal):', feeErr.message)
     }
 
-    return res.status(200).json({ 
-      ok: true, 
-      signature: sig,
-      fee_lamports: feeAmount,
-      net_lamports: netAmount
-    })
-
+    return res.status(200).json({ ok: true, signature: sig, fee_lamports: feeAmount, net_lamports: netAmount })
   } catch (err) {
-    console.error('Withdraw error:', err)
-    return res.status(500).json({ error: err.message || 'Withdrawal failed' })
+    console.error('withdraw error:', err.message)
+    return res.status(500).json({ error: 'withdrawal_failed' })
   }
 }
