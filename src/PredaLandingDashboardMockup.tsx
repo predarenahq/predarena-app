@@ -812,7 +812,9 @@ function UserBalancePanel() {
       }
       const message = `PredArena withdraw ${lamports} to ${walletAddr} at ${Date.now()}`
       const sigBytes = await signMessage(new TextEncoder().encode(message))
-      const signature = btoa(String.fromCharCode(...sigBytes))
+      let binary = ''
+      for (let i = 0; i < sigBytes.length; i++) binary += String.fromCharCode(sigBytes[i])
+      const signature = btoa(binary)
 
       const res = await fetch('/api/withdraw', {
         method: 'POST',
