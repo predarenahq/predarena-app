@@ -14,7 +14,19 @@ const WITHDRAWAL_FEE = 0.01 // 1% kept in the vault
 function getVaultKeypair() {
   const secret = process.env.PLATFORM_VAULT_SECRET
   if (!secret) throw new Error('PLATFORM_VAULT_SECRET not set')
-  return Keypair.fromSecretKey(Buffer.from(secret, 'base64'))
+  const trimmed = secret.trim()
+  let bytes
+  if (trimmed.startsWith('[')) {
+    // raw Solana keypair file contents: [12,255,...]
+    bytes = Uint8Array.from(JSON.parse(trimmed))
+  } else {
+    // base64-encoded 64-byte secret
+    bytes = Uint8Array.from(Buffer.from(trimmed, 'base64'))
+  }
+  if (bytes.length !== 64) {
+    throw new Error(`vault secret decoded to ${bytes.length} bytes, expected 64`)
+  }
+  return Keypair.fromSecretKey(bytes)
 }
 
 async function getSolPrice() {
