@@ -664,7 +664,7 @@ function Toast() {
 }
 
 function UserBalancePanel() {
-  const { publicKey, connected, sendTransaction } = useWallet()
+  const { publicKey, connected, sendTransaction, signMessage } = useWallet()
   const [balance, setBalance] = React.useState<number>(0)
   const [solPrice, setSolPrice] = React.useState<number>(150)
   const [depositAmount, setDepositAmount] = React.useState('')
@@ -804,12 +804,24 @@ function UserBalancePanel() {
         return
       }
 
+      // The server requires proof the caller owns this wallet. Ask the
+      // wallet to sign a message naming the amount + destination, then send
+      // it along. base64 via btoa (no Buffer in the browser bundle).
+      if (!signMessage) {
+        throw new Error('Your wallet does not support message signing')
+      }
+      const message = `PredArena withdraw ${lamports} to ${walletAddr} at ${Date.now()}`
+      const sigBytes = await signMessage(new TextEncoder().encode(message))
+      const signature = btoa(String.fromCharCode(...sigBytes))
+
       const res = await fetch('/api/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           wallet_address: walletAddr,
           amount_lamports: lamports,
+          signature,
+          message,
         })
       })
 
