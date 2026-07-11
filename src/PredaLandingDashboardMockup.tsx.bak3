@@ -1395,7 +1395,6 @@ function SlipDrawer({
   onRemove,
   onPlaceTicket,
   onClose,
-  requoteReady,
 }: {
   open: boolean;
   items: SlipSelection[];
@@ -1404,7 +1403,6 @@ function SlipDrawer({
   onRemove: (matchId: string) => void;
   onPlaceTicket: () => void;
   onClose: () => void;
-  requoteReady?: boolean;
 }) {
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
@@ -1539,7 +1537,7 @@ function SlipDrawer({
             </div>
 
           <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
-            {requoteReady ? 'Confirm at new odds' : items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
+            {items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
           </button>
         </div>
       </div>
@@ -2137,9 +2135,6 @@ export default function PredaLandingDashboardMockup() {
   const [selectedClass, setSelectedClass] = useState("All");
   const [stake, setStake] = useState("100");
   const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
-  // When the server rejects a leg for odds drift we sync that leg to the
-  // server's price and flip the button to a confirm state for one tap.
-  const [requoteReady, setRequoteReady] = useState(false);
   const { matches: supabaseMatches } = useBattles();
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
   const wallet = useWallet();
@@ -2363,18 +2358,6 @@ export default function PredaLandingDashboardMockup() {
       const result = await res.json()
 
       if (!res.ok) {
-        // A leg drifted past tolerance. The server returned that leg's id and
-        // its current price - sync it into the slip and let the user confirm.
-        if (result.error === 'odds_changed' && result.battle_id && typeof result.current === 'number') {
-          setSlipSelections((prev) => prev.map((sel) =>
-            sel.matchId === result.battle_id ? { ...sel, oddsAtPick: result.current } : sel
-          ))
-          setRequoteReady(true)
-          window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: `Odds moved to ${result.current.toFixed(2)} - tap again to confirm`, type: 'error' }
-          }))
-          return
-        }
         const messages: Record<string, string> = {
           betting_locked: 'Betting is closed for one of your selections',
           battle_not_live: 'One of your selections is no longer live',
@@ -2391,7 +2374,6 @@ export default function PredaLandingDashboardMockup() {
       }
 
       setSlipSelections([])
-      setRequoteReady(false)
       window.dispatchEvent(new Event('balance-refresh'))
       const msg = isCombo
         ? `🎯 Combo ticket placed! ${slipSelections.length} legs · ${comboOdds.toFixed(2)}x combined odds`
@@ -2453,7 +2435,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} />
 
       <div className={cx("transition-all duration-300", sidebarExpanded ? "lg:pl-[280px]" : "lg:pl-[86px]", "pt-[60px] pb-[80px] lg:pt-[72px] lg:pb-0")}>
         <Showboard onNavigate={(path) => navigate(path)} />
