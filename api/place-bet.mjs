@@ -36,7 +36,7 @@ const PYTH_FEEDS = {
   BONK: '0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419',
 }
 
-const QUOTE_TOLERANCE = 0.03 // 3% — how far the live price may drift from the
+const QUOTE_TOLERANCE = 0.05 // 5% — how far the live price may drift from the
                              // user's tapped quote before we ask them to re-accept.
 
 const ERROR_STATUS = {
