@@ -720,7 +720,6 @@ function UserBalancePanel() {
     setLoading(true)
     try {
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
-      const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
       
       // Custodial vault: one hot wallet holds user SOL. Deposits and
       // withdrawals use this same address. Set via env at build time.
