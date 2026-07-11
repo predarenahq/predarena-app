@@ -76,6 +76,11 @@ export default function BattleDetailPage() {
   const [hasUserBet, setHasUserBet] = useState(false)
   const [engineOdds, setEngineOdds] = useState<OddsResult | null>(null)
   const [baseOdds, setBaseOdds] = useState<OddsResult | null>(null)
+  // Server re-quote flow: when the server rejects a bet for odds drift it
+  // returns its own current price. Stash it and let the user confirm at
+  // that price with one tap. Cleared whenever the selection changes.
+  const [requoteOdds, setRequoteOdds] = useState<number | null>(null)
+  useEffect(() => { setRequoteOdds(null) }, [selectedSide, stake])
   const [searchParams] = useSearchParams()
 
   // ── Arc hook ─────────────────────────────────────────────────────────────────
@@ -214,7 +219,7 @@ export default function BattleDetailPage() {
   }
 
   // ── Solana bet handler (unchanged) ──────────────────────────────────────────
-  async function handlePlaceBet() {
+  async function handlePlaceBet(overrideOdds?: number) {
     if (bettingLocked) {
       showToast('Betting is closed for this battle', 'error')
       return
@@ -234,13 +239,20 @@ export default function BattleDetailPage() {
         body: JSON.stringify({
           wallet_address: walletAddr,
           stake: stakeUSD,
-          legs: [{ battle_id: battle.id, side: selectedSide, odds: lockedOdds }],
+          legs: [{ battle_id: battle.id, side: selectedSide, odds: overrideOdds ?? lockedOdds }],
         }),
       })
 
       const result = await res.json()
 
       if (!res.ok) {
+        // Odds drifted past tolerance. The server returned its own current
+        // price - offer one-tap confirmation instead of dead-ending.
+        if (result.error === 'odds_changed' && typeof result.current === 'number') {
+          setRequoteOdds(result.current)
+          showToast(`Odds moved to ${result.current.toFixed(2)} - tap Confirm to bet at the new price`, 'error')
+          return
+        }
         const messages: Record<string, string> = {
           betting_locked: 'Betting is closed for this battle',
           battle_not_live: 'This battle is no longer live',
@@ -644,12 +656,12 @@ export default function BattleDetailPage() {
               </div>
             ) : (
               <button
-                onClick={handlePlaceBet}
+                onClick={() => handlePlaceBet(requoteOdds ?? undefined)}
                 disabled={loading || !selectedSide || !stake}
                 className="w-full rounded-xl py-3 font-semibold text-black"
                 style={{ background: loading || !selectedSide || !stake ? 'rgba(255,255,255,0.1)' : COLORS.accent, color: loading || !selectedSide || !stake ? COLORS.textSoft : 'black' }}
               >
-                {loading ? 'Placing...' : 'Place Bet'}
+                {loading ? 'Placing...' : requoteOdds !== null ? `Confirm at ${requoteOdds.toFixed(2)}` : 'Place Bet'}
               </button>
             )
           )}
