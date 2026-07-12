@@ -267,7 +267,8 @@ export default function BattleDetailPage() {
 
       try {
         const code = await createBetShare({
-          legs: [{ battle_id: battle.id, side: selectedSide! }],
+          battleId: battle.id,
+          side: selectedSide!,
           oddsAtShare: selectedOdds,
           coinA: battle.coin_a,
           coinB: battle.coin_b,
