@@ -527,40 +527,6 @@ function BreakingNewsPopup() {
   );
 }
 
-// SportyBet-style booking code entry. Resolves via the existing /bet/:code
-// route (BetSharePage), which looks the code up and redirects to the
-// pre-filled battle. This is just the front door to that flow.
-function BookingCodeInput() {
-  const navigate = useNavigate();
-  const [code, setCode] = React.useState('');
-  const go = () => {
-    const c = code.trim().toUpperCase();
-    if (!c) return;
-    navigate(`/bet/${c}`);
-    setCode('');
-  };
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        value={code}
-        onChange={(e) => setCode(e.target.value.toUpperCase())}
-        onKeyDown={(e) => { if (e.key === 'Enter') go(); }}
-        placeholder="Enter booking code"
-        className="h-9 w-[180px] rounded-[10px] px-3 text-sm outline-none"
-        style={{ background: "var(--panel-2)", color: "var(--text)", border: "1px solid var(--border)" }}
-      />
-      <button
-        onClick={go}
-        disabled={!code.trim()}
-        className="h-9 px-4 rounded-[10px] text-sm font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-40"
-        style={{ background: "var(--brand-grad)" }}
-      >
-        Go
-      </button>
-    </div>
-  );
-}
-
 function DesktopHeader({
   expanded,
   onToggleSidebar,
@@ -590,8 +556,7 @@ function DesktopHeader({
           {expanded && <span className="text-lg font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>}
         </button>
 
-        <div className="flex items-center flex-1 px-5 gap-3">
-          <BookingCodeInput />
+        <div className="flex items-center flex-1 px-5">
           <AuthSection />
         </div>
       </div>
