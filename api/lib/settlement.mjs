@@ -205,13 +205,16 @@ export async function settleBattles(deps) {
   const payoutsOut = singles.payoutsOut + combos.payoutsOut
   const failures = [...singles.failures, ...combos.failures]
 
-  // House PnL ledger. Balance may go negative — surfaced, never clamped.
+  // House PnL ledger, in lamports to match the vault + balances. stakesIn /
+  // payoutsOut are USD here; convert at the settlement SOL price before the
+  // delta. Balance may go negative — surfaced, never clamped.
   if (stakesIn > 0 || payoutsOut > 0) {
     const { data: bal, error } = await supabase.rpc('apply_treasury_delta', {
-      p_stakes_in: stakesIn, p_payouts_out: payoutsOut,
+      p_stakes_in: usdToLamports(stakesIn, solPrice),
+      p_payouts_out: usdToLamports(payoutsOut, solPrice),
     })
     if (error) console.error('treasury update failed:', error.message)
-    else if (Number(bal) < 0) console.error(`⚠️ TREASURY NEGATIVE: $${Number(bal).toFixed(2)} — vault is underwater`)
+    else if (Number(bal) < 0) console.error(`⚠️ TREASURY NEGATIVE: ${(Number(bal)/1e9).toFixed(4)} SOL — house is underwater`)
   }
 
   return failures
