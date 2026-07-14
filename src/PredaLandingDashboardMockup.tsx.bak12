@@ -26,10 +26,6 @@ import {
   Newspaper,
   Sun,
   Moon,
-  Ticket,
-  AlertTriangle,
-  Trophy,
-  XCircle,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
@@ -532,77 +528,18 @@ function BreakingNewsPopup() {
   );
 }
 
-// Single source of truth for entering a booking code. Normalizes and routes
-// to /bet/CODE, which BetSharePage resolves and hands to the homepage slip
-// restore. Shared by the desktop header input and the mobile bottom sheet.
-function resolveBetCode(code: string, navigate: (to: string) => void): boolean {
-  const c = code.trim().toUpperCase();
-  if (!c) return false;
-  navigate(`/bet/${c}`);
-  return true;
-}
-
-// Mobile bottom sheet for booking-code entry. Mirrors the SlipDrawer sheet
-// language (slide up, rounded-t, panel bg); backdrop tap dismisses.
-function BetCodeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const navigate = useNavigate();
-  const [code, setCode] = React.useState('');
-  const go = () => { if (resolveBetCode(code, navigate)) { setCode(''); onClose(); } };
-  return (
-    <>
-      {open && (
-        <div className="fixed inset-0 z-[46] bg-black/50 backdrop-blur-[2px] lg:hidden" onClick={onClose} />
-      )}
-      <motion.div
-        initial={false}
-        animate={open
-          ? { y: 0, opacity: 1, pointerEvents: "auto" }
-          : { y: "110%", opacity: 0, pointerEvents: "none" }}
-        transition={{ type: "spring", stiffness: 320, damping: 32 }}
-        className="fixed bottom-0 left-0 right-0 z-[47] flex w-full flex-col rounded-t-[28px] bg-[var(--panel)] px-5 pb-8 pt-5 shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:hidden"
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: "var(--border)" }} />
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white" style={{ background: "var(--brand-grad)" }}>
-              <Ticket className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>Enter booking code</p>
-              <p className="text-xs" style={{ color: "var(--text-soft)" }}>Load a shared bet slip</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="rounded-lg p-2" style={{ background: "var(--panel-2)" }}>
-            <X className="h-4 w-4" style={{ color: "var(--text-soft)" }} />
-          </button>
-        </div>
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          onKeyDown={(e) => { if (e.key === 'Enter') go(); }}
-          placeholder="PREDA-XXXXX"
-          autoFocus
-          className="h-12 w-full rounded-[12px] px-4 text-base font-mono tracking-widest outline-none"
-          style={{ background: "var(--panel-2)", color: "var(--text)", border: "1px solid var(--border)" }}
-        />
-        <button
-          onClick={go}
-          disabled={!code.trim()}
-          className="mt-3 h-12 w-full rounded-[12px] text-sm font-semibold text-white transition-all active:scale-[0.99] disabled:opacity-40"
-          style={{ background: "var(--brand-grad)" }}
-        >
-          Load bet
-        </button>
-      </motion.div>
-    </>
-  );
-}
-
-// Desktop inline entry (header).
+// SportyBet-style booking code entry. Resolves via the existing /bet/:code
+// route (BetSharePage), which looks the code up and redirects to the
+// pre-filled battle. This is just the front door to that flow.
 function BookingCodeInput() {
   const navigate = useNavigate();
   const [code, setCode] = React.useState('');
-  const go = () => { if (resolveBetCode(code, navigate)) setCode(''); };
+  const go = () => {
+    const c = code.trim().toUpperCase();
+    if (!c) return;
+    navigate(`/bet/${c}`);
+    setCode('');
+  };
   return (
     <div className="flex items-center gap-2">
       <input
@@ -885,7 +822,7 @@ function UserBalancePanel() {
       window.dispatchEvent(new Event('balance-refresh'))
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deposit successful', type: 'success' } }))
     } catch (err: any) {
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deposit failed: ' + err.message, type: 'error' } }))
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '❌ Deposit failed: ' + err.message, type: 'error' } }))
     } finally {
       setLoading(false)
     }
@@ -934,7 +871,7 @@ function UserBalancePanel() {
       setBalance(prev => prev - lamports)
       setWithdrawAmount('')
       setShowWithdraw(false)
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Withdrawal successful', type: 'success' } }))
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: '✅ Withdrawal successful!', type: 'success' } }))
     } catch (err: any) {
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Withdrawal failed: ' + err.message, type: 'error' } }))
     } finally {
@@ -1075,7 +1012,6 @@ function MobileShell({
   open,
   setOpen,
   onOpenAuth,
-  onOpenBetCode,
   onNavigate,
   openSection,
   setOpenSection,
@@ -1084,7 +1020,6 @@ function MobileShell({
   open: boolean;
   setOpen: (v: boolean) => void;
   onOpenAuth: () => void;
-  onOpenBetCode: () => void;
   onNavigate: (path: string) => void;
   openSection: string | null;
   setOpenSection: (value: string | null) => void;
@@ -1102,14 +1037,9 @@ function MobileShell({
           </div>
           <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onOpenBetCode} aria-label="Enter booking code" className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
-            <Ticket className="h-5 w-5" />
-          </button>
-          <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-[var(--panel)]" style={{ background: "var(--text)" }}>
-            Connect
-          </button>
-        </div>
+        <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-[var(--panel)]" style={{ background: "var(--text)" }}>
+          Connect
+        </button>
       </div>
 
       <AnimatePresence>
@@ -1618,7 +1548,7 @@ function SlipDrawer({
               {items.length > 1 && (
                 <div className="rounded-xl px-3 py-2 mb-2" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}>
                   <p className="text-xs font-medium" style={{ color: '#f43f5e' }}>
-                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo Bet — If any leg loses, the entire bet loses
+                    ⚠️ Combo Bet — If any leg loses, the entire bet loses
                   </p>
                 </div>
               )}
@@ -1965,7 +1895,7 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
       </div>
       {isCombo && (
         <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
-          <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo — all {ticket.combo_legs} legs must win
+          ⚠️ Combo — all {ticket.combo_legs} legs must win
         </p>
       )}
     </div>
@@ -2028,7 +1958,7 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
         </div>
       </div>
       <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
-        <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> If any leg loses, entire combo is lost
+        ⚠️ If any leg loses, entire combo is lost
       </p>
     </div>
   )
@@ -2104,7 +2034,7 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
                   background: won ? 'var(--accent-soft)' : 'rgba(239,68,68,0.13)',
                   color: won ? COLORS.accent : '#ef4444'
                 }}>
-                  {won ? (<span className="inline-flex items-center gap-1"><Trophy className="h-3.5 w-3.5" /> Won</span>) : (<span className="inline-flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Lost</span>)}
+                  {won ? '🏆 Won' : '❌ Lost'}
                 </span>
               </div>
 
@@ -2246,7 +2176,6 @@ export default function PredaLandingDashboardMockup() {
   // When the server rejects a leg for odds drift we sync that leg to the
   // server's price and flip the button to a confirm state for one tap.
   const [requoteReady, setRequoteReady] = useState(false);
-  const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareData, setShareData] = useState<{
     code: string; coinA: string; coinB: string; side: number; odds: number; stake: number; legCount: number;
@@ -2645,13 +2574,11 @@ export default function PredaLandingDashboardMockup() {
         onNavigate={(path) => navigate(path)}
         currentPath={location.pathname}
       />
-      <BetCodeSheet open={betCodeSheetOpen} onClose={() => setBetCodeSheetOpen(false)} />
 
       <MobileShell
         open={mobileSidebarOpen}
         setOpen={setMobileSidebarOpen}
         onOpenAuth={() => setAuthOpen(true)}
-        onOpenBetCode={() => setBetCodeSheetOpen(true)}
         onNavigate={(path) => navigate(path)}
         openSection={openSection}
         setOpenSection={setOpenSection}
