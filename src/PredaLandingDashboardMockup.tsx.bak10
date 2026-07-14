@@ -2232,7 +2232,7 @@ export default function PredaLandingDashboardMockup() {
             chosenSide,
             pickLabel,
             oddsAtPick,
-            duration: match.duration as MatchDuration,
+            duration: match.duration,
           });
         }
 
