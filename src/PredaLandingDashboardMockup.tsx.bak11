@@ -1,7 +1,6 @@
 import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { useBattles } from "./hooks/useBattles";
 import PriceChartModal from "./components/PriceChartModal";
-import BetShareModal from "./components/BetShareModal";
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -2176,10 +2175,6 @@ export default function PredaLandingDashboardMockup() {
   // When the server rejects a leg for odds drift we sync that leg to the
   // server's price and flip the button to a confirm state for one tap.
   const [requoteReady, setRequoteReady] = useState(false);
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [shareData, setShareData] = useState<{
-    code: string; coinA: string; coinB: string; side: number; odds: number; stake: number; legCount: number;
-  } | null>(null);
   const { matches: supabaseMatches } = useBattles();
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
   const wallet = useWallet();
@@ -2506,17 +2501,19 @@ export default function PredaLandingDashboardMockup() {
         return
       }
 
+      setSlipSelections([])
       setRequoteReady(false)
+      window.dispatchEvent(new Event('balance-refresh'))
+      const msg = isCombo
+        ? `🎯 Combo ticket placed! ${slipSelections.length} legs · ${comboOdds.toFixed(2)}x combined odds`
+        : '🎯 Ticket placed!'
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'success' } }))
 
-      // Build a booking code for the whole slip (single OR combo), then open the
-      // share modal - it doubles as the "ticket placed" confirmation. The slip
-      // clear + balance refresh are deferred to the modal's onClose so they never
-      // re-render on top of the freshly opened modal.
-      const sel0 = slipSelections[0]
-      const c0 = sel0.matchTitle.split(' vs ')[0]
-      const c1 = sel0.matchTitle.split(' vs ')[1] || ''
-      const side0 = sel0.chosenSide === 'left' ? 1 : sel0.chosenSide === 'right' ? 2 : 3
+      // Generate a booking code for the whole slip (single OR combo) so the
+      // full ticket can be restored from the code. The share MODAL is opened
+      // separately below with this code.
       try {
+        const sel0 = slipSelections[0]
         const { createBetShare } = await import('./utils/betShare')
         const code = await createBetShare({
           legs: slipSelections.map((sel) => ({
@@ -2524,31 +2521,14 @@ export default function PredaLandingDashboardMockup() {
             side: sel.chosenSide === 'left' ? 1 : sel.chosenSide === 'right' ? 2 : 3,
           })),
           oddsAtShare: sel0.oddsAtPick,
-          coinA: c0,
-          coinB: c1,
+          coinA: sel0.matchTitle.split(' vs ')[0],
+          coinB: sel0.matchTitle.split(' vs ')[1] || '',
           league: '',
           duration: sel0.duration,
           createdBy: walletAddr,
         })
-        setShareData({
-          code,
-          coinA: c0,
-          coinB: c1,
-          side: side0,
-          odds: isCombo ? comboOdds : sel0.oddsAtPick,
-          stake: totalStake,
-          legCount: slipSelections.length,
-        })
-        setShareModalOpen(true)
-      } catch (e) {
-        console.error('Share failed:', e)
-        // The bet DID place; only the share code failed. Confirm it and clear
-        // the slip here since the modal won't open.
-        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Ticket placed', type: 'success' } }))
-        setSlipSelections([])
-        setSlipOpen(false)
-        window.dispatchEvent(new Event('balance-refresh'))
-      }
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Booking code: ${code} — tap to copy`, type: 'success' } }))
+      } catch(e) { console.error('Share failed:', e) }
     } catch (err: any) {
       console.error('Failed to place ticket:', err)
       alert('Failed: ' + (err.message || err))
@@ -2587,25 +2567,6 @@ export default function PredaLandingDashboardMockup() {
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
       <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} />
-      {shareData && (
-        <BetShareModal
-          open={shareModalOpen}
-          onClose={() => {
-            setShareModalOpen(false)
-            setSlipSelections([])
-            setSlipOpen(false)
-            setRequoteReady(false)
-            window.dispatchEvent(new Event('balance-refresh'))
-          }}
-          code={shareData.code}
-          coinA={shareData.coinA}
-          coinB={shareData.coinB}
-          side={shareData.side}
-          odds={shareData.odds}
-          stake={shareData.stake}
-          legCount={shareData.legCount}
-        />
-      )}
 
       <div className={cx("transition-all duration-300", sidebarExpanded ? "lg:pl-[280px]" : "lg:pl-[86px]", "pt-[60px] pb-[80px] lg:pt-[72px] lg:pb-0")}>
         <Showboard onNavigate={(path) => navigate(path)} />

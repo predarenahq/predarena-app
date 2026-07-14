@@ -20,7 +20,6 @@ interface BetShareModalProps {
   side: number
   odds: number
   stake: number
-  legCount?: number
 }
 
 // Copy that works even inside in-app browsers (WhatsApp/Telegram) where
@@ -86,14 +85,12 @@ const SOCIALS = [
 ]
 
 export default function BetShareModal({
-  open, onClose, code, coinA, coinB, side, odds, stake, legCount,
+  open, onClose, code, coinA, coinB, side, odds, stake,
 }: BetShareModalProps) {
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const [failed, setFailed] = useState(false)
 
   const pickLabel = side === 1 ? coinA : side === 2 ? coinB : 'Draw'
-  const isCombo = (legCount ?? 1) > 1
-  const extraLegs = (legCount ?? 1) - 1
   const shareUrl = `${window.location.origin}/bet/${code}`
   const shareMsg = `I backed ${pickLabel} in ${coinA} vs ${coinB} at ${odds.toFixed(2)}x on PredArena. Tap my code ${code} to copy the bet:`
 
@@ -164,11 +161,9 @@ export default function BetShareModal({
                 Ticket <em style={{ fontStyle: 'italic', fontFamily: 'Georgia, "Times New Roman", serif', color: COLORS.accent }}>placed.</em>
               </h1>
 
-              <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                {coinA} vs {coinB}{isCombo ? ` +${extraLegs} more` : ''}
-              </p>
+              <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>{coinA} vs {coinB}</p>
               <p className="mt-1 text-[15px] font-semibold text-white">
-                {pickLabel} <span style={{ color: COLORS.accent }}>· {odds.toFixed(2)}x{isCombo ? ' combo' : ''}</span> <span style={{ color: 'rgba(255,255,255,0.6)' }}>· ${stake}</span>
+                {pickLabel} <span style={{ color: COLORS.accent }}>· {odds.toFixed(2)}x</span> <span style={{ color: 'rgba(255,255,255,0.6)' }}>· ${stake}</span>
               </p>
             </div>
 
