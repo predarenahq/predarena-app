@@ -91,7 +91,7 @@ async function getVaultLamports() {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
-  const { wallet_address, stake, legs, chain } = req.body || {}
+  const { wallet_address, stake, legs, chain, code } = req.body || {}
   if (!wallet_address) return res.status(400).json({ error: 'missing_wallet' })
   if (!Array.isArray(legs) || legs.length === 0) return res.status(400).json({ error: 'no_legs' })
   if (!(Number(stake) > 0)) return res.status(400).json({ error: 'invalid_stake' })
@@ -173,6 +173,23 @@ export default async function handler(req, res) {
       if (key) return res.status(ERROR_STATUS[key]).json({ error: key })
       console.error('place_bet error:', error.message)
       return res.status(500).json({ error: 'bet_failed' })
+    }
+
+    // Stamp the booking code onto the just-created ticket row(s). This runs
+    // with the SERVICE ROLE (RLS-exempt), which is why it belongs here and not
+    // on the client (client UPDATEs on tickets are blocked by RLS). Best-effort:
+    // a stamp failure must never fail an already-placed bet.
+    if (code) {
+      try {
+        await supabase.from('tickets')
+          .update({ share_code: code })
+          .eq('wallet_address', wallet_address)
+          .is('share_code', null)
+          .in('battle_id', legs.map((l) => l.battle_id))
+          .gt('created_at', new Date(Date.now() - 30000).toISOString())
+      } catch (stampErr) {
+        console.error('share_code stamp failed:', stampErr?.message)
+      }
     }
 
     return res.status(200).json(data)

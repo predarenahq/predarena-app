@@ -1,6 +1,14 @@
 import { supabase } from '../lib/supabase'
 
-function generateCode(): string {
+export interface ShareLeg {
+  battle_id: string
+  side: number
+}
+
+// Pure code generator - no DB. Lets callers get a code BEFORE placing the bet
+// (so it can be passed to the server for stamping) and persist the share row
+// only after the bet succeeds.
+export function makeShareCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let code = 'PREDA-'
   for (let i = 0; i < 5; i++) {
@@ -9,15 +17,11 @@ function generateCode(): string {
   return code
 }
 
-export interface ShareLeg {
-  battle_id: string
-  side: number
-}
-
-// Creates a shareable booking code for a full slip (1+ legs). Legs are stored
-// in the `legs` jsonb column so combos survive; the legacy single-leg columns
-// are still populated from leg[0] so old codes/resolvers keep working.
-export async function createBetShare(params: {
+// Persist a share row for an already-generated code. Called AFTER a successful
+// bet, so we never orphan a bet_shares row for a bet that didn't place. Stores
+// the full slip in `legs`; legacy single-leg columns are filled from leg[0].
+export async function saveBetShare(params: {
+  code: string
   legs: ShareLeg[]
   createdBy: string
   coinA?: string
@@ -25,25 +29,13 @@ export async function createBetShare(params: {
   oddsAtShare?: number
   league?: string
   duration?: string
-}): Promise<string> {
+}): Promise<void> {
+  if (!params.code) throw new Error('No code')
   if (!params.legs?.length) throw new Error('No legs to share')
-
-  let code = generateCode()
-  let attempts = 0
-  while (attempts < 5) {
-    const { data } = await supabase
-      .from('bet_shares')
-      .select('code')
-      .eq('code', code)
-      .single()
-    if (!data) break
-    code = generateCode()
-    attempts++
-  }
 
   const first = params.legs[0]
   const { error } = await supabase.from('bet_shares').insert({
-    code,
+    code: params.code,
     legs: params.legs,
     battle_id: first.battle_id,
     side: first.side,
@@ -55,7 +47,21 @@ export async function createBetShare(params: {
     created_by: params.createdBy,
     uses: 0,
   })
+  if (error) throw new Error('Failed to save share: ' + error.message)
+}
 
-  if (error) throw new Error('Failed to create share: ' + error.message)
+// Back-compat one-shot: generate + save in one call (used where a bet is already
+// confirmed, e.g. the detail page). Returns the code.
+export async function createBetShare(params: {
+  legs: ShareLeg[]
+  createdBy: string
+  coinA?: string
+  coinB?: string
+  oddsAtShare?: number
+  league?: string
+  duration?: string
+}): Promise<string> {
+  const code = makeShareCode()
+  await saveBetShare({ ...params, code })
   return code
 }

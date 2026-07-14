@@ -2249,13 +2249,9 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
           .from('tickets')
           .select('*, battles(*)')
           .in('wallet_address', addresses)
-          .eq('claimed', false)
+          .not('battles.status', 'eq', 'settled')
           .order('created_at', { ascending: false })
-        // Unclaimed = not fully resolved. Combo legs stay claimed=false (settled
-        // ones too) until the whole combo resolves, so combos render complete
-        // with per-leg Won/Lost pills. Won AND lost bets flip claimed=true at
-        // settlement and move to history.
-        setTickets((data || []).filter((t: any) => t.battles && t.battles?.coin_a))
+        setTickets((data || []).filter((t: any) => t.battles && t.battles?.status !== 'settled' && t.battles?.coin_a))
       } catch (err) {
         console.error('Failed to fetch tickets:', err)
       } finally {
@@ -2615,38 +2611,22 @@ export default function PredaLandingDashboardMockup() {
     const isCombo = slipSelections.length > 1
     const comboOdds = slipSelections.reduce((acc, sel) => acc * sel.oddsAtPick, 1)
 
-    // Slip metadata + the booking code, computed up front. The code is PURE
-    // here (no DB write yet) so it can be sent to the server, which stamps it
-    // onto the ticket rows with the service role. The bet_shares row is saved
-    // only AFTER the bet succeeds (below), so a failed bet never orphans a code.
-    const sel0 = slipSelections[0]
-    const c0 = sel0.matchTitle.split(' vs ')[0]
-    const c1 = sel0.matchTitle.split(' vs ')[1] || ''
-    const side0 = sel0.chosenSide === 'left' ? 1 : sel0.chosenSide === 'right' ? 2 : 3
-    const legsForBet = slipSelections.map((sel) => ({
-      battle_id: sel.matchId,
-      side: sel.chosenSide === 'left' ? 1 : sel.chosenSide === 'right' ? 2 : 3,
-    }))
-    const { makeShareCode, saveBetShare } = await import('./utils/betShare')
-    const code = makeShareCode()
-
     try {
       // The client no longer prices the bet, debits the balance, inserts the
       // ticket, or bumps the pool. It states intent; the server does the rest
       // inside one atomic transaction (place_bet), enforcing the 80% lock and
-      // an atomic balance check that no client can race. `code` is passed so the
-      // server can stamp it onto the tickets (RLS blocks a client-side stamp).
+      // an atomic balance check that no client can race.
       const res = await fetch('/api/place-bet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           wallet_address: walletAddr,
           stake: totalStake,
-          legs: legsForBet.map((leg, i) => ({
-            ...leg,
-            odds: slipSelections[i].oddsAtPick,
+          legs: slipSelections.map((sel) => ({
+            battle_id: sel.matchId,
+            side: sel.chosenSide === 'left' ? 1 : sel.chosenSide === 'right' ? 2 : 3,
+            odds: sel.oddsAtPick,
           })),
-          code,
         }),
       })
 
@@ -2682,15 +2662,21 @@ export default function PredaLandingDashboardMockup() {
 
       setRequoteReady(false)
 
-      // Bet placed. Persist the share row now that a ticket exists to restore to
-      // (server has already stamped `code` onto the tickets), then open the share
-      // modal - it doubles as the "ticket placed" confirmation. Slip clear +
-      // balance refresh are deferred to the modal's onClose so they never
+      // Build a booking code for the whole slip (single OR combo), then open the
+      // share modal - it doubles as the "ticket placed" confirmation. The slip
+      // clear + balance refresh are deferred to the modal's onClose so they never
       // re-render on top of the freshly opened modal.
+      const sel0 = slipSelections[0]
+      const c0 = sel0.matchTitle.split(' vs ')[0]
+      const c1 = sel0.matchTitle.split(' vs ')[1] || ''
+      const side0 = sel0.chosenSide === 'left' ? 1 : sel0.chosenSide === 'right' ? 2 : 3
       try {
-        await saveBetShare({
-          code,
-          legs: legsForBet,
+        const { createBetShare } = await import('./utils/betShare')
+        const code = await createBetShare({
+          legs: slipSelections.map((sel) => ({
+            battle_id: sel.matchId,
+            side: sel.chosenSide === 'left' ? 1 : sel.chosenSide === 'right' ? 2 : 3,
+          })),
           oddsAtShare: sel0.oddsAtPick,
           coinA: c0,
           coinB: c1,
@@ -2698,6 +2684,20 @@ export default function PredaLandingDashboardMockup() {
           duration: sel0.duration,
           createdBy: walletAddr,
         })
+
+        // Stamp the booking code onto the just-placed ticket row(s) so it can be
+        // retrieved later from Running Bets. Best-effort; never blocks the modal.
+        // Scoped to this wallet, these battles, unstamped rows, last 30s.
+        try {
+          const { supabase } = await import('./lib/supabase')
+          await supabase.from('tickets')
+            .update({ share_code: code })
+            .eq('wallet_address', walletAddr)
+            .is('share_code', null)
+            .in('battle_id', slipSelections.map((sel) => sel.matchId))
+            .gt('created_at', new Date(Date.now() - 30000).toISOString())
+        } catch (stampErr) { console.error('code stamp failed:', stampErr) }
+
         setShareData({
           code,
           coinA: c0,
@@ -2709,7 +2709,7 @@ export default function PredaLandingDashboardMockup() {
         })
         setShareModalOpen(true)
       } catch (e) {
-        console.error('Share save failed:', e)
+        console.error('Share failed:', e)
         // The bet DID place; only the share code failed. Confirm it and clear
         // the slip here since the modal won't open.
         window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Ticket placed', type: 'success' } }))
