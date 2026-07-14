@@ -30,10 +30,6 @@ import {
   AlertTriangle,
   Trophy,
   XCircle,
-  Clock,
-  Copy,
-  Check,
-  MinusCircle,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
@@ -1972,75 +1968,11 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
           <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo — all {ticket.combo_legs} legs must win
         </p>
       )}
-      <BookingCodeRow code={ticket.share_code} />
-    </div>
-  )
-}
-
-// ── Shared running-bet helpers ───────────────────────────────────────────────
-async function ticketRobustCopy(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true }
-  } catch { /* fall through */ }
-  try {
-    const ta = document.createElement('textarea')
-    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'
-    document.body.appendChild(ta); ta.select()
-    const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok
-  } catch { return false }
-}
-
-function legStatus(battle: any, side: number): { label: string; tone: string; Icon: any } {
-  const st = battle?.status
-  if (st === 'void') return { label: 'Void', tone: 'var(--text-muted)', Icon: MinusCircle }
-  if (st === 'settled') {
-    return battle.winner === side
-      ? { label: 'Won', tone: '#22c55e', Icon: Trophy }
-      : { label: 'Lost', tone: '#ef4444', Icon: XCircle }
-  }
-  return { label: 'Running', tone: 'var(--accent)', Icon: Clock }
-}
-
-function StatusPill({ battle, side }: { battle: any; side: number }) {
-  const { label, tone, Icon } = legStatus(battle, side)
-  return (
-    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold"
-      style={{ background: 'rgba(255,255,255,0.05)', color: tone }}>
-      <Icon className="h-3 w-3" /> {label}
-    </span>
-  )
-}
-
-function LegCountdown({ endTime, status }: { endTime: string; status?: string }) {
-  const t = useCountdown(endTime)
-  const label = status === 'settled' ? 'Ended' : status === 'void' ? 'Voided' : t
-  return <span className="text-xs font-medium" style={{ color: 'var(--text-soft)' }}>{label}</span>
-}
-
-function BookingCodeRow({ code }: { code?: string | null }) {
-  const [copied, setCopied] = React.useState(false)
-  if (!code) return null
-  const copy = async () => {
-    const ok = await ticketRobustCopy(code)
-    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000) }
-  }
-  return (
-    <div className="mt-3 flex items-center justify-between rounded-[10px] px-3 py-2.5" style={{ background: 'var(--panel-2)', border: '1px solid var(--border)' }}>
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Booking code</p>
-        <p className="font-mono text-sm font-bold tracking-widest" style={{ color: "var(--text)" }}>{code}</p>
-      </div>
-      <button onClick={copy} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
-        style={{ background: copied ? 'rgba(34,197,94,0.15)' : 'var(--brand-grad)', color: copied ? '#22c55e' : '#fff' }}>
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        {copied ? 'Copied' : 'Copy'}
-      </button>
     </div>
   )
 }
 
 function ComboTicketCard({ legs }: { legs: any[] }) {
-  const [expanded, setExpanded] = React.useState(false)
   const firstLeg = legs[0]
   const comboOdds = firstLeg.combo_odds || legs.reduce((a, t) => a * t.odds, 1)
   const stake = firstLeg.stake
@@ -2048,11 +1980,10 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
   const allEndTimes = legs.map(l => l.battles?.end_time || '').filter(Boolean)
   const latestEnd = allEndTimes.sort().pop() || ''
   const timeLeft = useCountdown(latestEnd)
-  const code = legs.find((l) => l.share_code)?.share_code
 
   return (
     <div className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.1)" }}>
-      <button onClick={() => setExpanded((v) => !v)} className="flex w-full items-start justify-between mb-4 text-left">
+      <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
             <p className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>Combo Bet</p>
@@ -2062,30 +1993,21 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
           </div>
           <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>All legs must win · {comboOdds.toFixed(2)}x combined</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] px-3 py-1 rounded-full font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{timeLeft}</span>
-          <ChevronDown className="h-4 w-4 transition-transform" style={{ color: 'var(--text-soft)', transform: expanded ? 'rotate(180deg)' : 'none' }} />
+        <div className="text-[11px] px-3 py-1 rounded-full font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+          {timeLeft}
         </div>
-      </button>
+      </div>
 
-      {/* Each leg — expanded reveals per-leg countdown + status */}
+      {/* Each leg */}
       <div className="space-y-2 mb-3">
         {legs.map((leg, i) => {
           const b = leg.battles
           const pick = leg.side === 1 ? b?.coin_a : leg.side === 2 ? b?.coin_b : 'Draw'
           return (
-            <div key={leg.id} className="rounded-[10px] px-3 py-2.5" style={{ background: 'var(--panel-2)' }}>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--text-muted)" }}>Leg {i + 1}</span>
-                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{b?.coin_a} vs {b?.coin_b}</span>
-                <span style={{ color: "var(--accent)" }} className="text-sm font-semibold">{pick}</span>
-              </div>
-              {expanded && (
-                <div className="mt-2 flex items-center justify-between border-t pt-2" style={{ borderColor: 'var(--border-soft)' }}>
-                  <LegCountdown endTime={b?.end_time || ''} status={b?.status} />
-                  <StatusPill battle={b} side={leg.side} />
-                </div>
-              )}
+            <div key={leg.id} className="flex items-center justify-between px-3 py-2.5 rounded-[10px]" style={{ background: 'var(--panel-2)' }}>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--text-muted)" }}>Leg {i + 1}</span>
+              <span className="text-sm font-medium" style={{ color: "var(--text)" }}>{b?.coin_a} vs {b?.coin_b}</span>
+              <span style={{ color: "var(--accent)" }} className="text-sm font-semibold">{pick}</span>
             </div>
           )
         })}
@@ -2105,14 +2027,9 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
           <p className="font-semibold" style={{ color: COLORS.accent }}>${potentialWin}</p>
         </div>
       </div>
-
-      {expanded ? (
-        <BookingCodeRow code={code} />
-      ) : (
-        <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
-          <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> If any leg loses, entire combo is lost
-        </p>
-      )}
+      <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
+        <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> If any leg loses, entire combo is lost
+      </p>
     </div>
   )
 }
@@ -2684,20 +2601,6 @@ export default function PredaLandingDashboardMockup() {
           duration: sel0.duration,
           createdBy: walletAddr,
         })
-
-        // Stamp the booking code onto the just-placed ticket row(s) so it can be
-        // retrieved later from Running Bets. Best-effort; never blocks the modal.
-        // Scoped to this wallet, these battles, unstamped rows, last 30s.
-        try {
-          const { supabase } = await import('./lib/supabase')
-          await supabase.from('tickets')
-            .update({ share_code: code })
-            .eq('wallet_address', walletAddr)
-            .is('share_code', null)
-            .in('battle_id', slipSelections.map((sel) => sel.matchId))
-            .gt('created_at', new Date(Date.now() - 30000).toISOString())
-        } catch (stampErr) { console.error('code stamp failed:', stampErr) }
-
         setShareData({
           code,
           coinA: c0,
