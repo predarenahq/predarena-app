@@ -2196,11 +2196,9 @@ export default function PredaLandingDashboardMockup() {
     const betcode = params.get('betcode');
     if (!betcode) return;
     if (restoredCodeRef.current === betcode) return;
-    // Gate on REAL battles — liveMatches starts as mock data with different
-    // ids, which matches nothing and wrongly reports 'expired', then locks
-    // the ref against a retry once the real battles arrive.
-    if (!supabaseMatches.length) return;
+    if (!liveMatches.length) return;
 
+    restoredCodeRef.current = betcode;
     (async () => {
       try {
         const { supabase } = await import('./lib/supabase');
@@ -2219,7 +2217,7 @@ export default function PredaLandingDashboardMockup() {
         const restored: SlipSelection[] = [];
         let expired = 0;
         for (const leg of legs) {
-          const match = supabaseMatches.find((m: any) => m.id === leg.battle_id);
+          const match = liveMatches.find((m) => m.id === leg.battle_id);
           if (!match || match.bettingLocked) { expired++; continue; }
           const chosenSide: Side = leg.side === 1 ? 'left' : leg.side === 2 ? 'right' : 'draw';
           const oddsAtPick =
@@ -2235,8 +2233,6 @@ export default function PredaLandingDashboardMockup() {
             duration: match.duration,
           });
         }
-
-        restoredCodeRef.current = betcode;
 
         if (restored.length) {
           setSlipSelections(restored);
@@ -2261,7 +2257,7 @@ export default function PredaLandingDashboardMockup() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search, supabaseMatches]);
+  }, [location.search, liveMatches]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
