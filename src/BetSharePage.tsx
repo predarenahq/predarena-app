@@ -13,7 +13,6 @@ const COLORS = {
 export default function BetSharePage() {
   const { code } = useParams()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -22,44 +21,46 @@ export default function BetSharePage() {
   }, [code])
 
   async function resolveBetShare(shareCode: string) {
+    const normalized = shareCode.toUpperCase()
     const { data, error } = await supabase
       .from('bet_shares')
-      .select('*')
-      .eq('code', shareCode.toUpperCase())
+      .select('code, uses')
+      .eq('code', normalized)
       .single()
 
     if (error || !data) {
-      setError('Bet share code not found or expired.')
-      setLoading(false)
+      setError('That booking code was not found or has expired.')
       return
     }
 
-    // Increment uses
-    await supabase.from('bet_shares')
+    supabase.from('bet_shares')
       .update({ uses: (data.uses || 0) + 1 })
-      .eq('code', shareCode.toUpperCase())
+      .eq('code', normalized)
+      .then(() => {}, () => {})
 
-    // Navigate to battle detail page with pre-filled selection
-    navigate(`/battle/${data.battle_id}?shareCode=${shareCode}&side=${data.side}&odds=${data.odds_at_share}`)
+    // Hand the code to the homepage, which rebuilds the whole slip from `legs`
+    // (works for single bets AND combos), fetching current live odds.
+    navigate(`/?betcode=${normalized}`, { replace: true })
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: COLORS.bg }}>
       <div className="text-center p-8">
-        {loading && !error ? (
+        {!error ? (
           <>
-            <div className="text-4xl mb-4">🎯</div>
-            <p className="text-white text-lg font-semibold">Loading bet...</p>
-            <p className="text-sm mt-2" style={{ color: COLORS.textSoft }}>Taking you to the battle</p>
+            <div className="mb-4 flex justify-center">
+              <span className="h-10 w-10 rounded-full border-2 animate-spin" style={{ borderColor: COLORS.accent, borderTopColor: 'transparent' }} />
+            </div>
+            <p className="text-white text-lg font-semibold">Loading bet…</p>
+            <p className="text-sm mt-2" style={{ color: COLORS.textSoft }}>Rebuilding the ticket from your code</p>
           </>
         ) : (
           <>
-            <div className="text-4xl mb-4">❌</div>
-            <p className="text-white text-lg font-semibold">{error}</p>
+            <p className="text-white text-lg font-semibold mb-2">{error}</p>
             <button
               onClick={() => navigate('/')}
-              className="mt-4 px-6 py-2 rounded-xl font-medium text-black"
-              style={{ background: COLORS.accent }}
+              className="mt-4 px-6 py-2 rounded-xl font-semibold"
+              style={{ background: COLORS.accent, color: '#04181c' }}
             >
               Go to Arena
             </button>
@@ -69,4 +70,3 @@ export default function BetSharePage() {
     </div>
   )
 }
-
