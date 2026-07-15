@@ -61,9 +61,19 @@ async function createArcBattles(contract) {
   // cron firing during a manual trigger, say) would otherwise each create the
   // same battle on-chain - which is exactly what happened, leaving orphaned
   // duplicates. This UPDATE is atomic, so the loser's filter matches nothing.
+  // Release claims abandoned by a killed run. The catch below frees a claim on
+  // error, but a serverless timeout kills the function without running it - and
+  // a row stuck in 'creating' is invisible to every future run: arc_battle_id is
+  // null but arc_status isn't, so nothing ever picks it up again.
+  await supabase
+    .from('battles')
+    .update({ arc_status: null, arc_claimed_at: null })
+    .eq('arc_status', 'creating')
+    .lt('arc_claimed_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+
   const { data: battles } = await supabase
     .from('battles')
-    .update({ arc_status: 'creating' })
+    .update({ arc_status: 'creating', arc_claimed_at: new Date().toISOString() })
     .is('arc_battle_id', null)
     .is('arc_status', null)
     .eq('status', 'live')
@@ -106,6 +116,7 @@ async function createArcBattles(contract) {
       await supabase.from('battles').update({
         arc_battle_id:     Number(realId),
         arc_status:        'live',
+        arc_claimed_at:    null,
         arc_start_price_a: b.start_price_a,
         arc_start_price_b: b.start_price_b,
       }).eq('id', b.id)
@@ -114,7 +125,7 @@ async function createArcBattles(contract) {
       console.log(`Arc battle ${realId} created: ${b.coin_a} vs ${b.coin_b}`)
     } catch (err) {
       // Release the claim so the next run can retry this battle.
-      await supabase.from('battles').update({ arc_status: null }).eq('id', b.id)
+      await supabase.from('battles').update({ arc_status: null, arc_claimed_at: null }).eq('id', b.id)
       console.error(`Create failed for ${b.id}:`, err.message)
     }
   }
