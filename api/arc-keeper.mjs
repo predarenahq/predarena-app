@@ -15,6 +15,7 @@ const KEEPER_ABI = [
   'function createBattle(string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB) returns (uint256 battleId)',
   'function settleBattle(uint256 battleId, uint256 finalPriceA, uint256 finalPriceB)',
   'function nextBattleId() view returns (uint256)',
+  'event BattleCreated(uint256 indexed id, string coinA, string coinB, uint256 startTime, uint256 endTime)',
 ]
 
 const PYTH_FEEDS = {
@@ -55,19 +56,25 @@ async function getPythPrices(tickers) {
 
 async function createArcBattles(contract) {
   const now = new Date().toISOString()
+
+  // Claim the rows before touching the chain. Two keeper runs overlapping (the
+  // cron firing during a manual trigger, say) would otherwise each create the
+  // same battle on-chain - which is exactly what happened, leaving orphaned
+  // duplicates. This UPDATE is atomic, so the loser's filter matches nothing.
   const { data: battles } = await supabase
     .from('battles')
-    .select('*')
+    .update({ arc_status: 'creating' })
     .is('arc_battle_id', null)
+    .is('arc_status', null)
     .eq('status', 'live')
     .gt('end_time', now)
+    .select()
 
   if (!battles?.length) return { created: 0 }
 
   let created = 0
   for (const b of battles) {
     try {
-      const nextId    = await contract.nextBattleId()
       const startTime = BigInt(Math.floor(new Date(b.start_time).getTime() / 1000))
       const endTime   = BigInt(Math.floor(new Date(b.end_time).getTime() / 1000))
 
@@ -79,19 +86,36 @@ async function createArcBattles(contract) {
         toPrice(b.start_price_a),
         toPrice(b.start_price_b)
       )
-      await tx.wait()
+      const receipt = await tx.wait()
+
+      // Take the id from the BattleCreated event, NOT from a pre-read of
+      // nextBattleId(). The old code read the counter and then assumed its own
+      // tx got that number. If anything else created a battle in the gap, it
+      // recorded an id belonging to someone else's battle - and every quote
+      // signed against that mapping would put the user's money on the wrong
+      // fixture. The event is what the chain actually did.
+      let realId = null
+      for (const log of receipt.logs) {
+        try {
+          const parsed = contract.interface.parseLog({ topics: [...log.topics], data: log.data })
+          if (parsed?.name === 'BattleCreated') { realId = parsed.args.id; break }
+        } catch { /* not one of ours */ }
+      }
+      if (realId == null) throw new Error('no BattleCreated event in receipt')
 
       await supabase.from('battles').update({
-        arc_battle_id:     Number(nextId),
+        arc_battle_id:     Number(realId),
         arc_status:        'live',
         arc_start_price_a: b.start_price_a,
         arc_start_price_b: b.start_price_b,
       }).eq('id', b.id)
 
       created++
-      console.log(`✅ Arc battle ${nextId} created: ${b.coin_a} vs ${b.coin_b}`)
+      console.log(`Arc battle ${realId} created: ${b.coin_a} vs ${b.coin_b}`)
     } catch (err) {
-      console.error(`❌ Create failed for ${b.id}:`, err.message)
+      // Release the claim so the next run can retry this battle.
+      await supabase.from('battles').update({ arc_status: null }).eq('id', b.id)
+      console.error(`Create failed for ${b.id}:`, err.message)
     }
   }
   return { created }
