@@ -1506,7 +1506,6 @@ function SlipDrawer({
   onPlaceTicket,
   onClose,
   requoteReady,
-  oddsFlash,
 }: {
   open: boolean;
   items: SlipSelection[];
@@ -1516,7 +1515,6 @@ function SlipDrawer({
   onPlaceTicket: () => void;
   onClose: () => void;
   requoteReady?: boolean;
-  oddsFlash?: Record<string, 'up' | 'down'>;
 }) {
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
@@ -1588,23 +1586,9 @@ function SlipDrawer({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p
-                    className="text-[17px] font-semibold transition-colors duration-300"
-                    style={{
-                      color: oddsFlash?.[item.matchId] === 'up' ? '#22c55e'
-                        : oddsFlash?.[item.matchId] === 'down' ? '#ef4444'
-                        : "var(--accent)",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
+                  <p className="text-[17px] font-semibold" style={{ color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
                     {formatOdds(item.oddsAtPick)}
                   </p>
-                  {oddsFlash?.[item.matchId] && (
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.1em]"
-                       style={{ color: oddsFlash[item.matchId] === 'up' ? '#22c55e' : '#ef4444' }}>
-                      {oddsFlash[item.matchId] === 'up' ? 'up' : 'down'}
-                    </p>
-                  )}
                 </div>
               </div>
             ))
@@ -2350,8 +2334,6 @@ export default function PredaLandingDashboardMockup() {
   // server's price and flip the button to a confirm state for one tap.
   const [requoteReady, setRequoteReady] = useState(false);
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
-  const [oddsFlash, setOddsFlash] = useState<Record<string, 'up' | 'down'>>({});
-  const flashTimers = React.useRef<Record<string, any>>({});
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareData, setShareData] = useState<{
     code: string; coinA: string; coinB: string; side: number; odds: number; stake: number; legCount: number;
@@ -2367,64 +2349,6 @@ export default function PredaLandingDashboardMockup() {
       setLiveMatches(supabaseMatches as any)
     }
   }, [supabaseMatches]);
-
-  // LIVE SLIP SYNC. The odds engine recomputes every 2s, but the slip used to
-  // hold whatever odds were showing at tap time - so a slip left open drifted
-  // badly (we saw 30%+) and the server bounced nearly every bet for a requote.
-  // Each leg now tracks its match's live odds, with a brief up/down flash so the
-  // move is visible rather than sneaky. Guards:
-  //   - Skipped while requoteReady: the user is confirming a SERVER-quoted price;
-  //     a local tick must not overwrite that handshake.
-  //   - Locked legs are frozen (they can't be bet anyway).
-  //   - Returns `prev` untouched when nothing moved, so this can never loop.
-  useEffect(() => {
-    if (requoteReady) return;
-    if (!liveMatches.length) return;
-
-    setSlipSelections((prev) => {
-      if (!prev.length) return prev;
-      let changed = false;
-      const moved: Record<string, 'up' | 'down'> = {};
-
-      const next = prev.map((sel) => {
-        const match = liveMatches.find((m) => m.id === sel.matchId);
-        if (!match || match.bettingLocked) return sel;
-        const live =
-          sel.chosenSide === 'left' ? match.left?.odds
-          : sel.chosenSide === 'right' ? match.right?.odds
-          : match.draw?.odds;
-        if (typeof live !== 'number' || !(live > 0)) return sel;
-        const fresh = Number(live.toFixed(2));
-        if (fresh === Number(sel.oddsAtPick.toFixed(2))) return sel;
-        changed = true;
-        moved[sel.matchId] = fresh > sel.oddsAtPick ? 'up' : 'down';
-        return { ...sel, oddsAtPick: fresh };
-      });
-
-      if (!changed) return prev;
-
-      queueMicrotask(() => {
-        setOddsFlash((f) => ({ ...f, ...moved }));
-        for (const id of Object.keys(moved)) {
-          clearTimeout(flashTimers.current[id]);
-          flashTimers.current[id] = setTimeout(() => {
-            setOddsFlash((f) => {
-              const rest = { ...f };
-              delete rest[id];
-              return rest;
-            });
-          }, 900);
-        }
-      });
-      return next;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveMatches, requoteReady]);
-
-  useEffect(() => {
-    const timers = flashTimers.current;
-    return () => { Object.values(timers).forEach((t) => clearTimeout(t)); };
-  }, []);
 
   // Restore a shared slip from ?betcode=CODE (set by BetSharePage). Rebuilds
   // every leg against the CURRENT live matches so odds are fresh; legs whose
@@ -2847,7 +2771,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} />
       {shareData && (
         <BetShareModal
           open={shareModalOpen}

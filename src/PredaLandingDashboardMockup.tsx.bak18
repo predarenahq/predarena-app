@@ -2368,64 +2368,6 @@ export default function PredaLandingDashboardMockup() {
     }
   }, [supabaseMatches]);
 
-  // LIVE SLIP SYNC. The odds engine recomputes every 2s, but the slip used to
-  // hold whatever odds were showing at tap time - so a slip left open drifted
-  // badly (we saw 30%+) and the server bounced nearly every bet for a requote.
-  // Each leg now tracks its match's live odds, with a brief up/down flash so the
-  // move is visible rather than sneaky. Guards:
-  //   - Skipped while requoteReady: the user is confirming a SERVER-quoted price;
-  //     a local tick must not overwrite that handshake.
-  //   - Locked legs are frozen (they can't be bet anyway).
-  //   - Returns `prev` untouched when nothing moved, so this can never loop.
-  useEffect(() => {
-    if (requoteReady) return;
-    if (!liveMatches.length) return;
-
-    setSlipSelections((prev) => {
-      if (!prev.length) return prev;
-      let changed = false;
-      const moved: Record<string, 'up' | 'down'> = {};
-
-      const next = prev.map((sel) => {
-        const match = liveMatches.find((m) => m.id === sel.matchId);
-        if (!match || match.bettingLocked) return sel;
-        const live =
-          sel.chosenSide === 'left' ? match.left?.odds
-          : sel.chosenSide === 'right' ? match.right?.odds
-          : match.draw?.odds;
-        if (typeof live !== 'number' || !(live > 0)) return sel;
-        const fresh = Number(live.toFixed(2));
-        if (fresh === Number(sel.oddsAtPick.toFixed(2))) return sel;
-        changed = true;
-        moved[sel.matchId] = fresh > sel.oddsAtPick ? 'up' : 'down';
-        return { ...sel, oddsAtPick: fresh };
-      });
-
-      if (!changed) return prev;
-
-      queueMicrotask(() => {
-        setOddsFlash((f) => ({ ...f, ...moved }));
-        for (const id of Object.keys(moved)) {
-          clearTimeout(flashTimers.current[id]);
-          flashTimers.current[id] = setTimeout(() => {
-            setOddsFlash((f) => {
-              const rest = { ...f };
-              delete rest[id];
-              return rest;
-            });
-          }, 900);
-        }
-      });
-      return next;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveMatches, requoteReady]);
-
-  useEffect(() => {
-    const timers = flashTimers.current;
-    return () => { Object.values(timers).forEach((t) => clearTimeout(t)); };
-  }, []);
-
   // Restore a shared slip from ?betcode=CODE (set by BetSharePage). Rebuilds
   // every leg against the CURRENT live matches so odds are fresh; legs whose
   // battle has ended are skipped. Runs once liveMatches is populated.
