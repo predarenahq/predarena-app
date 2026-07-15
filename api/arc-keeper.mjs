@@ -9,7 +9,7 @@ const supabase = createClient(
 )
 
 const ARC_RPC     = 'https://rpc.testnet.arc.network'
-const BATCH_SIZE  = 3
+const BATCH_SIZE  = 1
 const PREDARENA   = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
 
 const KEEPER_ABI = [
