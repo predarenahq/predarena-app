@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createPublicClient, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { randomBytes } from 'crypto'
-import { priceLeg, MAX_SINGLE_ODDS } from './lib/oddsEngine.mjs'
+import { priceLeg, MAX_SINGLE_ODDS } from '../lib/oddsEngine.mjs'
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')

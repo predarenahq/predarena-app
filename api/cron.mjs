@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import { settleBattles as settleBattlesFixed } from './lib/settlement.mjs'
-import { getStartingProbs } from './lib/oddsEngine.mjs'
-import { sweepPendingDeposits, assertSolvency, getVaultLamports } from './lib/cronHelpers.mjs'
-import { verifyDeposit } from './lib/verifyDeposit.mjs'
+import { settleBattles as settleBattlesFixed } from '../lib/settlement.mjs'
+import { getStartingProbs } from '../lib/oddsEngine.mjs'
+import { sweepPendingDeposits, assertSolvency, getVaultLamports } from '../lib/cronHelpers.mjs'
+import { verifyDeposit } from '../lib/verifyDeposit.mjs'
 
 // The anon-key fallback is deliberately removed. Once RLS blocks client writes,
 // falling back to anon means settlement silently credits nobody while logging
