@@ -8,8 +8,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
 )
 
-const ARC_RPC     = 'https://rpc.testnet.arc.network'
-const BATCH_SIZE  = 1
+// The official public endpoint is shared and throttled: a single
+// nextBattleId() read took 16s and still 429'd, so createBattle +
+// tx.wait() could not finish inside the 60s function and every run was
+// killed mid-loop. dRPC answers the same call in 1.5s.
+const ARC_RPC     = process.env.ARC_RPC_URL || 'https://arc-testnet.drpc.org'
+const BATCH_SIZE  = 3
 const PREDARENA   = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
 
 const KEEPER_ABI = [

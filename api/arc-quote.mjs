@@ -16,7 +16,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-const ARC_RPC           = 'https://rpc.testnet.arc.network'
+const ARC_RPC           = process.env.ARC_RPC_URL || 'https://arc-testnet.drpc.org'
 const ARC_CHAIN_ID      = 5042002
 const PREDARENA_ADDRESS = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
 const USDC_DECIMALS     = 6

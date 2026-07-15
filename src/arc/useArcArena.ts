@@ -51,7 +51,7 @@ const QUOTE_ERRORS: Record<string, string> = {
 
 const publicClient = createPublicClient({
   chain: arcTestnet,
-  transport: http('https://rpc.testnet.arc.network'),
+  transport: http((process.env.REACT_APP_ARC_RPC_URL || 'https://arc-testnet.drpc.org')),
 })
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -92,7 +92,7 @@ export function useArcArena() {
             // Arc's NATIVE gas token is 18dp; only the USDC ERC-20 interface is
             // 6dp. Declaring 6 here under-reports the wallet's gas balance by 1e12.
             nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
-            rpcUrls: ['https://rpc.testnet.arc.network'],
+            rpcUrls: [(process.env.REACT_APP_ARC_RPC_URL || 'https://arc-testnet.drpc.org')],
             blockExplorerUrls: ['https://testnet.arcscan.app'],
           }]
         })
