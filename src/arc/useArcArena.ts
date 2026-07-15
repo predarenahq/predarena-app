@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { createPublicClient, createWalletClient, http, custom, parseUnits, formatUnits } from 'viem'
+import { createPublicClient, createWalletClient, http, custom, parseUnits, formatUnits, maxUint256 } from 'viem'
 import { useWallets } from '@privy-io/react-auth'
 import { arcTestnet } from './chain'
 import { PREDARENA_ABI, ERC20_ABI } from './abi'
@@ -35,8 +35,6 @@ export interface ArcTicket {
   payout:   bigint
   closed:   boolean
 }
-
-const MAX_UINT256 = (2n ** 256n) - 1n
 
 const QUOTE_ERRORS: Record<string, string> = {
   battle_not_on_arc:      'This battle is not available on Arc yet',
@@ -201,7 +199,7 @@ export function useArcArena() {
           address:      USDC_ADDRESS,
           abi:          ERC20_ABI,
           functionName: 'approve',
-          args:         [PREDARENA_ADDRESS, MAX_UINT256],
+          args:         [PREDARENA_ADDRESS, maxUint256],
           account:      address,
         })
         await publicClient.waitForTransactionReceipt({ hash: approveTx })
