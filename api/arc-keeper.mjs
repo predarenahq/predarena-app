@@ -9,6 +9,7 @@ const supabase = createClient(
 )
 
 const ARC_RPC     = 'https://rpc.testnet.arc.network'
+const BATCH_SIZE  = 3
 const PREDARENA   = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
 
 const KEEPER_ABI = [
@@ -76,13 +77,33 @@ async function createArcBattles(contract) {
     .eq('arc_status', 'creating')
     .or(`arc_claimed_at.is.null,arc_claimed_at.lt.${new Date(Date.now() - 5 * 60 * 1000).toISOString()}`)
 
+  // Pick a SMALL batch. maxDuration is 60s and each battle costs a
+  // createBattle + tx.wait() against a rate-limited public RPC, so a big batch
+  // gets the function killed mid-loop - which skips the catch and strands every
+  // claimed row at 'creating' forever. Three per run finishes comfortably; the
+  // cron drains the backlog across runs.
+  const { data: candidates } = await supabase
+    .from('battles')
+    .select('id')
+    .is('arc_battle_id', null)
+    .neq('arc_status', 'creating')
+    .eq('status', 'live')
+    .gt('end_time', now)
+    .order('end_time', { ascending: true })
+    .limit(BATCH_SIZE)
+
+  if (!candidates?.length) return { created: 0 }
+
+  // arc_battle_id IS NULL is the real "needs mirroring" test. arc_status only
+  // answers "is another run already on this" - it defaults to 'pending' on every
+  // new battle, so filtering `.is('arc_status', null)` matched zero rows and the
+  // keeper silently mirrored nothing.
   const { data: battles } = await supabase
     .from('battles')
     .update({ arc_status: 'creating', arc_claimed_at: new Date().toISOString() })
+    .in('id', candidates.map((c) => c.id))
+    .neq('arc_status', 'creating')
     .is('arc_battle_id', null)
-    .is('arc_status', null)
-    .eq('status', 'live')
-    .gt('end_time', now)
     .select()
 
   if (!battles?.length) return { created: 0 }
