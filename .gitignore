@@ -27,3 +27,5 @@ yarn-error.log*
 
 *.bak
 derive_vault.mjs
+*.bak[0-9]*
+*.bak_*
