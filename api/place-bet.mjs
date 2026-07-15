@@ -133,6 +133,7 @@ export default async function handler(req, res) {
     //    user re-accepts at the new price.
     const now = Date.now()
     const pricedLegs = []
+    const drifted = []
     for (const leg of legs) {
       const battle = byId.get(leg.battle_id)
       const side = Number(leg.side)
@@ -143,8 +144,9 @@ export default async function handler(req, res) {
       const clientQuote = Number(leg.odds)
       const drift = Math.abs(serverOdds - clientQuote) / serverOdds
       if (drift > QUOTE_TOLERANCE) {
-        return res.status(409).json({
-          error: 'odds_changed',
+        // Collect EVERY drifted leg instead of returning on the first one, so a
+        // combo can be re-accepted in a single confirm tap rather than one per leg.
+        drifted.push({
           battle_id: leg.battle_id,
           side,
           quoted: Number(clientQuote.toFixed(2)),
@@ -153,6 +155,20 @@ export default async function handler(req, res) {
       }
 
       pricedLegs.push({ battle_id: leg.battle_id, side, odds: Number(serverOdds.toFixed(2)) })
+    }
+
+    // If ANY leg drifted past tolerance, ask the user to re-accept ALL of them
+    // at once. `drifted` is the full list; the top-level battle_id/side/quoted/
+    // current mirror drifted[0] for single-leg back-compat with older clients.
+    if (drifted.length > 0) {
+      return res.status(409).json({
+        error: 'odds_changed',
+        drifted,
+        battle_id: drifted[0].battle_id,
+        side: drifted[0].side,
+        quoted: drifted[0].quoted,
+        current: drifted[0].current,
+      })
     }
 
     // 4. Vault balance + SOL price for the RPC's solvency gate and debit.

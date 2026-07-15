@@ -2655,28 +2655,13 @@ export default function PredaLandingDashboardMockup() {
       if (!res.ok) {
         // A leg drifted past tolerance. The server returned that leg's id and
         // its current price - sync it into the slip and let the user confirm.
-        // The server returns EVERY drifted leg (`drifted`), so a combo is
-        // re-accepted in ONE tap instead of one tap per leg. Falls back to the
-        // legacy single-leg shape if an older response is in flight.
-        const driftedLegs: { battle_id: string; current: number }[] =
-          Array.isArray(result.drifted) && result.drifted.length
-            ? result.drifted
-            : (result.battle_id && typeof result.current === 'number'
-                ? [{ battle_id: result.battle_id, current: result.current }]
-                : [])
-        if (result.error === 'odds_changed' && driftedLegs.length) {
-          setSlipSelections((prev) => prev.map((sel) => {
-            const d = driftedLegs.find((x) => x.battle_id === sel.matchId)
-            return d ? { ...sel, oddsAtPick: d.current } : sel
-          }))
+        if (result.error === 'odds_changed' && result.battle_id && typeof result.current === 'number') {
+          setSlipSelections((prev) => prev.map((sel) =>
+            sel.matchId === result.battle_id ? { ...sel, oddsAtPick: result.current } : sel
+          ))
           setRequoteReady(true)
           window.dispatchEvent(new CustomEvent('toast', {
-            detail: {
-              message: driftedLegs.length === 1
-                ? `Odds moved to ${Number(driftedLegs[0].current).toFixed(2)} - tap again to confirm`
-                : `Odds moved on ${driftedLegs.length} selections - tap again to confirm`,
-              type: 'error',
-            }
+            detail: { message: `Odds moved to ${result.current.toFixed(2)} - tap again to confirm`, type: 'error' }
           }))
           return
         }
