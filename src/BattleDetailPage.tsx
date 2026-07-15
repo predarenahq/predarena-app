@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from './lib/supabase'
 import { createBetShare } from './utils/betShare'
+import ArcFaucetPanel from './components/ArcFaucetPanel'
 import { getStartingOdds, getInPlayOdds, OddsResult } from './services/oddsEngine'
 import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -147,6 +148,13 @@ export default function BattleDetailPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chain, evmWallet?.address])
+
+  async function refreshArcBalance() {
+    if (!evmWallet?.address) return
+    try {
+      setArcUSDCBalance(await getUSDCBalance(evmWallet.address as `0x${string}`))
+    } catch (e) { console.error('arc balance refresh failed:', e) }
+  }
 
   async function fetchBattle() {
     const { data } = await supabase.from('battles').select('*').eq('id', id).single()
@@ -542,16 +550,29 @@ export default function BattleDetailPage() {
         <div className="rounded-2xl p-5 space-y-4" style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}>
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>Place Your Bet</h2>
-            {/* Balance display */}
+            {/* Balance display. This used to read "Arena balance" back when the
+                contract kept an internal ledger - it doesn't any more, so this
+                is the user's actual wallet USDC. */}
             {isArc && arcConnected && (
               <p className="text-xs" style={{ color: COLORS.textSoft }}>
-                Arena balance: <span style={{ color: COLORS.accent }}>${arcUSDCBalance} USDC</span>
+                Wallet USDC: <span style={{ color: COLORS.accent }}>${arcUSDCBalance}</span>
               </p>
             )}
             {!isArc && connected && (
               <p className="text-xs" style={{ color: COLORS.textSoft }}>Balance: ${balanceUSD}</p>
             )}
           </div>
+
+          {/* Arc needs real testnet USDC for BOTH the stake and the gas, so an
+              empty wallet can do nothing at all. Quiet link when they're funded,
+              full walkthrough when they're not. */}
+          {isArc && arcConnected && evmWallet?.address && (
+            <ArcFaucetPanel
+              address={evmWallet.address}
+              balance={arcUSDCBalance}
+              onRefresh={refreshArcBalance}
+            />
+          )}
 
           {/* Chain selector */}
           <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.lineStrong}` }}>
