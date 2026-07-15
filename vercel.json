@@ -15,5 +15,7 @@
     "api/momentum.mjs": {
       "maxDuration": 15
     }
-  }
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "build"
 }

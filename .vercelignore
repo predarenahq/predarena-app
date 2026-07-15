@@ -1,0 +1,9 @@
+# api/lib/* are shared helper modules, imported by the real endpoints. They
+# export no handler and can never serve a request, but Vercel turns every file
+# under api/ into a Serverless Function - which burned 4 of the 12 Hobby slots
+# and made arc-quote the 13th, so it silently 404'd on a green build.
+#
+# Ignoring them here stops the function being CREATED. The imports still work:
+# the bundler traces `import ... from './lib/oddsEngine.mjs'` and includes the
+# code inside each function that needs it.
+api/lib/**
