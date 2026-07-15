@@ -86,7 +86,7 @@ async function createArcBattles(contract) {
     .from('battles')
     .select('id')
     .is('arc_battle_id', null)
-    .neq('arc_status', 'creating')
+    .or('arc_status.is.null,arc_status.neq.creating')
     .eq('status', 'live')
     .gt('end_time', now)
     .order('end_time', { ascending: true })
@@ -102,7 +102,7 @@ async function createArcBattles(contract) {
     .from('battles')
     .update({ arc_status: 'creating', arc_claimed_at: new Date().toISOString() })
     .in('id', candidates.map((c) => c.id))
-    .neq('arc_status', 'creating')
+    .or('arc_status.is.null,arc_status.neq.creating')
     .is('arc_battle_id', null)
     .select()
 
