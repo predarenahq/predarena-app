@@ -109,6 +109,7 @@ async function createArcBattles(contract) {
   if (!battles?.length) return { created: 0 }
 
   let created = 0
+  const failures = []
   for (const b of battles) {
     try {
       const startTime = BigInt(Math.floor(new Date(b.start_time).getTime() / 1000))
@@ -151,11 +152,14 @@ async function createArcBattles(contract) {
       console.log(`Arc battle ${realId} created: ${b.coin_a} vs ${b.coin_b}`)
     } catch (err) {
       // Release the claim so the next run can retry this battle.
-      await supabase.from('battles').update({ arc_status: null, arc_claimed_at: null }).eq('id', b.id)
+      await supabase.from('battles').update({ arc_status: 'pending', arc_claimed_at: null }).eq('id', b.id)
+      failures.push(`${b.coin_a}/${b.coin_b}: ${err.message}`)
       console.error(`Create failed for ${b.id}:`, err.message)
     }
   }
-  return { created }
+  // Report attempts, not just successes: `created: 0` used to mean both
+  // "nothing to do" and "tried 3, all reverted" - indistinguishable from outside.
+  return { created, attempted: battles.length, failures }
 }
 
 // ── Settle Arc battles ────────────────────────────────────────────────────────
