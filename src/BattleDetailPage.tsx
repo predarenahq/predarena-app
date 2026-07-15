@@ -98,17 +98,26 @@ export default function BattleDetailPage() {
   const hasMetaMask = typeof window !== "undefined" && !!(window as any).ethereum
   const arcConnected = !!evmWallet || hasMetaMask
 
+  // The connected EVM address, whichever way they connected. arcConnected
+  // accepts Privy OR bare MetaMask, but the balance fetch and the faucet panel
+  // were both gated on evmWallet?.address - the Privy path only. On MetaMask
+  // that is undefined, so the balance sat at its "0.00" initial value and the
+  // faucet panel silently never mounted. One value, used everywhere.
+  const arcAddress: string =
+    (evmWallet?.address as string) ||
+    (typeof window !== 'undefined' && (window as any).ethereum?.selectedAddress) ||
+    ''
+
   useEffect(() => {
     if (!id) return
     const solAddr = connected && publicKey ? publicKey.toBase58() : ''
-    const evmAddr = (evmWallet?.address) || (typeof window !== 'undefined' && (window as any).ethereum?.selectedAddress) || ''
-    const addrs = [solAddr, evmAddr].filter(Boolean)
+    const addrs = [solAddr, arcAddress].filter(Boolean)
     if (!addrs.length) { setHasUserBet(false); return }
     ;(async () => {
       const { data } = await supabase.from('tickets').select('id').eq('battle_id', id).in('wallet_address', addrs).limit(1)
       setHasUserBet(!!(data && data.length))
     })()
-  }, [id, connected, publicKey, evmWallet?.address])
+  }, [id, connected, publicKey, arcAddress])
 
   useEffect(() => {
     const sharedSide = searchParams.get('side')
@@ -141,18 +150,18 @@ export default function BattleDetailPage() {
 
   // Fetch Arc USDC balance when Arc chain is selected
   useEffect(() => {
-    if (chain === 'arc' && evmWallet?.address) {
-      getUSDCBalance(evmWallet.address as `0x${string}`)
+    if (chain === 'arc' && arcAddress) {
+      getUSDCBalance(arcAddress as `0x${string}`)
         .then(setArcUSDCBalance)
         .catch(console.error)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chain, evmWallet?.address])
+  }, [chain, arcAddress])
 
   async function refreshArcBalance() {
-    if (!evmWallet?.address) return
+    if (!arcAddress) return
     try {
-      setArcUSDCBalance(await getUSDCBalance(evmWallet.address as `0x${string}`))
+      setArcUSDCBalance(await getUSDCBalance(arcAddress as `0x${string}`))
     } catch (e) { console.error('arc balance refresh failed:', e) }
   }
 
@@ -367,8 +376,8 @@ export default function BattleDetailPage() {
       setSelectedSide(null)
 
       // Refresh Arc balance
-      if (evmWallet?.address) {
-        const newBal = await getUSDCBalance(evmWallet.address as `0x${string}`)
+      if (arcAddress) {
+        const newBal = await getUSDCBalance(arcAddress as `0x${string}`)
         setArcUSDCBalance(newBal)
       }
 
@@ -566,9 +575,9 @@ export default function BattleDetailPage() {
           {/* Arc needs real testnet USDC for BOTH the stake and the gas, so an
               empty wallet can do nothing at all. Quiet link when they're funded,
               full walkthrough when they're not. */}
-          {isArc && arcConnected && evmWallet?.address && (
+          {isArc && arcConnected && arcAddress && (
             <ArcFaucetPanel
-              address={evmWallet.address}
+              address={arcAddress}
               balance={arcUSDCBalance}
               onRefresh={refreshArcBalance}
             />

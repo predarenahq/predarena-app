@@ -65,11 +65,16 @@ async function createArcBattles(contract) {
   // error, but a serverless timeout kills the function without running it - and
   // a row stuck in 'creating' is invisible to every future run: arc_battle_id is
   // null but arc_status isn't, so nothing ever picks it up again.
+  // Free abandoned claims. Two ways a row gets stuck at 'creating': a killed
+  // run (timeout skips the catch), or a claim stamped before arc_claimed_at
+  // existed. The second leaves arc_claimed_at NULL - and `NULL < cutoff` is
+  // never true in SQL, so a plain .lt() filter would never reap those rows and
+  // the battle would be invisible to every future run. Catch both.
   await supabase
     .from('battles')
     .update({ arc_status: null, arc_claimed_at: null })
     .eq('arc_status', 'creating')
-    .lt('arc_claimed_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+    .or(`arc_claimed_at.is.null,arc_claimed_at.lt.${new Date(Date.now() - 5 * 60 * 1000).toISOString()}`)
 
   const { data: battles } = await supabase
     .from('battles')
