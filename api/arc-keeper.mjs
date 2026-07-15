@@ -9,7 +9,7 @@ const supabase = createClient(
 )
 
 const ARC_RPC     = 'https://rpc.testnet.arc.network'
-const PREDARENA   = '0xA6D45CA5DF71F064193Fcbb139252032D5950a9E'
+const PREDARENA   = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
 
 const KEEPER_ABI = [
   'function createBattle(string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB) returns (uint256 battleId)',
@@ -157,6 +157,15 @@ async function settleArcBattles(contract) {
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
+  // This endpoint creates and settles battles on-chain with the keeper key. It
+  // was reachable by anyone who knew the URL. Same shared secret as /api/cron;
+  // note the !secret check - without it, an unset CRON_SECRET would make
+  // `undefined !== undefined` false and let every request through.
+  const secret = process.env.CRON_SECRET
+  if (!secret || req.headers['x-cron-secret'] !== secret) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+
   const privateKey = process.env.KEEPER_PRIVATE_KEY
   if (!privateKey) return res.status(500).json({ error: 'KEEPER_PRIVATE_KEY not set' })
 

@@ -1,5 +1,5 @@
 // Arc Testnet
-export const PREDARENA_ADDRESS = '0xA6D45CA5DF71F064193Fcbb139252032D5950a9E' as const
+export const PREDARENA_ADDRESS = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3' as const
 export const USDC_ADDRESS      = '0x3600000000000000000000000000000000000000' as const
 
 // Side enum — mirrors Solidity: None=0, CoinA=1, CoinB=2, Draw=3

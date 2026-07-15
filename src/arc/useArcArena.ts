@@ -7,6 +7,8 @@ import { PREDARENA_ADDRESS, USDC_ADDRESS, ArcSide, ArcStatus } from './contracts
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+// Mirrors the Battle struct. The pool fields are gone: the contract is a pure
+// fixed-odds book now, so there is no parimutuel pool to track.
 export interface ArcBattle {
   id:           bigint
   coinA:        string
@@ -19,12 +21,32 @@ export interface ArcBattle {
   startPriceB:  bigint
   finalPriceA:  bigint
   finalPriceB:  bigint
-  poolA:        bigint
-  poolB:        bigint
-  poolDraw:     bigint
-  totalPool:    bigint
   winner:       number
   status:       number
+}
+
+export interface ArcTicket {
+  id:       bigint
+  battleId: bigint
+  player:   `0x${string}`
+  side:     number
+  stake:    bigint
+  odds:     bigint
+  payout:   bigint
+  closed:   boolean
+}
+
+const MAX_UINT256 = (2n ** 256n) - 1n
+
+const QUOTE_ERRORS: Record<string, string> = {
+  battle_not_on_arc:      'This battle is not available on Arc yet',
+  battle_not_live:        'This battle is no longer live',
+  battle_ended:           'This battle has ended',
+  betting_locked:         'Betting is closed for this battle',
+  pricing_unavailable:    'Price feed unavailable — try again in a moment',
+  insufficient_liquidity: 'The house cannot cover this bet right now — try a smaller stake',
+  odds_too_high:          'Those odds are out of range',
+  invalid_stake:          'Enter a valid stake',
 }
 
 // ── Public client (read-only, no wallet needed) ───────────────────────────────
@@ -48,7 +70,6 @@ export function useArcArena() {
     return evmWallet
   }, [wallets])
 
-  // Build a wallet client from the connected EVM wallet
   const getWalletClient = useCallback(async () => {
     const evmWallet = wallets.find(w => w.chainId?.startsWith('eip155:'))
     const provider = evmWallet
@@ -58,7 +79,6 @@ export function useArcArena() {
     if (!evmWallet && provider) {
       await provider.request({ method: 'eth_requestAccounts' })
     }
-    // Auto-switch wallet to Arc Testnet (chain ID 5042002 = 0x4CEF52)
     try {
       await provider.request({
         method: 'wallet_switchEthereumChain',
@@ -71,7 +91,9 @@ export function useArcArena() {
           params: [{
             chainId: '0x4CEF52',
             chainName: 'Arc Testnet',
-            nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 6 },
+            // Arc's NATIVE gas token is 18dp; only the USDC ERC-20 interface is
+            // 6dp. Declaring 6 here under-reports the wallet's gas balance by 1e12.
+            nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
             rpcUrls: ['https://rpc.testnet.arc.network'],
             blockExplorerUrls: ['https://testnet.arcscan.app'],
           }]
@@ -84,7 +106,7 @@ export function useArcArena() {
     })
   }, [wallets])
 
-  // ── Read: get a single battle ───────────────────────────────────────────────
+  // ── Reads ───────────────────────────────────────────────────────────────────
 
   const getBattle = useCallback(async (battleId: bigint): Promise<ArcBattle> => {
     const result = await publicClient.readContract({
@@ -93,22 +115,28 @@ export function useArcArena() {
       functionName: 'getBattle',
       args:         [battleId],
     })
-    return result as ArcBattle
+    return result as unknown as ArcBattle
   }, [])
 
-  // ── Read: get user's USDC balance in the arena contract ────────────────────
-
-  const getArenaBalance = useCallback(async (address: `0x${string}`): Promise<string> => {
-    const raw = await publicClient.readContract({
+  const getTicket = useCallback(async (ticketId: bigint): Promise<ArcTicket> => {
+    const result = await publicClient.readContract({
       address:      PREDARENA_ADDRESS,
       abi:          PREDARENA_ABI,
-      functionName: 'getBalance',
-      args:         [address],
-    }) as bigint
-    return formatUnits(raw, 6) // USDC has 6 decimals
+      functionName: 'getTicket',
+      args:         [ticketId],
+    })
+    return result as unknown as ArcTicket
   }, [])
 
-  // ── Read: get user's USDC wallet balance ───────────────────────────────────
+  const getPlayerTickets = useCallback(async (address: `0x${string}`): Promise<bigint[]> => {
+    const ids = await publicClient.readContract({
+      address:      PREDARENA_ADDRESS,
+      abi:          PREDARENA_ABI,
+      functionName: 'getPlayerTickets',
+      args:         [address],
+    }) as readonly bigint[]
+    return [...ids]
+  }, [])
 
   const getUSDCBalance = useCallback(async (address: `0x${string}`): Promise<string> => {
     const raw = await publicClient.readContract({
@@ -120,108 +148,154 @@ export function useArcArena() {
     return formatUnits(raw, 6)
   }, [])
 
-  // ── Write: approve USDC then place a single bet ────────────────────────────
+  // How much exposure the house can still back. Useful for showing the user why
+  // a big stake was refused before they spend gas finding out.
+  const getFreeCapital = useCallback(async (): Promise<string> => {
+    const raw = await publicClient.readContract({
+      address:      PREDARENA_ADDRESS,
+      abi:          PREDARENA_ABI,
+      functionName: 'freeCapital',
+    }) as bigint
+    return formatUnits(raw, 6)
+  }, [])
 
+  // ── Write: place a bet ──────────────────────────────────────────────────────
+
+  /**
+   * The contract refuses any bet without an EIP-712 quote signed by our quoter
+   * key, so this is a three-step dance:
+   *
+   *   1. approve (only if the allowance is short)
+   *   2. fetch a signed quote  <- 60s TTL
+   *   3. placeBet with the signature
+   *
+   * The approve goes FIRST on purpose. It needs a wallet confirmation, which can
+   * take as long as the user takes — and if the quote were already in hand, its
+   * 60-second clock would be burning the whole time and the bet would revert with
+   * `quote_expired`. Fetch the quote once the slow part is behind us.
+   */
   const placeBet = useCallback(async (
-    battleId:       bigint,
-    side:           ArcSide,
-    stakeUSDC:      string,   // human-readable e.g. "10.50"
-    guaranteedOdds: bigint,   // e.g. 17600n = 1.76x
+    battleUuid:  string,    // Supabase battle UUID — what the quote API keys on
+    arcBattleId: bigint,    // the on-chain battle id
+    side:        ArcSide,
+    stakeUSDC:   string,    // human-readable e.g. "10.50"
   ) => {
     setLoading(true)
     setError(null)
     try {
       const walletClient = await getWalletClient()
       const [address]    = await walletClient.getAddresses()
-      const stakeRaw     = parseUnits(stakeUSDC, 6) // convert to 6dp
+      const stakeRaw     = parseUnits(stakeUSDC, 6)
 
-      // Step 1: Approve the arena to spend USDC
-      const approveTx = await walletClient.writeContract({
+      // 1. Approve only when we have to. Max approval means returning bettors
+      //    get a single popup instead of two.
+      const allowance = await publicClient.readContract({
         address:      USDC_ADDRESS,
         abi:          ERC20_ABI,
-        functionName: 'approve',
-        args:         [PREDARENA_ADDRESS, stakeRaw],
-        account:      address,
-      })
-      await publicClient.waitForTransactionReceipt({ hash: approveTx })
+        functionName: 'allowance',
+        args:         [address, PREDARENA_ADDRESS],
+      }) as bigint
 
-      // Step 2: Place the bet
+      if (allowance < stakeRaw) {
+        const approveTx = await walletClient.writeContract({
+          address:      USDC_ADDRESS,
+          abi:          ERC20_ABI,
+          functionName: 'approve',
+          args:         [PREDARENA_ADDRESS, MAX_UINT256],
+          account:      address,
+        })
+        await publicClient.waitForTransactionReceipt({ hash: approveTx })
+      }
+
+      // 2. Now that nothing slow is left, get the quote.
+      const qRes = await fetch('/api/arc-quote', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player:    address,
+          battle_id: battleUuid,
+          side:      Number(side),
+          stake:     Number(stakeUSDC),
+        }),
+      })
+      const quote = await qRes.json()
+      if (!qRes.ok) {
+        throw new Error(QUOTE_ERRORS[quote.error] || quote.error || 'Could not price this bet')
+      }
+
+      // 3. Place it. Odds come from the quote — the bettor never picks them.
       const betTx = await walletClient.writeContract({
         address:      PREDARENA_ADDRESS,
         abi:          PREDARENA_ABI,
         functionName: 'placeBet',
-        args:         [battleId, side, stakeRaw, guaranteedOdds],
-        account:      address,
+        args: [
+          arcBattleId,
+          Number(side),
+          BigInt(quote.stake),
+          BigInt(quote.odds),
+          BigInt(quote.nonce),
+          BigInt(quote.deadline),
+          quote.signature as `0x${string}`,
+        ],
+        account: address,
       })
       const receipt = await publicClient.waitForTransactionReceipt({ hash: betTx })
-      return receipt
+      return { receipt, txHash: betTx, odds: quote.odds_display as number }
     } catch (err: any) {
-      setError(err.message || 'Transaction failed')
+      const msg = err?.shortMessage || err?.message || 'Transaction failed'
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
     }
   }, [getWalletClient])
 
-  // ── Write: withdraw winnings ────────────────────────────────────────────────
+  // ── Write: claim a winning ticket ───────────────────────────────────────────
 
-  const withdraw = useCallback(async (amountUSDC: string) => {
+  // Payouts are pull-based now: settlement only records the winner, and each
+  // winner claims their own stake x odds. That's what killed the old unbounded
+  // settlement loop that could run a popular battle out of gas.
+  const claim = useCallback(async (ticketId: bigint) => {
     setLoading(true)
     setError(null)
     try {
       const walletClient = await getWalletClient()
       const [address]    = await walletClient.getAddresses()
-      const amountRaw    = parseUnits(amountUSDC, 6)
-
       const tx = await walletClient.writeContract({
         address:      PREDARENA_ADDRESS,
         abi:          PREDARENA_ABI,
-        functionName: 'withdraw',
-        args:         [amountRaw],
+        functionName: 'claim',
+        args:         [ticketId],
         account:      address,
       })
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx })
-      return receipt
+      return await publicClient.waitForTransactionReceipt({ hash: tx })
     } catch (err: any) {
-      setError(err.message || 'Withdrawal failed')
+      const msg = err?.shortMessage || err?.message || 'Claim failed'
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
     }
   }, [getWalletClient])
 
-  // ── Write: deposit USDC into arena ─────────────────────────────────────────
-
-  const deposit = useCallback(async (amountUSDC: string) => {
+  // Refund a ticket whose battle was cancelled.
+  const refund = useCallback(async (ticketId: bigint) => {
     setLoading(true)
     setError(null)
     try {
       const walletClient = await getWalletClient()
       const [address]    = await walletClient.getAddresses()
-      const amountRaw    = parseUnits(amountUSDC, 6)
-
-      // Approve first
-      const approveTx = await walletClient.writeContract({
-        address:      USDC_ADDRESS,
-        abi:          ERC20_ABI,
-        functionName: 'approve',
-        args:         [PREDARENA_ADDRESS, amountRaw],
-        account:      address,
-      })
-      await publicClient.waitForTransactionReceipt({ hash: approveTx })
-
-      // Then deposit
       const tx = await walletClient.writeContract({
         address:      PREDARENA_ADDRESS,
         abi:          PREDARENA_ABI,
-        functionName: 'deposit',
-        args:         [amountRaw],
+        functionName: 'refund',
+        args:         [ticketId],
         account:      address,
       })
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx })
-      return receipt
+      return await publicClient.waitForTransactionReceipt({ hash: tx })
     } catch (err: any) {
-      setError(err.message || 'Deposit failed')
+      const msg = err?.shortMessage || err?.message || 'Refund failed'
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
@@ -230,28 +304,27 @@ export function useArcArena() {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  // Format USDC pool size for display e.g. 64800000000n → "$64,800"
   const formatUSDC = (raw: bigint): string => {
     const n = Number(formatUnits(raw, 6))
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  // Check if a battle is on Arc (status Live or Settled)
   const isLive = (battle: ArcBattle): boolean =>
     battle.status === ArcStatus.Live && BigInt(Math.floor(Date.now() / 1000)) < battle.endTime
 
   return {
-    // State
     loading,
     error,
     // Read
     getBattle,
-    getArenaBalance,
+    getTicket,
+    getPlayerTickets,
     getUSDCBalance,
+    getFreeCapital,
     // Write
     placeBet,
-    withdraw,
-    deposit,
+    claim,
+    refund,
     // Helpers
     formatUSDC,
     isLive,

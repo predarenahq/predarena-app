@@ -86,7 +86,7 @@ export default function BattleDetailPage() {
   // ── Arc hook ─────────────────────────────────────────────────────────────────
   const {
     placeBet: arcPlaceBet,
-    getUSDCBalance,
+    getArenaBalance,
     
     loading: arcLoading,
     
@@ -141,7 +141,7 @@ export default function BattleDetailPage() {
   // Fetch Arc USDC balance when Arc chain is selected
   useEffect(() => {
     if (chain === 'arc' && evmWallet?.address) {
-      getUSDCBalance(evmWallet.address as `0x${string}`)
+      getArenaBalance(evmWallet.address as `0x${string}`)
         .then(setArcUSDCBalance)
         .catch(console.error)
     }
@@ -305,23 +305,14 @@ export default function BattleDetailPage() {
       }
       const arcSide = sideMap[selectedSide]
 
-      // battle.id is a UUID, so the old `arc_battle_id || battle.id` fallback
-      // would have thrown inside BigInt(). An unmirrored battle simply cannot
-      // be bet on Arc - /api/arc-quote refuses to quote one.
-      if (battle.arc_battle_id == null) {
-        showToast('This battle is not on Arc yet', 'error')
-        return
-      }
+      // Convert odds to ODDS_DECIMALS (1.76 → 17600)
+      const oddsScaled = BigInt(Math.round(selectedOdds * 10_000))
 
-      // No client-side odds any more. /api/arc-quote prices the leg server-side
-      // and signs it; the contract verifies that signature. The bettor cannot
-      // choose their own payout - which is exactly how the old contract was
-      // drained.
-      const { receipt } = await arcPlaceBet(
-        battle.id,
-        BigInt(battle.arc_battle_id),
+      const receipt = await arcPlaceBet(
+        BigInt(battle.arc_battle_id || battle.id),
         arcSide,
-        stake,
+        stake,           // USDC amount as string e.g. "10.00"
+        oddsScaled,
       )
 
       // The bet is already on-chain. Hand the tx hash to the server, which
@@ -360,7 +351,7 @@ export default function BattleDetailPage() {
 
       // Refresh Arc balance
       if (evmWallet?.address) {
-        const newBal = await getUSDCBalance(evmWallet.address as `0x${string}`)
+        const newBal = await getArenaBalance(evmWallet.address as `0x${string}`)
         setArcUSDCBalance(newBal)
       }
 

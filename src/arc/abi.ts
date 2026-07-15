@@ -1,4 +1,5 @@
-// Auto-generated from PredArena.sol — do not edit manually
+// Auto-generated from PredArena.sol — do not edit manually.
+// Regenerate: forge inspect PredArena abi --json
 export const PREDARENA_ABI = [
   {
     "type": "constructor",
@@ -12,13 +13,18 @@ export const PREDARENA_ABI = [
         "name": "_treasury",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "_quoter",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "BPS_DENOMINATOR",
+    "name": "BPS",
     "inputs": [],
     "outputs": [
       {
@@ -31,7 +37,33 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "DRAW_THRESHOLD_BPS",
+    "name": "COMBO_QUOTE_TYPEHASH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DOMAIN_SEPARATOR",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DRAW_BPS",
     "inputs": [],
     "outputs": [
       {
@@ -44,7 +76,46 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "MAX_ODDS_MULTIPLIER",
+    "name": "MAX_COMBO_LEGS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_COMBO_ODDS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_ODDS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_ODDS",
     "inputs": [],
     "outputs": [
       {
@@ -70,7 +141,7 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "PLATFORM_FEE_BPS",
+    "name": "PRICE_SCALE",
     "inputs": [],
     "outputs": [
       {
@@ -83,13 +154,13 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "WITHDRAWAL_FEE_BPS",
+    "name": "QUOTE_TYPEHASH",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -109,12 +180,12 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "balances",
+    "name": "battleLiability",
     "inputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "address"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -128,13 +199,8 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "battleTickets",
+    "name": "battleStakes",
     "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
       {
         "name": "",
         "type": "uint256",
@@ -217,26 +283,6 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "poolA",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "poolB",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "poolDraw",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "totalPool",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "winner",
         "type": "uint8",
         "internalType": "enum PredArena.Side"
@@ -264,8 +310,27 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "claimWinnings",
-    "inputs": [],
+    "name": "claim",
+    "inputs": [
+      {
+        "name": "ticketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimCombo",
+    "inputs": [
+      {
+        "name": "comboId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -301,12 +366,17 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "settled",
-        "type": "bool",
-        "internalType": "bool"
+        "name": "payout",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "won",
+        "name": "outcome",
+        "type": "uint8",
+        "internalType": "enum PredArena.Outcome"
+      },
+      {
+        "name": "closed",
         "type": "bool",
         "internalType": "bool"
       }
@@ -369,7 +439,20 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "deposit",
+    "name": "freeCapital",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "fundHouse",
     "inputs": [
       {
         "name": "amount",
@@ -379,25 +462,6 @@ export const PREDARENA_ABI = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "getBalance",
-    "inputs": [
-      {
-        "name": "p",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -467,26 +531,6 @@ export const PREDARENA_ABI = [
           },
           {
             "name": "finalPriceB",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "poolA",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "poolB",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "poolDraw",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalPool",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -561,17 +605,17 @@ export const PREDARENA_ABI = [
             "internalType": "uint256"
           },
           {
-            "name": "ticketIds",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "name": "payout",
+            "type": "uint256",
+            "internalType": "uint256"
           },
           {
-            "name": "settled",
-            "type": "bool",
-            "internalType": "bool"
+            "name": "outcome",
+            "type": "uint8",
+            "internalType": "enum PredArena.Outcome"
           },
           {
-            "name": "won",
+            "name": "closed",
             "type": "bool",
             "internalType": "bool"
           }
@@ -582,7 +626,57 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
+    "name": "getComboLegs",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PredArena.Leg[]",
+        "components": [
+          {
+            "name": "battleId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "side",
+            "type": "uint8",
+            "internalType": "enum PredArena.Side"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getPlayerCombos",
+    "inputs": [
+      {
+        "name": "p",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPlayerTickets",
     "inputs": [
       {
         "name": "p",
@@ -641,21 +735,34 @@ export const PREDARENA_ABI = [
             "internalType": "uint256"
           },
           {
-            "name": "guaranteedOdds",
+            "name": "odds",
             "type": "uint256",
             "internalType": "uint256"
           },
           {
-            "name": "comboId",
+            "name": "payout",
             "type": "uint256",
             "internalType": "uint256"
           },
           {
-            "name": "claimed",
+            "name": "closed",
             "type": "bool",
             "internalType": "bool"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isSolvent",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -732,9 +839,24 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "guaranteedOdds",
+        "name": "odds",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "nonce",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "signature",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [
@@ -771,9 +893,24 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "totalComboOdds",
+        "name": "comboOdds",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "nonce",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "signature",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [
@@ -787,34 +924,62 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "playerCombos",
-    "inputs": [
+    "name": "quoter",
+    "inputs": [],
+    "outputs": [
       {
         "name": "",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
+    "name": "refund",
+    "inputs": [
+      {
+        "name": "ticketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "resolveCombo",
+    "inputs": [
+      {
+        "name": "comboId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setKeeper",
     "inputs": [
       {
-        "name": "_keeper",
+        "name": "a",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setQuoter",
+    "inputs": [
+      {
+        "name": "a",
         "type": "address",
         "internalType": "address"
       }
@@ -827,7 +992,7 @@ export const PREDARENA_ABI = [
     "name": "setTreasury",
     "inputs": [
       {
-        "name": "_treasury",
+        "name": "a",
         "type": "address",
         "internalType": "address"
       }
@@ -860,16 +1025,27 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "settleCombo",
+    "name": "sideLiability",
     "inputs": [
       {
-        "name": "comboId",
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -908,19 +1084,32 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "guaranteedOdds",
+        "name": "odds",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "comboId",
+        "name": "payout",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "claimed",
+        "name": "closed",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalLiability",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -930,7 +1119,7 @@ export const PREDARENA_ABI = [
     "name": "transferAdmin",
     "inputs": [
       {
-        "name": "_new",
+        "name": "a",
         "type": "address",
         "internalType": "address"
       }
@@ -966,7 +1155,26 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
-    "name": "withdraw",
+    "name": "usedQuotes",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "withdrawHouse",
     "inputs": [
       {
         "name": "amount",
@@ -978,11 +1186,17 @@ export const PREDARENA_ABI = [
     "stateMutability": "nonpayable"
   },
   {
-    "type": "function",
-    "name": "withdrawTreasury",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "type": "event",
+    "name": "BattleCancelled",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -1087,7 +1301,63 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "guaranteedOdds",
+        "name": "odds",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Claimed",
+    "inputs": [
+      {
+        "name": "ticketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ComboClaimed",
+    "inputs": [
+      {
+        "name": "comboId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -1124,20 +1394,51 @@ export const PREDARENA_ABI = [
         "internalType": "uint256"
       },
       {
-        "name": "ticketIds",
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "battleIds",
         "type": "uint256[]",
         "indexed": false,
         "internalType": "uint256[]"
+      },
+      {
+        "name": "sides",
+        "type": "uint8[]",
+        "indexed": false,
+        "internalType": "enum PredArena.Side[]"
       }
     ],
     "anonymous": false
   },
   {
     "type": "event",
-    "name": "Deposited",
+    "name": "ComboResolved",
     "inputs": [
       {
-        "name": "player",
+        "name": "comboId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcome",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum PredArena.Outcome"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HouseFunded",
+    "inputs": [
+      {
+        "name": "from",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1153,10 +1454,10 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "event",
-    "name": "WinningsClaimed",
+    "name": "HouseWithdrawn",
     "inputs": [
       {
-        "name": "player",
+        "name": "to",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1172,8 +1473,14 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "event",
-    "name": "Withdrawn",
+    "name": "Refunded",
     "inputs": [
+      {
+        "name": "ticketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
       {
         "name": "player",
         "type": "address",
@@ -1181,19 +1488,7 @@ export const PREDARENA_ABI = [
         "internalType": "address"
       },
       {
-        "name": "grossAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "fee",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "netAmount",
+        "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -1203,7 +1498,6 @@ export const PREDARENA_ABI = [
   }
 ] as const
 
-// Minimal ERC20 ABI for USDC approve
 export const ERC20_ABI = [
   {
     type: "function",

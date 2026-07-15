@@ -11,12 +11,15 @@ const supabase = createClient(
 )
 
 const ARC_RPC = 'https://rpc.testnet.arc.network'
-const PREDARENA_ADDRESS = '0xA6D45CA5DF71F064193Fcbb139252032D5950a9E'
+const PREDARENA_ADDRESS = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
 const USDC_DECIMALS = 6
 const ODDS_DECIMALS = 10000
 
+// Matches the rewritten contract: `guaranteedOdds` is gone (the bettor no
+// longer supplies odds - they're EIP-712 signed by the quoter), and `payout` is
+// emitted so the mirror doesn't have to recompute it.
 const BET_PLACED = parseAbiItem(
-  'event BetPlaced(uint256 indexed ticketId, uint256 indexed battleId, address indexed player, uint8 side, uint256 stake, uint256 guaranteedOdds)'
+  'event BetPlaced(uint256 indexed ticketId, uint256 indexed battleId, address indexed player, uint8 side, uint256 stake, uint256 odds, uint256 payout)'
 )
 
 const client = createPublicClient({ transport: http(ARC_RPC) })
@@ -60,7 +63,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'not_a_bet_placed_event' })
     }
 
-    const { player, side, stake, guaranteedOdds, battleId } = decoded.args
+    const { player, side, stake, odds, battleId } = decoded.args
 
     // 3. Cross-check the on-chain battleId against the Supabase battle row.
     const { data: battle, error: bErr } = await supabase
@@ -70,7 +73,15 @@ export default async function handler(req, res) {
       .single()
     if (bErr || !battle) return res.status(404).json({ error: 'battle_not_found' })
 
-    if (battle.arc_battle_id != null && BigInt(battle.arc_battle_id) !== battleId) {
+    // A battle with no arc_battle_id has no on-chain counterpart, so an
+    // on-chain bet cannot legitimately belong to it. The old code only compared
+    // when arc_battle_id was non-null, which meant an unmapped battle skipped
+    // validation entirely - a bet on one battle could be recorded against
+    // another. Unmapped now means rejected.
+    if (battle.arc_battle_id == null) {
+      return res.status(400).json({ error: 'battle_not_on_arc' })
+    }
+    if (BigInt(battle.arc_battle_id) !== battleId) {
       return res.status(400).json({ error: 'battle_id_mismatch' })
     }
 
@@ -80,7 +91,7 @@ export default async function handler(req, res) {
       p_wallet: player,
       p_side: Number(side),
       p_stake: Number(stake) / 10 ** USDC_DECIMALS,
-      p_odds: Number(guaranteedOdds) / ODDS_DECIMALS,
+      p_odds: Number(odds) / ODDS_DECIMALS,
       p_tx_hash: tx_hash,
     })
 
