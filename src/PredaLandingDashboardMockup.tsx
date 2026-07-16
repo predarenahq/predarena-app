@@ -2275,18 +2275,6 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     fetchHistory()
   }, [walletAddress, evmAddresses.join(",")]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!walletAddress && !evmAddresses.length) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see history</p>
-    </div>
-  )
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <p style={{ color: COLORS.textSoft }}>Loading history...</p>
-    </div>
-  )
-
   // One card per BET, not per row. A 4-leg combo is 4 ticket rows sharing a
   // combo_id, and rendering them individually showed one bet as four cards -
   // some "Won", some "Lost" - which is meaningless: a combo pays only if every
@@ -2304,6 +2292,18 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     }
     return out
   }, [tickets])
+
+  if (!walletAddress && !evmAddresses.length) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see history</p>
+    </div>
+  )
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <p style={{ color: COLORS.textSoft }}>Loading history...</p>
+    </div>
+  )
 
   if (!tickets.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
