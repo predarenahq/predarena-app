@@ -36,6 +36,7 @@ import {
   Copy,
   Check,
   MinusCircle,
+  Loader2,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
@@ -1516,6 +1517,7 @@ function SlipDrawer({
   slipChain,
   setSlipChain,
   arcConnected,
+  placing,
 }: {
   open: boolean;
   items: SlipSelection[];
@@ -1529,6 +1531,7 @@ function SlipDrawer({
   slipChain: 'solana' | 'arc';
   setSlipChain: (c: 'solana' | 'arc') => void;
   arcConnected: boolean;
+  placing?: boolean;
 }) {
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
@@ -1723,8 +1726,18 @@ function SlipDrawer({
               </div>
             </div>
 
-          <button disabled={!items.length} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
-            {requoteReady ? 'Confirm at new odds' : items.length > 1 ? `Place Combo (${items.length} legs)` : 'Place Ticket'}
+          {/* Disabled while a bet is in flight. An Arc bet is a quote fetch plus
+              TWO wallet confirmations, so the button sits idle-looking for many
+              seconds - and a double-tap there means two real transactions. */}
+          <button disabled={!items.length || placing} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
+            {placing && <Loader2 className="h-4 w-4 animate-spin" />}
+            {placing
+              ? (slipChain === 'arc' ? 'Confirm in your wallet…' : 'Placing…')
+              : requoteReady
+                ? 'Confirm at new odds'
+                : items.length > 1
+                  ? `Place Combo (${items.length} legs)`
+                  : 'Place Ticket'}
           </button>
         </div>
       </div>
@@ -3109,7 +3122,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} placing={arcLoading} />
       {shareData && (
         <BetShareModal
           open={shareModalOpen}
