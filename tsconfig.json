@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "target": "es5",
+    // TS7 deprecates es5/node10 and refuses to RUN without this ack - which
+    // meant `tsc --noEmit` could not typecheck locally and every type error
+    // took a 3-minute round trip through the Vercel build to discover.
+    "ignoreDeprecations": "6.0",
     "lib": [
       "dom",
       "dom.iterable",

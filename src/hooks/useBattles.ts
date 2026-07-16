@@ -7,6 +7,12 @@ type MatchCategory = "Major" | "Altcoins" | "L1" | "L2" | "DeFi" | "Meme" | "AI"
 
 export type Match = {
   id: string
+  // The on-chain id of this battle's Arc counterpart, null until the keeper
+  // mirrors it. NOTE: there are three separate `Match` declarations in this
+  // codebase (here, src/types/index.ts, and the homepage) kept in sync by an
+  // `as any` cast - which is exactly why arc_battle_id could go missing without
+  // a single type error. Worth collapsing to one.
+  arcBattleId?: number | null
   category: MatchCategory
   board: 'Live' | 'Upcoming'
   duration: string
