@@ -129,7 +129,22 @@ export default async function handler(req, res) {
       const { data: rows, error: rErr } = await supabase
         .from('battles').select('id, arc_battle_id').in('arc_battle_id', arcIds)
       if (rErr) throw rErr
-      const byArcId = new Map((rows || []).map((r) => [Number(r.arc_battle_id), r.id]))
+
+      // Refuse to guess. arc_battle_id used to be non-unique - the retired
+      // contract's ids were left on settled/void battles while the new contract
+      // restarted at 1 and reissued them - and building a Map here silently kept
+      // whichever row came back last. Two combos got recorded against May-30
+      // void battles that way. There is a unique index on it now, but a mirror
+      // that mis-attributes a real bet must break, not shrug.
+      const byArcId = new Map()
+      for (const row of rows || []) {
+        const k = Number(row.arc_battle_id)
+        if (byArcId.has(k)) {
+          console.error(`ambiguous arc_battle_id ${k}: ${byArcId.get(k)} and ${row.id}`)
+          return res.status(500).json({ error: 'ambiguous_battle_mapping' })
+        }
+        byArcId.set(k, row.id)
+      }
 
       const legs = []
       for (let i = 0; i < arcIds.length; i++) {
