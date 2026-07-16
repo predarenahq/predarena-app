@@ -45,10 +45,34 @@ const ERROR_STATUS = {
   invalid_tx_hash:     400,
 }
 
+/**
+ * Stamps the booking code onto the ticket rows this tx created.
+ *
+ * Exact, unlike the Solana path: every Arc ticket from one transaction carries
+ * the same arc_tx_hash, so there is no wallet + battle-ids + 30s-window
+ * heuristic to get wrong. Service role, because RLS blocks client UPDATEs on
+ * tickets - which is exactly why the client-side stamp silently wrote nothing
+ * and every share_code came back null.
+ *
+ * Best-effort: the bet is already on-chain and recorded. A failed stamp costs
+ * the share code, not the bet.
+ */
+async function stampShareCode(supabase, txHash, code) {
+  if (!code) return
+  try {
+    await supabase.from('tickets')
+      .update({ share_code: code })
+      .eq('arc_tx_hash', txHash)
+      .is('share_code', null)
+  } catch (err) {
+    console.error('share_code stamp failed:', err?.message)
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
-  const { battle_id, tx_hash, leg_odds } = req.body || {}
+  const { battle_id, tx_hash, leg_odds, code } = req.body || {}
   if (!tx_hash) return res.status(400).json({ error: 'missing_params' })
 
   try {
@@ -131,6 +155,7 @@ export default async function handler(req, res) {
         console.error('record_arc_combo error:', error.message)
         return res.status(500).json({ error: 'record_failed' })
       }
+      await stampShareCode(supabase, tx_hash, code)
       return res.status(200).json(data)
     }
 
@@ -175,6 +200,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'record_failed' })
     }
 
+    await stampShareCode(supabase, tx_hash, code)
     return res.status(200).json(data)
   } catch (err) {
     console.error('place-bet-arc error:', err.message)

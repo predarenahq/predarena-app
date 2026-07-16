@@ -2830,6 +2830,20 @@ export default function PredaLandingDashboardMockup() {
     }
 
     const isCombo = slipSelections.length > 1
+    const sel0 = slipSelections[0]
+    const c0 = sel0.matchTitle.split(' vs ')[0]
+    const c1 = sel0.matchTitle.split(' vs ')[1] || ''
+    const legsForShare = slipSelections.map((sel) => ({
+      battle_id: sel.matchId, side: sideNumOf(sel),
+    }))
+
+    // Code is generated PURE here (no DB write) so it can ride along with the
+    // mirror, which stamps it onto the tickets with the service role. The
+    // bet_shares row is saved only after the bet lands - a failed bet never
+    // orphans a code.
+    const { makeShareCode, saveBetShare } = await import('./utils/betShare')
+    const code = makeShareCode()
+
     try {
       let txHash: string
       let legOdds: string[] | undefined
@@ -2864,10 +2878,13 @@ export default function PredaLandingDashboardMockup() {
           // ComboPlaced omits per-leg odds; the server verifies their product
           // against the on-chain comboOdds before recording.
           leg_odds: legOdds,
+          code,
         }),
       })
 
       if (!res.ok) {
+        // The bet IS on-chain - only the mirror failed. Say that, don't imply
+        // the money vanished.
         const { error } = await res.json()
         window.dispatchEvent(new CustomEvent('toast', {
           detail: {
@@ -2875,14 +2892,43 @@ export default function PredaLandingDashboardMockup() {
             type: 'error',
           },
         }))
-      } else {
+        setSlipSelections([])
+        setSlipOpen(false)
+        return
+      }
+
+      // Recorded. Save the share row now that tickets exist to restore to, then
+      // open the modal - it doubles as the confirmation. Slip clearing is
+      // deferred to its onClose so it can't re-render over the modal.
+      try {
+        await saveBetShare({
+          code,
+          legs: legsForShare,
+          oddsAtShare: sel0.oddsAtPick,
+          coinA: c0,
+          coinB: c1,
+          league: '',
+          duration: sel0.duration,
+          createdBy: evmAddresses[0] || '',
+        })
+        setShareData({
+          code,
+          coinA: c0,
+          coinB: c1,
+          side: sideNumOf(sel0),
+          odds: isCombo ? slipSelections.reduce((a, x) => a * x.oddsAtPick, 1) : sel0.oddsAtPick,
+          stake: totalStake,
+          legCount: slipSelections.length,
+        })
+        setShareModalOpen(true)
+      } catch (shareErr) {
+        console.error('Share save failed:', shareErr)
         window.dispatchEvent(new CustomEvent('toast', {
           detail: { message: isCombo ? 'Combo placed on Arc' : 'Bet placed on Arc', type: 'success' },
         }))
+        setSlipSelections([])
+        setSlipOpen(false)
       }
-
-      setSlipSelections([])
-      setSlipOpen(false)
     } catch (err: any) {
       const msg = err?.shortMessage || err?.message || 'Arc bet failed'
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'error' } }))
