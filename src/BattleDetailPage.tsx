@@ -600,9 +600,9 @@ export default function BattleDetailPage() {
               onClick={() => battle.arc_battle_id && setChain('arc')}
               className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
               style={{
-                background: isArc ? 'rgba(124,58,237,0.2)' : 'transparent',
-                color: isArc ? '#a78bfa' : COLORS.textSoft,
-                border: isArc ? '1px solid rgba(124,58,237,0.4)' : '1px solid transparent',
+                background: isArc ? 'var(--chain-arc-soft)' : 'transparent',
+                color: isArc ? 'var(--chain-arc)' : COLORS.textSoft,
+                border: isArc ? '1px solid var(--chain-arc-soft)' : '1px solid transparent',
               }}
             >
               ⬡ Arc · USDC
@@ -611,8 +611,8 @@ export default function BattleDetailPage() {
 
           {/* Arc info banner */}
           {isArc && (
-            <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)' }}>
-              <p style={{ color: '#a78bfa' }}>
+            <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid var(--chain-arc-soft)' }}>
+              <p style={{ color: 'var(--chain-arc)' }}>
                 ⬡ Betting on Arc — payouts settle in USDC on-chain. Sub-second finality.
               </p>
             </div>
@@ -675,7 +675,7 @@ export default function BattleDetailPage() {
             </div>
           ) : isArc ? (
             !arcConnected ? (
-              <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)' }}>
+              <div className="text-center py-3 rounded-xl" style={{ background: 'var(--chain-arc-soft)', border: '1px solid var(--chain-arc-soft)' }}>
                 <button onClick={() => connectWallet()} style={{ background: 'rgba(124,58,237,0.8)', color: 'white', border: 'none', borderRadius: 12, padding: '12px 0', width: '100%', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>Connect Wallet for Arc</button>
               </div>
             ) : (

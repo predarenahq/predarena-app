@@ -763,7 +763,7 @@ function Toast() {
       {toasts.map(toast => (
         <div key={toast.id} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-xl"
           style={{ 
-            background: toast.type === 'success' ? COLORS.accent : '#ef4444',
+            background: toast.type === 'success' ? COLORS.accent : 'var(--neg)',
             color: toast.type === 'success' ? '#000' : '#fff'
           }}>
           {toast.message}
@@ -1439,11 +1439,11 @@ function MarketCard({
         )}
         <div className="flex flex-col gap-1.5">
           <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>{match.left.ticker}</span>
-          <span className="text-[15px] font-semibold" style={{ color: isNeg(match.left.change) ? "#dc2626" : "#059669", fontVariantNumeric: "tabular-nums" }}>{match.left.change}</span>
+          <span className="text-[15px] font-semibold" style={{ color: isNeg(match.left.change) ? "var(--neg)" : "var(--pos)", fontVariantNumeric: "tabular-nums" }}>{match.left.change}</span>
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>{match.right.ticker}</span>
-          <span className="text-[15px] font-semibold" style={{ color: isNeg(match.right.change) ? "#dc2626" : "#059669", fontVariantNumeric: "tabular-nums" }}>{match.right.change}</span>
+          <span className="text-[15px] font-semibold" style={{ color: isNeg(match.right.change) ? "var(--neg)" : "var(--pos)", fontVariantNumeric: "tabular-nums" }}>{match.right.change}</span>
         </div>
       </div>
 
@@ -1610,8 +1610,8 @@ function SlipDrawer({
                   <p
                     className="text-[17px] font-semibold transition-colors duration-300"
                     style={{
-                      color: oddsFlash?.[item.matchId] === 'up' ? '#22c55e'
-                        : oddsFlash?.[item.matchId] === 'down' ? '#ef4444'
+                      color: oddsFlash?.[item.matchId] === 'up' ? 'var(--pos)'
+                        : oddsFlash?.[item.matchId] === 'down' ? 'var(--neg)'
                         : "var(--accent)",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -1620,7 +1620,7 @@ function SlipDrawer({
                   </p>
                   {oddsFlash?.[item.matchId] && (
                     <p className="text-[9px] font-semibold uppercase tracking-[0.1em]"
-                       style={{ color: oddsFlash[item.matchId] === 'up' ? '#22c55e' : '#ef4444' }}>
+                       style={{ color: oddsFlash[item.matchId] === 'up' ? 'var(--pos)' : 'var(--neg)' }}>
                       {oddsFlash[item.matchId] === 'up' ? 'up' : 'down'}
                     </p>
                   )}
@@ -1661,9 +1661,9 @@ function SlipDrawer({
                 disabled={!allOnArc}
                 className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed"
                 style={{
-                  background: slipChain === 'arc' ? 'rgba(124,58,237,0.2)' : 'transparent',
-                  color: !allOnArc ? 'var(--text-muted)' : slipChain === 'arc' ? '#a78bfa' : 'var(--text-soft)',
-                  border: slipChain === 'arc' ? '1px solid rgba(124,58,237,0.4)' : '1px solid transparent',
+                  background: slipChain === 'arc' ? 'var(--chain-arc-soft)' : 'transparent',
+                  color: !allOnArc ? 'var(--text-muted)' : slipChain === 'arc' ? 'var(--chain-arc)' : 'var(--text-soft)',
+                  border: slipChain === 'arc' ? '1px solid var(--chain-arc-soft)' : '1px solid transparent',
                   opacity: allOnArc ? 1 : 0.45,
                 }}
               >
@@ -1679,7 +1679,7 @@ function SlipDrawer({
               </p>
             )}
             {slipChain === 'arc' && !arcConnected && (
-              <p className="mb-3 text-[10px]" style={{ color: '#f43f5e' }}>
+              <p className="mb-3 text-[10px]" style={{ color: 'var(--neg)' }}>
                 Connect an EVM wallet to bet on Arc
               </p>
             )}
@@ -1698,8 +1698,8 @@ function SlipDrawer({
 
             <div className="mt-4 space-y-2 text-sm">
               {items.length > 1 && (
-                <div className="rounded-xl px-3 py-2 mb-2" style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}>
-                  <p className="text-xs font-medium" style={{ color: '#f43f5e' }}>
+                <div className="rounded-xl px-3 py-2 mb-2" style={{ background: 'var(--neg-soft)', border: '1px solid var(--neg-soft)' }}>
+                  <p className="text-xs font-medium" style={{ color: 'var(--neg)' }}>
                     <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo Bet — If any leg loses, the entire bet loses
                   </p>
                 </div>
@@ -2025,7 +2025,7 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
   const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
 
   return (
-    <div className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: isCombo ? "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(124,58,237,0.08)" : "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+    <div className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: isCombo ? "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px var(--chain-arc-soft)" : "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -2057,7 +2057,7 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
         </div>
       </div>
       {isCombo && (
-        <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
+        <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: 'var(--neg)' }}>
           <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo — all {ticket.combo_legs} legs must win
         </p>
       )}
@@ -2089,11 +2089,11 @@ function ChainBadge({ chain }: { chain?: string }) {
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]"
       style={{
-        background: isArc ? 'rgba(124,58,237,0.15)' : 'var(--accent-soft)',
-        color: isArc ? '#a78bfa' : 'var(--accent)',
+        background: isArc ? 'var(--chain-arc-soft)' : 'var(--accent-soft)',
+        color: isArc ? 'var(--chain-arc)' : 'var(--accent)',
       }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: isArc ? '#a78bfa' : 'var(--accent)' }} />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: isArc ? 'var(--chain-arc)' : 'var(--accent)' }} />
       {isArc ? 'Arc' : 'Solana'}
     </span>
   )
@@ -2104,8 +2104,8 @@ function legStatus(battle: any, side: number): { label: string; tone: string; Ic
   if (st === 'void') return { label: 'Void', tone: 'var(--text-muted)', Icon: MinusCircle }
   if (st === 'settled') {
     return battle.winner === side
-      ? { label: 'Won', tone: '#22c55e', Icon: Trophy }
-      : { label: 'Lost', tone: '#ef4444', Icon: XCircle }
+      ? { label: 'Won', tone: 'var(--pos)', Icon: Trophy }
+      : { label: 'Lost', tone: 'var(--neg)', Icon: XCircle }
   }
   return { label: 'Running', tone: 'var(--accent)', Icon: Clock }
 }
@@ -2140,7 +2140,7 @@ function BookingCodeRow({ code }: { code?: string | null }) {
         <p className="font-mono text-sm font-bold tracking-widest" style={{ color: "var(--text)" }}>{code}</p>
       </div>
       <button onClick={copy} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
-        style={{ background: copied ? 'rgba(34,197,94,0.15)' : 'var(--brand-grad)', color: copied ? '#22c55e' : '#fff' }}>
+        style={{ background: copied ? 'var(--pos-soft)' : 'var(--brand-grad)', color: copied ? 'var(--pos)' : '#fff' }}>
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? 'Copied' : 'Copy'}
       </button>
@@ -2219,7 +2219,7 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
       {expanded ? (
         <BookingCodeRow code={code} />
       ) : (
-        <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: '#f43f5e' }}>
+        <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: 'var(--neg)' }}>
           <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> If any leg loses, entire combo is lost
         </p>
       )}
@@ -2242,7 +2242,7 @@ function betOutcome(legs: any[]): { kind: 'won' | 'lost' | 'void'; label: string
   if (legs.every((l) => l.battles?.winner === l.side)) {
     return { kind: 'won', label: 'Won', tone: COLORS.accent, Icon: Trophy }
   }
-  return { kind: 'lost', label: 'Lost', tone: '#ef4444', Icon: XCircle }
+  return { kind: 'lost', label: 'Lost', tone: 'var(--neg)', Icon: XCircle }
 }
 
 function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
@@ -2347,7 +2347,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
                   background: outcome.kind === 'won' ? 'var(--accent-soft)'
                             : outcome.kind === 'void' ? 'rgba(255,255,255,0.06)'
-                            : 'rgba(239,68,68,0.13)',
+                            : 'var(--neg-soft)',
                   color: outcome.tone,
                 }}>
                   <span className="inline-flex items-center gap-1"><outcome.Icon className="h-3.5 w-3.5" /> {outcome.label}</span>
@@ -2400,13 +2400,13 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
                 <div className="rounded-xl p-3 grid grid-cols-2 gap-3" style={{ background: COLORS.accentSoft }}>
                   <div>
                     <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle?.coin_a} move</p>
-                    <p className="font-semibold text-sm mt-1" style={{ color: Number(changeA) >= 0 ? '#4ade80' : '#ef4444' }}>
+                    <p className="font-semibold text-sm mt-1" style={{ color: Number(changeA) >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
                       {Number(changeA) >= 0 ? '+' : ''}{changeA}%
                     </p>
                   </div>
                   <div>
                     <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle?.coin_b} move</p>
-                    <p className="font-semibold text-sm mt-1" style={{ color: Number(changeB) >= 0 ? '#4ade80' : '#ef4444' }}>
+                    <p className="font-semibold text-sm mt-1" style={{ color: Number(changeB) >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
                       {Number(changeB) >= 0 ? '+' : ''}{changeB}%
                     </p>
                   </div>

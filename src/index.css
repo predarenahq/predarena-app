@@ -39,7 +39,10 @@
   --brand-grad:    linear-gradient(135deg, #14532D, #065F46);
   --accent-ink:    #14532D;
   --pos:           #047857;
+  --pos-soft:      rgba(4,120,87,0.12);
   --neg:           #DC2626;
+  --neg-soft:      rgba(220,38,38,0.10);
+  --warn:          #B45309;
 
   /* Chain identity — deliberately NOT the brand. A chain badge must be
      distinguishable from an accent badge, or "which chain?" is unanswerable
@@ -72,7 +75,10 @@
   --brand-grad:    linear-gradient(135deg, #14532D, #065F46);
   --accent-ink:    #6EE7B7;
   --pos:           #34D399;
+  --pos-soft:      rgba(52,211,153,0.15);
   --neg:           #F87171;
+  --neg-soft:      rgba(248,113,113,0.15);
+  --warn:          #FBBF24;
 
   --chain-arc:      #A78BFA;
   --chain-arc-soft: rgba(167,139,250,0.15);

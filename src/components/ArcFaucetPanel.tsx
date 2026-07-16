@@ -69,7 +69,7 @@ export default function ArcFaucetPanel({
         onClick={claim}
         disabled={claiming}
         className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-        style={{ color: '#a78bfa' }}
+        style={{ color: 'var(--chain-arc)' }}
       >
         {claiming
           ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -82,14 +82,14 @@ export default function ArcFaucetPanel({
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)' }}
+      style={{ background: 'var(--chain-arc-soft)', border: '1px solid var(--chain-arc-soft)' }}
     >
       <div className="flex items-start gap-3">
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
-          style={{ background: 'rgba(124,58,237,0.2)' }}
+          style={{ background: 'var(--chain-arc-soft)' }}
         >
-          <Droplet className="h-4 w-4" style={{ color: '#a78bfa' }} />
+          <Droplet className="h-4 w-4" style={{ color: 'var(--chain-arc)' }} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold" style={{ color: 'var(--text)' }}>
@@ -102,14 +102,14 @@ export default function ArcFaucetPanel({
           </p>
 
           {error && (
-            <p className="mt-2 text-xs font-medium" style={{ color: '#f43f5e' }}>{error}</p>
+            <p className="mt-2 text-xs font-medium" style={{ color: 'var(--neg)' }}>{error}</p>
           )}
 
           <button
             onClick={claim}
             disabled={claiming || done}
             className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-xs font-semibold text-white transition-transform active:scale-[0.99] disabled:opacity-60"
-            style={{ background: 'rgba(124,58,237,0.85)' }}
+            style={{ background: 'var(--chain-arc)' }}
           >
             {claiming && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {done && <Check className="h-3.5 w-3.5" />}
