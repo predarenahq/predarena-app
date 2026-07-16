@@ -1,37 +1,27 @@
 import React, { useState } from 'react'
-import { Droplet, Copy, Check, ExternalLink, RefreshCw } from 'lucide-react'
+import { Droplet, ExternalLink, Loader2, Check } from 'lucide-react'
 
-// Clipboard API is blocked in a lot of in-app browsers (WhatsApp, Telegram),
-// which is where a testnet link usually gets opened. Same fallback as the share
-// modal: never fail silently.
-async function robustCopy(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-      return true
-    }
-  } catch { /* fall through */ }
-  try {
-    const ta = document.createElement('textarea')
-    ta.value = text
-    ta.style.position = 'fixed'
-    ta.style.left = '-9999px'
-    document.body.appendChild(ta)
-    ta.select()
-    const ok = document.execCommand('copy')
-    document.body.removeChild(ta)
-    return ok
-  } catch { return false }
-}
-
-const FAUCET_URL = 'https://faucet.circle.com'
+const CIRCLE_FAUCET = 'https://faucet.circle.com'
 const LOW_BALANCE = 2
 
+const ERRORS: Record<string, string> = {
+  already_claimed:   'You already claimed in the last 24 hours',
+  daily_cap_reached: 'The faucet has hit its daily limit - try again tomorrow',
+  faucet_empty:      'The faucet is out of funds right now',
+  invalid_address:   'That wallet address is not valid',
+  transfer_failed:   'The transfer failed - try again in a moment',
+}
+
 /**
- * Arc runs on real testnet USDC from Circle's faucet - there is no mintable
- * play token. USDC is also the gas on Arc, so a user with an empty wallet can't
- * do anything at all, not even approve. This panel is the in-app path to the
- * faucet: it copies their address and sends them straight there.
+ * Arc runs on real testnet USDC, and USDC is also the gas - so a user with an
+ * empty wallet can do nothing at all, not even approve. This dispenses 2 USDC
+ * from our faucet wallet with one tap.
+ *
+ * One NATIVE transfer covers both: on Arc the native balance and the USDC
+ * ERC-20 interface are the same underlying balance, so a plain send lands as
+ * gas AND as bettable USDC. Verified: 2.0 native / 2000000 ERC-20 from one tx.
+ *
+ * Circle's faucet stays as the fallback for when ours is dry or capped.
  */
 export default function ArcFaucetPanel({
   address,
@@ -42,40 +32,49 @@ export default function ArcFaucetPanel({
   balance: string
   onRefresh?: () => void
 }) {
-  const [copied, setCopied] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const [claiming, setClaiming] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
   const isLow = Number(balance) < LOW_BALANCE
 
-  const copyAddress = async () => {
-    if (await robustCopy(address)) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+  const claim = async () => {
+    setClaiming(true)
+    setError('')
+    try {
+      const res = await fetch('/api/arc-faucet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(ERRORS[data.error] || 'Could not send test USDC')
+        return
+      }
+      setDone(true)
+      // The tx is already confirmed server-side, but the balance read goes
+      // through a different node - give it a beat to catch up.
+      setTimeout(() => onRefresh?.(), 1500)
+      setTimeout(() => setDone(false), 6000)
+    } catch {
+      setError('Could not reach the faucet')
+    } finally {
+      setClaiming(false)
     }
   }
 
-  // Copy first: the faucet's own field is the next thing they'll touch.
-  const openFaucet = async () => {
-    await robustCopy(address)
-    setCopied(true)
-    window.open(FAUCET_URL, '_blank', 'noopener,noreferrer')
-    setTimeout(() => setCopied(false), 3000)
-  }
-
-  const refresh = async () => {
-    if (!onRefresh) return
-    setRefreshing(true)
-    try { await onRefresh() } finally { setTimeout(() => setRefreshing(false), 600) }
-  }
-
-  if (!isLow) {
+  if (!isLow && !error) {
     return (
       <button
-        onClick={openFaucet}
-        className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-opacity hover:opacity-80"
+        onClick={claim}
+        disabled={claiming}
+        className="inline-flex items-center gap-1.5 text-[11px] font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
         style={{ color: '#a78bfa' }}
       >
-        <Droplet className="h-3 w-3" />
-        Get test USDC
+        {claiming
+          ? <Loader2 className="h-3 w-3 animate-spin" />
+          : done ? <Check className="h-3 w-3" /> : <Droplet className="h-3 w-3" />}
+        {claiming ? 'Sending…' : done ? 'Sent 2 USDC' : 'Get test USDC'}
       </button>
     )
   }
@@ -94,55 +93,37 @@ export default function ArcFaucetPanel({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold" style={{ color: 'var(--text)' }}>
-            You need test USDC
+            {done ? '2 USDC sent' : 'You need test USDC'}
           </p>
           <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Arc uses USDC for bets and for gas. Circle's faucet gives 20 USDC every 2 hours - no account needed.
+            {done
+              ? 'It covers your stake and the gas. Your balance updates in a moment.'
+              : 'Arc uses USDC for bets and for gas. Tap below and we will send you some.'}
           </p>
 
-          <div className="mt-3 flex items-center gap-2 rounded-[10px] px-2.5 py-2" style={{ background: 'rgba(0,0,0,0.25)' }}>
-            <p className="min-w-0 flex-1 truncate font-mono text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              {address}
-            </p>
-            <button
-              onClick={copyAddress}
-              className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] font-semibold"
-              style={{
-                background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)',
-                color: copied ? '#22c55e' : 'rgba(255,255,255,0.7)',
-              }}
-            >
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
+          {error && (
+            <p className="mt-2 text-xs font-medium" style={{ color: '#f43f5e' }}>{error}</p>
+          )}
 
-          <ol className="mt-3 space-y-1 text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            <li>1. Open the faucet (your address is copied)</li>
-            <li>2. Choose <span style={{ color: '#a78bfa' }}>Arc Testnet</span> as the network</li>
-            <li>3. Paste your address and claim</li>
-          </ol>
+          <button
+            onClick={claim}
+            disabled={claiming || done}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-xs font-semibold text-white transition-transform active:scale-[0.99] disabled:opacity-60"
+            style={{ background: 'rgba(124,58,237,0.85)' }}
+          >
+            {claiming && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {done && <Check className="h-3.5 w-3.5" />}
+            {claiming ? 'Sending…' : done ? 'Sent' : 'Send me 2 USDC'}
+          </button>
 
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={openFaucet}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-xs font-semibold text-white transition-transform active:scale-[0.99]"
-              style={{ background: 'rgba(124,58,237,0.85)' }}
-            >
-              Get test USDC
-              <ExternalLink className="h-3.5 w-3.5" />
-            </button>
-            {onRefresh && (
-              <button
-                onClick={refresh}
-                aria-label="Refresh balance"
-                className="flex items-center justify-center rounded-[10px] px-3"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }}
-              >
-                <RefreshCw className={'h-3.5 w-3.5' + (refreshing ? ' animate-spin' : '')} />
-              </button>
-            )}
-          </div>
+          <button
+            onClick={() => window.open(CIRCLE_FAUCET, '_blank', 'noopener,noreferrer')}
+            className="mt-2 inline-flex items-center gap-1 text-[10px] transition-opacity hover:opacity-80"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+          >
+            Need more? Circle's faucet gives 20 every 2 hours
+            <ExternalLink className="h-2.5 w-2.5" />
+          </button>
         </div>
       </div>
     </div>
