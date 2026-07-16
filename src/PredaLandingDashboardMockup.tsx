@@ -3,7 +3,8 @@ import { useBattles } from "./hooks/useBattles";
 import PriceChartModal from "./components/PriceChartModal";
 import BetShareModal from "./components/BetShareModal";
 
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { getAddress } from "viem";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import React, { useEffect, useMemo, useState } from "react";
@@ -2133,16 +2134,16 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
   )
 }
 
-function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string, evmAddress?: string }) {
+function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!walletAddress && !evmAddress) { setLoading(false); return }
+    if (!walletAddress && !evmAddresses.length) { setLoading(false); return }
     async function fetchHistory() {
       try {
         const { supabase } = await import('./lib/supabase')
-        const addresses = [walletAddress, evmAddress].filter(Boolean)
+        const addresses = [walletAddress, ...evmAddresses].filter(Boolean)
         const { data } = await supabase
           .from('tickets')
           .select('*, battles(*)')
@@ -2156,9 +2157,9 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
       }
     }
     fetchHistory()
-  }, [walletAddress, evmAddress])
+  }, [walletAddress, evmAddresses.join(",")]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!walletAddress && !evmAddress) return (
+  if (!walletAddress && !evmAddresses.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see history</p>
     </div>
@@ -2248,19 +2249,19 @@ function HistoryPage({ walletAddress, evmAddress = "" }: { walletAddress: string
   )
 }
 
-function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: string, evmAddress?: string }) {
+function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!walletAddress && !evmAddress) {
+    if (!walletAddress && !evmAddresses.length) {
       setLoading(false)
       return
     }
     async function fetchTickets() {
       try {
         const { supabase } = await import('./lib/supabase')
-        const addresses = [walletAddress, evmAddress].filter(Boolean)
+        const addresses = [walletAddress, ...evmAddresses].filter(Boolean)
         const { data } = await supabase
           .from('tickets')
           .select('*, battles(*)')
@@ -2281,9 +2282,9 @@ function RunningBetsPage({ walletAddress, evmAddress = "" }: { walletAddress: st
     fetchTickets()
     const interval = setInterval(fetchTickets, 30000)
     return () => clearInterval(interval)
-  }, [walletAddress, evmAddress])
+  }, [walletAddress, evmAddresses.join(",")]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!walletAddress && !evmAddress) return (
+  if (!walletAddress && !evmAddresses.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see your bets</p>
     </div>
@@ -2360,6 +2361,31 @@ export default function PredaLandingDashboardMockup() {
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
   const wallet = useWallet();
   const { publicKey, connected } = wallet;
+  const { wallets: privyWallets } = useWallets();
+
+  // Every EVM address this user might have bet from. Three bugs lived here:
+  //  - the root never called useWallets(), so Privy's embedded wallet was
+  //    invisible and only window.ethereum.selectedAddress was consulted;
+  //  - selectedAddress is deprecated and non-reactive - null on first render;
+  //  - it returns LOWERCASE, but tickets store CHECKSUMMED addresses (they come
+  //    from the on-chain BetPlaced event), and .in() is an exact string match,
+  //    so even a populated value matched nothing.
+  // A user can hold both an embedded wallet and MetaMask, so pass them all.
+  const evmAddresses = useMemo(() => {
+    const raw = [
+      ...privyWallets.filter((w) => w.chainId?.startsWith("eip155:")).map((w) => w.address),
+      (typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || "",
+    ].filter(Boolean);
+    const out: string[] = [];
+    for (const a of raw) {
+      try {
+        const c = getAddress(a as `0x${string}`);
+        if (!out.includes(c)) out.push(c);
+      } catch { /* not a valid address */ }
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [privyWallets.map((w) => w.address).join(",")]);
 
 
   useEffect(() => {
@@ -2638,9 +2664,9 @@ export default function PredaLandingDashboardMockup() {
       case "/profile":
         return <ProfilePage />;
       case "/running":
-        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
+        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
       case "/history":
-        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddress={(typeof window !== "undefined" && (window as any).ethereum?.selectedAddress) || ""} />;
+        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
       default:
         return (
           <section className="overflow-hidden rounded-[24px] border bg-[var(--panel)]" style={{ borderColor: "var(--border)" }}>
