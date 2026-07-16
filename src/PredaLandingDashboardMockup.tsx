@@ -1172,7 +1172,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
 
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
-      <div className="relative overflow-hidden rounded-[28px] px-6 py-9 sm:px-10 sm:py-11" style={{ background: "radial-gradient(120% 120% at 12% 18%, rgba(167,139,250,0.42) 0%, transparent 44%), radial-gradient(130% 130% at 90% 88%, rgba(236,72,153,0.40) 0%, transparent 46%), linear-gradient(135deg, #1c0f42 0%, #4c1d95 48%, #7c1d55 100%)", boxShadow: "0 28px 70px -24px rgba(76,29,149,0.7), inset 0 1px 0 rgba(255,255,255,0.09)" }}>
+      <div className="relative overflow-hidden rounded-[28px] px-6 py-9 sm:px-10 sm:py-11" style={{ background: "radial-gradient(120% 120% at 12% 18%, rgba(52,211,153,0.28) 0%, transparent 44%), radial-gradient(130% 130% at 90% 88%, rgba(110,231,183,0.22) 0%, transparent 46%), linear-gradient(135deg, #0B1F16 0%, #14532D 48%, #065F46 100%)", boxShadow: "0 28px 70px -24px rgba(20,83,45,0.7), inset 0 1px 0 rgba(255,255,255,0.09)" }}>
         <div className="absolute inset-y-0 left-0 w-40 bg-[radial-gradient(circle_at_left,rgba(255,255,255,0.14),transparent_65%)]" />
         <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_right,rgba(255,255,255,0.10),transparent_65%)]" />
 
@@ -1322,8 +1322,13 @@ function MarketCard({
   const locked = match.bettingLocked || isSettling  // 80% cutoff OR past end
 
   const LEAGUE_COLORS: Record<string, string> = {
-    Major: "var(--accent)", Altcoins: "#a855f7", L1: "var(--accent)", L2: "var(--accent)",
-    DeFi: "#c026d3", Meme: "var(--accent-2)", AI: "#9333ea",
+    // These used to be four arbitrary purples and three accents - a colour
+    // that told you nothing, since three categories shared one value and the
+    // label already reads "DeFi" in text. Either it is a real categorical scale
+    // (7 distinguishable hues, which fights a 2-colour brand) or it is not
+    // information. It is not. The text carries the meaning.
+    Major: "var(--accent)", Altcoins: "var(--accent)", L1: "var(--accent)", L2: "var(--accent)",
+    DeFi: "var(--accent)", Meme: "var(--accent)", AI: "var(--accent)",
   }
   const leagueColor = LEAGUE_COLORS[match.league] || "var(--accent)"
 
@@ -1382,7 +1387,7 @@ function MarketCard({
           <span className="inline-block w-[6px] h-[6px] rounded-full" style={{ background: leagueColor }} />
           <span className="text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: "var(--text-soft)" }}>{match.league}</span>
         </div>
-        <div className="flex items-center gap-[6px] text-[12px] font-medium" style={{ color: match.board === "Live" ? leagueColor : "#b45309" }}>
+        <div className="flex items-center gap-[6px] text-[12px] font-medium" style={{ color: match.board === "Live" ? leagueColor : "var(--warn)" }}>
           {match.board === "Live" && (
             <motion.span
               className="inline-block w-[6px] h-[6px] rounded-full"
