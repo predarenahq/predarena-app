@@ -153,6 +153,7 @@ const sidebarSections = [
     items: [
       { label: "Running Bets", path: "/running" },
       { label: "History", path: "/history" },
+      { label: "My Stats", path: "/profile" },
     ],
   },
   {
@@ -1550,7 +1551,7 @@ function SlipDrawer({
         ? { x: 0, y: 0, opacity: 1, pointerEvents: "auto" }
         : { x: 0, y: "110%", opacity: 0, pointerEvents: "none" }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      className="fixed bottom-0 right-0 left-0 top-auto z-[45] flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
+      className="fixed bottom-0 right-0 left-0 top-auto z-[45] flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
@@ -1580,7 +1581,7 @@ function SlipDrawer({
           })}
         </div>
 
-        <div className="preda-scrollbar-hide min-h-[120px] flex-1 overflow-y-auto overscroll-contain">
+        <div className="preda-scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {items.length ? (
             items.map((item) => (
               <div key={item.matchId} className="flex gap-3 border-b px-5 py-4" style={{ borderColor: "var(--panel-2)" }}>
@@ -1634,10 +1635,10 @@ function SlipDrawer({
                 ONE contract, so half-Solana/half-Arc has no meaning on either
                 chain. Arc is only offerable when EVERY leg has been mirrored -
                 /api/arc-quote refuses to sign for an unmapped battle. */}
-            <div className="mb-3 flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-soft)' }}>
+            <div className="mb-2 flex gap-1 p-0.5 rounded-lg" style={{ background: 'var(--bg)', border: '1px solid var(--border-soft)' }}>
               <button
                 onClick={() => setSlipChain('solana')}
-                className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
+                className="flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-all"
                 style={{
                   background: slipChain === 'solana' ? 'var(--accent-soft)' : 'transparent',
                   color: slipChain === 'solana' ? 'var(--accent)' : 'var(--text-soft)',
@@ -1649,7 +1650,7 @@ function SlipDrawer({
               <button
                 onClick={() => allOnArc && setSlipChain('arc')}
                 disabled={!allOnArc}
-                className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed"
+                className="flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-all disabled:cursor-not-allowed"
                 style={{
                   background: slipChain === 'arc' ? 'var(--chain-arc-soft)' : 'transparent',
                   color: !allOnArc ? 'var(--text-muted)' : slipChain === 'arc' ? 'var(--chain-arc)' : 'var(--text-soft)',
@@ -1660,17 +1661,15 @@ function SlipDrawer({
                 Arc
               </button>
             </div>
-            {/* Say WHY it is unavailable. A dead button teaches nothing. */}
-            {!allOnArc && items.length > 0 && (
-              <p className="mb-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                {notOnArc === items.length
-                  ? 'Not on Arc yet - these battles are still being mirrored'
-                  : `${notOnArc} of ${items.length} selections aren't on Arc yet`}
-              </p>
-            )}
-            {slipChain === 'arc' && !arcConnected && (
-              <p className="mb-3 text-[10px]" style={{ color: 'var(--neg)' }}>
-                Connect an EVM wallet to bet on Arc
+            {/* One line, not two - this footer is height-critical on mobile.
+                Still says WHY: a dead button teaches nothing. */}
+            {((!allOnArc && items.length > 0) || (slipChain === 'arc' && !arcConnected)) && (
+              <p className="mb-2 text-[10px] leading-tight" style={{ color: slipChain === 'arc' && !arcConnected ? 'var(--neg)' : 'var(--text-muted)' }}>
+                {slipChain === 'arc' && !arcConnected
+                  ? 'Connect an EVM wallet to bet on Arc'
+                  : notOnArc === items.length
+                    ? 'Not on Arc yet — still being mirrored'
+                    : `${notOnArc} of ${items.length} not on Arc yet`}
               </p>
             )}
             <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
@@ -1756,7 +1755,7 @@ function BottomNav({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t lg:hidden"
-      style={{ borderColor: 'var(--border)', background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(12px)' }}>
+      style={{ borderColor: 'var(--border)', background: 'var(--panel)', backdropFilter: 'blur(12px)' }}>
       <div className="flex items-center justify-around px-1 py-1.5 pb-safe">
         {items.map(item => {
           const isActive = item.route === '__slip__' ? false : path === item.route
