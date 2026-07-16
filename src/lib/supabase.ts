@@ -39,6 +39,10 @@ export type Battle = {
   status: 'upcoming' | 'live' | 'settled' | 'void' | 'cancelled'
   winner: number
   created_at: string
+  // The on-chain id of this battle's Arc counterpart, null until the keeper
+  // mirrors it. Betting on Arc is impossible without it: /api/arc-quote will
+  // not sign a quote for an unmapped battle.
+  arc_battle_id: number | null
 }
 
 export type Ticket = {

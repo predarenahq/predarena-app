@@ -2,6 +2,7 @@ import { Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.
 import { useBattles } from "./hooks/useBattles";
 import PriceChartModal from "./components/PriceChartModal";
 import BetShareModal from "./components/BetShareModal";
+import { useArcArena } from "./arc/useArcArena";
 
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { getAddress } from "viem";
@@ -46,6 +47,9 @@ type MatchDuration = "5m" | "15m" | "30m" | "1h" | "4h" | "1D" | "1W" | "1M" | "
 
 type Match = {
   id: string;
+  // Null until the keeper mirrors this battle onto Arc. The slip uses it to
+  // decide whether the Arc tab is even offerable.
+  arcBattleId?: number | null;
   category: MatchCategory;
   board: MatchBoard;
   duration: MatchDuration;
@@ -80,6 +84,7 @@ type Match = {
 
 type SlipSelection = {
   matchId: string;
+  arcBattleId?: number | null;
   matchTitle: string;
   chosenSide: Side;
   pickLabel: string;
@@ -1508,6 +1513,9 @@ function SlipDrawer({
   onClose,
   requoteReady,
   oddsFlash,
+  slipChain,
+  setSlipChain,
+  arcConnected,
 }: {
   open: boolean;
   items: SlipSelection[];
@@ -1518,9 +1526,16 @@ function SlipDrawer({
   onClose: () => void;
   requoteReady?: boolean;
   oddsFlash?: Record<string, 'up' | 'down'>;
+  slipChain: 'solana' | 'arc';
+  setSlipChain: (c: 'solana' | 'arc') => void;
+  arcConnected: boolean;
 }) {
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
+  // arcBattleId is null until the keeper mirrors a battle. Every leg needs one,
+  // or placeCombo has nothing to reference on-chain.
+  const notOnArc = items.filter((i) => i.arcBattleId == null).length;
+  const allOnArc = items.length > 0 && notOnArc === 0;
 
   return (
     <>
@@ -1622,6 +1637,49 @@ function SlipDrawer({
         {/* Footer sits OUTSIDE the scroll container so the Place Ticket button
             stays reachable no matter how many legs are in the slip. */}
         <div className="shrink-0 border-t px-5 py-4" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
+            {/* Chain is a property of the SLIP, not of a leg. A combo settles in
+                ONE contract, so half-Solana/half-Arc has no meaning on either
+                chain. Arc is only offerable when EVERY leg has been mirrored -
+                /api/arc-quote refuses to sign for an unmapped battle. */}
+            <div className="mb-3 flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-soft)' }}>
+              <button
+                onClick={() => setSlipChain('solana')}
+                className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
+                style={{
+                  background: slipChain === 'solana' ? 'var(--accent-soft)' : 'transparent',
+                  color: slipChain === 'solana' ? 'var(--accent)' : 'var(--text-soft)',
+                  border: slipChain === 'solana' ? '1px solid var(--accent)' : '1px solid transparent',
+                }}
+              >
+                Solana
+              </button>
+              <button
+                onClick={() => allOnArc && setSlipChain('arc')}
+                disabled={!allOnArc}
+                className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed"
+                style={{
+                  background: slipChain === 'arc' ? 'rgba(124,58,237,0.2)' : 'transparent',
+                  color: !allOnArc ? 'var(--text-muted)' : slipChain === 'arc' ? '#a78bfa' : 'var(--text-soft)',
+                  border: slipChain === 'arc' ? '1px solid rgba(124,58,237,0.4)' : '1px solid transparent',
+                  opacity: allOnArc ? 1 : 0.45,
+                }}
+              >
+                Arc
+              </button>
+            </div>
+            {/* Say WHY it is unavailable. A dead button teaches nothing. */}
+            {!allOnArc && items.length > 0 && (
+              <p className="mb-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                {notOnArc === items.length
+                  ? 'Not on Arc yet - these battles are still being mirrored'
+                  : `${notOnArc} of ${items.length} selections aren't on Arc yet`}
+              </p>
+            )}
+            {slipChain === 'arc' && !arcConnected && (
+              <p className="mb-3 text-[10px]" style={{ color: '#f43f5e' }}>
+                Connect an EVM wallet to bet on Arc
+              </p>
+            )}
             <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
               <CircleDollarSign className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
               <input value={stake} onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ""))} className="w-full bg-transparent text-sm outline-none" style={{ color: "var(--text)" }} placeholder="Enter stake" />
@@ -2376,6 +2434,9 @@ export default function PredaLandingDashboardMockup() {
   // server's price and flip the button to a confirm state for one tap.
   const [requoteReady, setRequoteReady] = useState(false);
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
+  const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
+  const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
+  const arcConnected = evmAddresses.length > 0;
   const [oddsFlash, setOddsFlash] = useState<Record<string, 'up' | 'down'>>({});
   const flashTimers = React.useRef<Record<string, any>>({});
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -2518,6 +2579,7 @@ export default function PredaLandingDashboardMockup() {
             chosenSide === 'left' ? match.left.ticker : chosenSide === 'right' ? match.right.ticker : 'Draw';
           restored.push({
             matchId: match.id,
+            arcBattleId: match.arcBattleId ?? null,
             matchTitle: match.title,
             chosenSide,
             pickLabel,
@@ -2595,6 +2657,14 @@ export default function PredaLandingDashboardMockup() {
     }
   }, [slipSelections.length]);
 
+  // If a leg that isn't mirrored to Arc enters the slip while Arc is selected,
+  // fall back to Solana. Leaving Arc selected would let them tap Place and eat
+  // a battle_not_on_arc revert with no explanation.
+  useEffect(() => {
+    if (slipChain !== 'arc') return;
+    if (slipSelections.some((s) => s.arcBattleId == null)) setSlipChain('solana');
+  }, [slipChain, slipSelections]);
+
   useEffect(() => {
     if (slipOpen && slipSelections.length > 0) {
       const timer = setTimeout(() => {
@@ -2656,6 +2726,7 @@ export default function PredaLandingDashboardMockup() {
 
       const nextSelection: SlipSelection = {
         matchId: match.id,
+        arcBattleId: match.arcBattleId ?? null,
         matchTitle: match.title,
         chosenSide: side,
         pickLabel,
@@ -2730,8 +2801,100 @@ export default function PredaLandingDashboardMockup() {
     }
   };
 
+  const sideNumOf = (s: SlipSelection): 1 | 2 | 3 =>
+    s.chosenSide === 'left' ? 1 : s.chosenSide === 'right' ? 2 : 3
+
+  /**
+   * Places the slip on Arc. Nothing like the Solana path: the money moves
+   * on-chain from the user's own wallet, so there is no balance to debit and no
+   * requote handshake - the server prices and SIGNS the odds, the contract
+   * verifies that signature, and a stale quote simply expires (re-tap).
+   *
+   * The mirror is a separate step and can fail on its own. When it does the bet
+   * is still real and still on-chain - say exactly that rather than implying it
+   * failed.
+   */
+  const handlePlaceTicketArc = async () => {
+    const totalStake = Number(stake)
+    if (!(totalStake > 0)) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Enter a stake', type: 'error' } }))
+      return
+    }
+    if (!arcConnected) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Connect an EVM wallet to bet on Arc', type: 'error' } }))
+      return
+    }
+    if (slipSelections.some((s) => s.arcBattleId == null)) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Some selections are not on Arc yet', type: 'error' } }))
+      return
+    }
+
+    const isCombo = slipSelections.length > 1
+    try {
+      let txHash: string
+      let legOdds: string[] | undefined
+
+      if (isCombo) {
+        const r = await arcPlaceCombo(
+          slipSelections.map((s) => s.matchId),
+          slipSelections.map((s) => sideNumOf(s)) as any,
+          stake,
+        )
+        txHash  = r.txHash
+        legOdds = r.legOdds
+      } else {
+        const s0 = slipSelections[0]
+        const r = await arcPlaceBet(
+          s0.matchId,
+          BigInt(s0.arcBattleId as number),
+          sideNumOf(s0) as any,
+          stake,
+        )
+        txHash = r.txHash
+      }
+
+      const res = await fetch('/api/place-bet-arc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // A combo's battles are read from the ComboPlaced event; a single
+          // needs the UUID so the server can cross-check the on-chain battleId.
+          battle_id: isCombo ? undefined : slipSelections[0].matchId,
+          tx_hash: txHash,
+          // ComboPlaced omits per-leg odds; the server verifies their product
+          // against the on-chain comboOdds before recording.
+          leg_odds: legOdds,
+        }),
+      })
+
+      if (!res.ok) {
+        const { error } = await res.json()
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: {
+            message: `Bet placed on Arc but not recorded (${error}) - tx ${txHash.slice(0, 10)}...`,
+            type: 'error',
+          },
+        }))
+      } else {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { message: isCombo ? 'Combo placed on Arc' : 'Bet placed on Arc', type: 'success' },
+        }))
+      }
+
+      setSlipSelections([])
+      setSlipOpen(false)
+    } catch (err: any) {
+      const msg = err?.shortMessage || err?.message || 'Arc bet failed'
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: msg, type: 'error' } }))
+    }
+  }
+
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
+    if (slipChain === 'arc') return handlePlaceTicketArc()
+
+    // Solana from here. The wallet guard lives INSIDE this branch - it used to
+    // sit at the top and would have blocked Arc-only users outright.
     if (!connected || !publicKey) {
       window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Connect your wallet first', type: 'error' } }))
       return
@@ -2898,7 +3061,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} />
       {shareData && (
         <BetShareModal
           open={shareModalOpen}

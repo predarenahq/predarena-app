@@ -89,6 +89,7 @@ function battleToMatch(battle: Battle, odds?: OddsResult): Match {
     startPriceB: battle.start_price_b || 0,
     bettingLocked: computeLocked(battle),
     progress: computeProgress(battle),
+    arcBattleId: battle.arc_battle_id ?? null,
   }
 }
 

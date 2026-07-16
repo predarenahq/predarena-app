@@ -37,6 +37,10 @@ export interface ArcTicket {
 }
 
 const QUOTE_ERRORS: Record<string, string> = {
+  need_2_legs:            'A combo needs at least 2 selections',
+  too_many_legs:          'Too many legs for one combo',
+  duplicate_leg:          'You have two picks on the same battle',
+  combo_odds_too_high:    'Those combined odds are out of range',
   battle_not_on_arc:      'This battle is not available on Arc yet',
   battle_not_live:        'This battle is no longer live',
   battle_ended:           'This battle has ended',
@@ -248,6 +252,97 @@ export function useArcArena() {
     }
   }, [getWalletClient])
 
+  /**
+   * Places a combo on Arc. Same three-step dance as placeBet - approve, quote,
+   * send - and the approve goes first for the same reason: the quote's 60s clock
+   * must not burn while the user stares at a wallet popup.
+   *
+   * The contract re-derives legsHash from the arrays we pass and checks the
+   * quoter's signature over it, so battleIds/sides/odds must be sent in EXACTLY
+   * the order the server signed. Reordering them is a silent bad_quote.
+   */
+  const placeCombo = useCallback(async (
+    battleUuids: string[],   // Supabase UUIDs - what the quote API keys on
+    sides:       ArcSide[],
+    stakeUSDC:   string,
+  ) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const walletClient = await getWalletClient()
+      const [address]    = await walletClient.getAddresses()
+      const stakeRaw     = parseUnits(stakeUSDC, 6)
+
+      // 1. Approve only when short. Max approval => one popup for repeat bettors.
+      const allowance = await publicClient.readContract({
+        address:      USDC_ADDRESS,
+        abi:          ERC20_ABI,
+        functionName: 'allowance',
+        args:         [address, PREDARENA_ADDRESS],
+      }) as bigint
+
+      if (allowance < stakeRaw) {
+        const approveTx = await walletClient.writeContract({
+          address:      USDC_ADDRESS,
+          abi:          ERC20_ABI,
+          functionName: 'approve',
+          args:         [PREDARENA_ADDRESS, maxUint256],
+          account:      address,
+        })
+        await publicClient.waitForTransactionReceipt({ hash: approveTx })
+      }
+
+      // 2. Quote, now that the slow part is done.
+      const qRes = await fetch('/api/arc-combo-quote', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player: address,
+          stake:  Number(stakeUSDC),
+          legs:   battleUuids.map((id, i) => ({ battle_id: id, side: Number(sides[i]) })),
+        }),
+      })
+      const quote = await qRes.json()
+      if (!qRes.ok) {
+        throw new Error(QUOTE_ERRORS[quote.error] || quote.error || 'Could not price this combo')
+      }
+
+      // 3. Send, in the server's exact order.
+      const comboTx = await walletClient.writeContract({
+        address:      PREDARENA_ADDRESS,
+        abi:          PREDARENA_ABI,
+        functionName: 'placeCombo',
+        args: [
+          (quote.battle_ids as string[]).map((b) => BigInt(b)),
+          (quote.sides as number[]).map((x) => Number(x)),
+          (quote.odds as string[]).map((o) => BigInt(o)),
+          BigInt(quote.stake),
+          BigInt(quote.combo_odds),
+          BigInt(quote.nonce),
+          BigInt(quote.deadline),
+          quote.signature as `0x\${string}`,
+        ],
+        account: address,
+      })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: comboTx })
+      return {
+        receipt,
+        txHash: comboTx,
+        comboOdds: quote.combo_odds_display as number,
+        // ComboPlaced does not carry per-leg odds, so the mirror needs these
+        // from us. The server checks their product against the on-chain
+        // comboOdds before recording, so this is verified, not trusted.
+        legOdds: quote.odds as string[],
+      }
+    } catch (err: any) {
+      const msg = err?.shortMessage || err?.message || 'Transaction failed'
+      setError(msg)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [getWalletClient])
+
   // ── Write: claim a winning ticket ───────────────────────────────────────────
 
   // Payouts are pull-based now: settlement only records the winner, and each
@@ -321,6 +416,7 @@ export function useArcArena() {
     getFreeCapital,
     // Write
     placeBet,
+    placeCombo,
     claim,
     refund,
     // Helpers
