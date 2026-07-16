@@ -314,21 +314,6 @@ const initialMatches: Match[] = [
   },
 ];
 
-const mockProfile = {
-  username: "SolDegen420",
-  walletAddress: "9xQe...7kp2",
-  joinDate: "March 28, 2026",
-  tribe: "SOL Degens",
-  totalBets: 127,
-  wonBets: 73,
-  lostBets: 48,
-  voidBets: 6,
-  winRate: "57.5%",
-  totalWagered: "$12,450",
-  totalWon: "$18,230",
-  netProfit: "+$8,360",
-};
-
 function cx(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -1814,35 +1799,147 @@ function PlaceholderPage({
   );
 }
 
-function ProfilePage() {
+/**
+ * Real stats, derived from tickets. Every number here used to be invented
+ * ("SolDegen420", 127 bets, +$8,360).
+ *
+ * The one thing that must not go wrong: GROUP BY combo_id. A 4-leg combo is 4
+ * ticket rows each carrying the FULL stake, so counting rows reports one $10
+ * bet as "4 bets, $40 wagered" - and inflates every derived number with it.
+ * Same trap that rendered one combo as four cards in History.
+ */
+function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
+  const [tickets, setTickets] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!walletAddress && !evmAddresses.length) { setLoading(false); return }
+    (async () => {
+      try {
+        const { supabase } = await import('./lib/supabase');
+        const addresses = [walletAddress, ...evmAddresses].filter(Boolean);
+        const { data } = await supabase
+          .from('tickets')
+          .select('*, battles(status, winner)')
+          .in('wallet_address', addresses)
+          .order('created_at', { ascending: true });
+        setTickets(data || []);
+      } catch (err) {
+        console.error('Failed to fetch profile stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [walletAddress, evmAddresses.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stats = React.useMemo(() => {
+    // One entry per BET. Combo legs collapse into their combo_id.
+    const bets: Record<string, any[]> = {};
+    const order: string[] = [];
+    for (const t of tickets) {
+      const k = t.combo_id || t.id;
+      if (!bets[k]) { bets[k] = []; order.push(k); }
+      bets[k].push(t);
+    }
+
+    let won = 0, lost = 0, voided = 0, open = 0;
+    let wagered = 0, returned = 0, biggestWin = 0;
+    let streak = 0, chainSol = 0, chainArc = 0, singles = 0, combos = 0;
+
+    for (const k of order) {
+      const legs = bets[k];
+      const first = legs[0];
+      const isCombo = legs.length > 1;
+      const stake = Number(first.stake) || 0;
+      // Every leg carries the full stake, so the bet's stake is ONE leg's.
+      const odds = isCombo ? Number(first.combo_odds || 1) : Number(first.odds || 1);
+
+      if (isCombo) combos++; else singles++;
+      if (first.chain === 'arc') chainArc++; else chainSol++;
+
+      const anyVoid = legs.some((l) => l.battles?.status === 'void');
+      const allDone = legs.every((l) => l.battles?.status === 'settled' || l.battles?.status === 'void');
+      if (!allDone) { open++; continue; }
+
+      wagered += stake;
+      if (anyVoid) {
+        voided++;
+        returned += stake;   // refund: not a win, not a loss
+        continue;
+      }
+      if (legs.every((l) => l.battles?.winner === l.side)) {
+        won++;
+        const payout = stake * odds;
+        returned += payout;
+        if (payout - stake > biggestWin) biggestWin = payout - stake;
+        streak = streak >= 0 ? streak + 1 : 1;
+      } else {
+        lost++;
+        streak = streak <= 0 ? streak - 1 : -1;
+      }
+    }
+
+    const decided = won + lost;   // voids are not a result, so exclude them
+    return {
+      total: order.length, won, lost, voided, open,
+      winRate: decided ? ((won / decided) * 100).toFixed(1) + '%' : '—',
+      wagered, returned, pnl: returned - wagered,
+      biggestWin, streak, chainSol, chainArc, singles, combos,
+      since: tickets.length ? new Date(tickets[0].created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : '—',
+    };
+  }, [tickets]);
+
+  if (!walletAddress && !evmAddresses.length) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see your stats</p>
+    </div>
+  );
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <p style={{ color: "var(--text-soft)" }}>Loading stats...</p>
+    </div>
+  );
+
+  const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
+
   return (
-    <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
-      <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Profile</h2>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <InfoCard label="Username" value={mockProfile.username} />
-        <InfoCard label="Wallet" value={mockProfile.walletAddress} />
-        <InfoCard label="Join Date" value={mockProfile.joinDate} />
-        <InfoCard label="Tribe" value={mockProfile.tribe} />
-        <InfoCard label="Total Bets" value={String(mockProfile.totalBets)} />
-        <InfoCard label="Won Bets" value={String(mockProfile.wonBets)} />
-        <InfoCard label="Lost Bets" value={String(mockProfile.lostBets)} />
-        <InfoCard label="Void Bets" value={String(mockProfile.voidBets)} />
-        <InfoCard label="Win Rate" value={mockProfile.winRate} />
-        <InfoCard label="Total Wagered" value={mockProfile.totalWagered} />
-        <InfoCard label="Total Won" value={mockProfile.totalWon} />
-        <InfoCard label="Net Profit" value={mockProfile.netProfit} />
+    <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
+      <div className="flex items-baseline justify-between">
+        <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Profile</h2>
+        <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <InfoCard label="Net P&L" value={money(stats.pnl)} tone={stats.pnl > 0 ? 'pos' : stats.pnl < 0 ? 'neg' : undefined} />
+        <InfoCard label="Win Rate" value={stats.winRate} sub={`${stats.won}W / ${stats.lost}L`} />
+        <InfoCard label="Total Wagered" value={money(stats.wagered)} />
+        <InfoCard label="Total Returned" value={money(stats.returned)} />
+
+        <InfoCard label="Bets Placed" value={String(stats.total)} sub={`${stats.singles} single / ${stats.combos} combo`} />
+        <InfoCard label="Biggest Win" value={money(stats.biggestWin)} tone={stats.biggestWin > 0 ? 'pos' : undefined} />
+        <InfoCard
+          label="Current Streak"
+          value={stats.streak === 0 ? '—' : `${Math.abs(stats.streak)} ${stats.streak > 0 ? 'W' : 'L'}`}
+          tone={stats.streak > 0 ? 'pos' : stats.streak < 0 ? 'neg' : undefined}
+        />
+        <InfoCard label="By Chain" value={`${stats.chainSol} / ${stats.chainArc}`} sub="Solana / Arc" />
+
+        {stats.open > 0 && <InfoCard label="Still Running" value={String(stats.open)} sub="not counted above" />}
+        {stats.voided > 0 && <InfoCard label="Void" value={String(stats.voided)} sub="refunded, excluded from win rate" />}
       </div>
     </div>
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: 'pos' | 'neg' }) {
   return (
     <div className="rounded-[14px] p-4" style={{ background: "var(--panel-2)", border: "1px solid var(--border-soft)" }}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
         {label}
       </p>
-      <p className="mt-2 font-semibold" style={{ color: "var(--text)" }}>{value}</p>
+      <p className="mt-2 font-semibold" style={{ color: tone === 'pos' ? 'var(--pos)' : tone === 'neg' ? 'var(--neg)' : "var(--text)" }}>{value}</p>
+      {sub && <p className="mt-1 text-[11px]" style={{ color: "var(--text-soft)" }}>{sub}</p>}
     </div>
   );
 }
@@ -2853,7 +2950,7 @@ export default function PredaLandingDashboardMockup() {
       case "/support":
         return <PlaceholderPage title="Support" body="Help center, FAQs, contact, and user support tools will live here." />;
       case "/profile":
-        return <ProfilePage />;
+        return <ProfilePage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
       case "/running":
         return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
       case "/history":
