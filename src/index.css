@@ -2,57 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Palette ───────────────────────────────────────────────────────────────
+   Charcoal + slate surfaces, emerald brand.
+
+   The brand is the ACCENT; surfaces are the MODE. Emerald appears at two
+   weights because one weight cannot serve both themes: #14532D on white is
+   9.11:1, but on #1E293B it is 1.95:1 - invisible. Same hue, weighted per mode,
+   exactly as the old purple did (#6d28d9 light / #a78bfa dark).
+
+   #14532D survives in --brand-grad, where it is a FILL under white text
+   (9.11:1) rather than text itself. That is the job it is good at.
+
+   Every pairing below is >= 4.5:1 (WCAG AA). Surface steps are deliberately
+   ~1.2-1.4:1 - that is elevation, not contrast.
+
+   NOTHING should hardcode a hex outside this block. ~60 inline hex sites are
+   what made the app inconsistent: three different reds, three greens, and an
+   admin page on its own cyan theme.
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
   /* Neutrals — light theme */
-  --bg:            #f6f6f8;
-  --panel:         #ffffff;
-  --panel-2:       #fafafc;
-  --text:          #141419;
-  --text-2:        #585866;
-  --text-soft:     #9b9ba8;
-  --text-muted:    #b8b8c2;
-  --border:        #ececf1;
-  --border-soft:   #f0f0f4;
-  --accent-soft:   #ede9fe;
+  --bg:            #F8FAFC;
+  --panel:         #FFFFFF;
+  --panel-2:       #F1F5F9;
+  --text:          #0F172A;
+  --text-2:        #334155;
+  --text-soft:     #475569;
+  --text-muted:    #64748B;   /* was #b8b8c2 — 2.0:1, unreadable */
+  --border:        #E2E8F0;
+  --border-soft:   #F1F5F9;
+  --accent-soft:   #D1FAE5;
 
-  /* Brand + semantic — constant across themes */
-  --accent:        #6d28d9;
-  --accent-2:      #be185d;
-  --brand-grad:    linear-gradient(135deg, #5b21b6, #be185d);
-  --accent-ink:    #5b21b6;
+  /* Brand + semantic — light */
+  --accent:        #14532D;
+  --accent-2:      #065F46;
+  --brand-grad:    linear-gradient(135deg, #14532D, #065F46);
+  --accent-ink:    #14532D;
   --pos:           #047857;
-  --neg:           #dc2626;
+  --neg:           #DC2626;
+
+  /* Chain identity — deliberately NOT the brand. A chain badge must be
+     distinguishable from an accent badge, or "which chain?" is unanswerable
+     at a glance. */
+  --chain-arc:      #6D28D9;
+  --chain-arc-soft: rgba(109,40,217,0.12);
 
   /* Shadows — light theme */
-  --shadow-card:   0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05);
-  --shadow-hover:  0 12px 32px rgba(124,58,237,0.12);
-  --shadow-pop:    0 12px 40px rgba(20,20,30,0.16);
+  --shadow-card:   0 1px 3px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.05);
+  --shadow-hover:  0 12px 32px rgba(20,83,45,0.12);
+  --shadow-pop:    0 12px 40px rgba(15,23,42,0.16);
 }
 
 [data-theme="dark"] {
-  /* Neutrals — dark theme */
-  --bg:            #0a0a0f;
-  --panel:         #14141b;
-  --panel-2:       #1a1a22;
-  --text:          #f4f4f6;
-  --text-2:        #c4c4cf;
-  --text-soft:     #8a8a97;
-  --text-muted:    #6a6a76;
-  --border:        #26262e;
-  --border-soft:   #1f1f27;
-  --accent-soft:   rgba(124,58,237,0.16);
+  /* Neutrals — dark theme. Charcoal page, slate panels. */
+  --bg:            #111827;
+  --panel:         #1E293B;
+  --panel-2:       #334155;
+  --text:          #F8FAFC;
+  --text-2:        #CBD5E1;
+  --text-soft:     #94A3B8;
+  --text-muted:    #8A9AAF;   /* #64748B was 3.07:1 on panel — below AA */
+  --border:        #334155;
+  --border-soft:   rgba(51,65,85,0.55);
+  --accent-soft:   rgba(52,211,153,0.15);
 
-  /* Brand stays vivid; semantic slightly brighter for dark bg */
-  --accent:        #a78bfa;
-  --accent-2:      #ec4899;
-  --brand-grad:    linear-gradient(135deg, #8b5cf6, #ec4899);
-  --accent-ink:    #c4b5fd;
-  --pos:           #34d399;
-  --neg:           #f87171;
+  /* Brand + semantic — dark. Emerald at its readable weight. */
+  --accent:        #34D399;
+  --accent-2:      #6EE7B7;
+  --brand-grad:    linear-gradient(135deg, #14532D, #065F46);
+  --accent-ink:    #6EE7B7;
+  --pos:           #34D399;
+  --neg:           #F87171;
+
+  --chain-arc:      #A78BFA;
+  --chain-arc-soft: rgba(167,139,250,0.15);
 
   /* Shadows — dark theme (deeper, less diffuse) */
   --shadow-card:   0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
-  --shadow-hover:  0 12px 32px rgba(139,92,246,0.22);
+  --shadow-hover:  0 12px 32px rgba(52,211,153,0.18);
   --shadow-pop:    0 12px 40px rgba(0,0,0,0.5);
 }
 
