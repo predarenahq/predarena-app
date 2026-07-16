@@ -30,6 +30,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
   <body>
+    <script>
+      // Blocking, deliberately. useTheme lives inside the homepage component,
+      // so refreshing on ANY other route (/battle/x, /bet/CODE, /admin) never
+      // mounted it - data-theme was never set and :root (light) won. Even on
+      // the homepage React cannot beat first paint, so every load flashed light
+      // before going dark. This runs before either can happen.
+      (function () {
+        try {
+          if (localStorage.getItem('preda-theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) { /* private mode: fall through to light */ }
+      })();
+    </script>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <!--

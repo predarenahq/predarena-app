@@ -13,12 +13,21 @@ export function useTheme() {
     const root = document.documentElement;
     if (theme === "dark") root.setAttribute("data-theme", "dark");
     else root.removeAttribute("data-theme");
-    window.localStorage.setItem("preda-theme", theme);
   }, [theme]);
 
-  const toggle = useCallback(() => {
-    setTheme((t) => (t === "dark" ? "light" : "dark"));
+  // Persist ONLY on an explicit toggle. The old effect wrote on mount too, so a
+  // first-time visitor had "light" saved as a preference they never expressed.
+  const persist = useCallback((t: Theme) => {
+    try { window.localStorage.setItem("preda-theme", t); } catch (e) { /* private mode */ }
   }, []);
+
+  const toggle = useCallback(() => {
+    setTheme((t) => {
+      const next = t === "dark" ? "light" : "dark";
+      persist(next);
+      return next;
+    });
+  }, [persist]);
 
   return { theme, toggle };
 }
