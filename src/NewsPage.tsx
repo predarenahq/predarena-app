@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ExternalLink } from 'lucide-react'
 
 const COLORS = {
-  bg: '#060d14',
-  panel: '#0d1520',
-  accent: '#00f0ff',
-  lineStrong: 'rgba(255,255,255,0.08)',
-  line: 'rgba(255,255,255,0.12)',
-  textSoft: 'rgba(255,255,255,0.45)',
+  bg: 'var(--bg)',
+  panel: 'var(--panel)',
+  accent: 'var(--accent)',
+  lineStrong: 'var(--border-soft)',
+  line: 'var(--border)',
+  textSoft: 'var(--text-soft)',
 }
 
 const CATEGORIES = ['All', 'BTC', 'ETH', 'SOL', 'DeFi', 'NFT', 'Regulation']

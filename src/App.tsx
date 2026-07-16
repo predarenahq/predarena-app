@@ -44,7 +44,7 @@ function App() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#080c14",
+          background: "var(--bg)",
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -64,7 +64,7 @@ function App() {
         loginMethods: ["wallet", "email"],
         appearance: {
           theme: "dark",
-          accentColor: "#00d4ff",
+          accentColor: "var(--accent)",
           // Added EVM wallets alongside existing Solana wallets
           walletList: [
             "metamask",
