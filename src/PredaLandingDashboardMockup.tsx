@@ -1959,6 +1959,7 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
         <div>
           <div className="flex items-center gap-2">
             <p className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+            <ChainBadge chain={ticket.chain} />
             {isCombo && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>COMBO LEG</span>}
           </div>
           <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>{battle?.league} · {battle?.duration}</p>
@@ -2005,6 +2006,26 @@ async function ticketRobustCopy(text: string): Promise<boolean> {
     document.body.appendChild(ta); ta.select()
     const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok
   } catch { return false }
+}
+
+// Arc and Solana bets are visually identical otherwise, but they settle on
+// completely different rails - different contract, different money, different
+// failure modes. When something looks wrong, the first question is always
+// "which chain?", so put the answer on the ticket.
+function ChainBadge({ chain }: { chain?: string }) {
+  const isArc = chain === 'arc'
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]"
+      style={{
+        background: isArc ? 'rgba(124,58,237,0.15)' : 'var(--accent-soft)',
+        color: isArc ? '#a78bfa' : 'var(--accent)',
+      }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: isArc ? '#a78bfa' : 'var(--accent)' }} />
+      {isArc ? 'Arc' : 'Solana'}
+    </span>
+  )
 }
 
 function legStatus(battle: any, side: number): { label: string; tone: string; Icon: any } {
@@ -2073,6 +2094,7 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
         <div>
           <div className="flex items-center gap-2">
             <p className="font-semibold text-[15px]" style={{ color: "var(--text)" }}>Combo Bet</p>
+            <ChainBadge chain={firstLeg.chain} />
             <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
               {legs.length} LEGS
             </span>
@@ -2197,7 +2219,10 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
             <div key={ticket.id} className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+                    <ChainBadge chain={ticket.chain} />
+                  </div>
                   <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>{battle?.league} · {battle?.duration}</p>
                 </div>
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
