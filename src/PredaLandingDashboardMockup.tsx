@@ -2321,7 +2321,6 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
           const battle = ticket.battles
           const isCombo = legs.length > 1
           const outcome = betOutcome(legs)
-          const won = outcome.kind === 'won'
           const effOdds = isCombo ? Number(ticket.combo_odds || 1) : Number(ticket.odds)
           const potentialWin = (ticket.stake * effOdds).toFixed(2)
           const changeA = battle?.start_price_a && battle?.final_price_a 
