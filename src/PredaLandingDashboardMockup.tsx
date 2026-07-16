@@ -2436,7 +2436,6 @@ export default function PredaLandingDashboardMockup() {
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
-  const arcConnected = evmAddresses.length > 0;
   const [oddsFlash, setOddsFlash] = useState<Record<string, 'up' | 'down'>>({});
   const flashTimers = React.useRef<Record<string, any>>({});
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -2472,6 +2471,9 @@ export default function PredaLandingDashboardMockup() {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [privyWallets.map((w) => w.address).join(",")]);
+
+  // Arc needs an EVM wallet - either Privy's embedded one or MetaMask.
+  const arcConnected = evmAddresses.length > 0;
 
 
   useEffect(() => {
