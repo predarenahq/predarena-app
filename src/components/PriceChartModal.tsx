@@ -5,14 +5,23 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Re
 import { supabase } from '../lib/supabase'
 
 const COLORS = {
-  bg: '#0a0f1a',
-  panel: '#111827',
-  accent: '#00f0ff',
-  lineStrong: 'rgba(255,255,255,0.08)',
-  textSoft: 'rgba(255,255,255,0.45)',
-  coinA: '#00f0ff',
-  coinB: '#a78bfa',
-  entryLine: 'rgba(255,255,255,0.3)',
+  bg: 'var(--bg)',
+  panel: 'var(--panel)',
+  accent: 'var(--accent)',
+  lineStrong: 'var(--border-soft)',
+  textSoft: 'var(--text-soft)',
+  coinA: 'var(--chart-a)',
+  coinB: 'var(--chart-b)',
+  entryLine: 'var(--chart-entry)',
+  // Recharts is SVG so var() resolves for strokes - but this file also builds
+  // colours by concat (`${COLORS.coinA}15`), which var() cannot do. Those alphas
+  // are named explicitly instead.
+  coinASoft: 'var(--chart-a-soft)',
+  coinALine: 'var(--chart-a-line)',
+  coinAFill: 'var(--chart-a-fill)',
+  coinBSoft: 'var(--chart-b-soft)',
+  coinBLine: 'var(--chart-b-line)',
+  coinBFill: 'var(--chart-b-fill)',
 }
 
 interface PriceChartModalProps {
@@ -136,7 +145,7 @@ export default function PriceChartModal({
             </div>
 
             <div className="flex gap-4 mb-6">
-              <div className="flex-1 rounded-xl p-3 text-center" style={{ background: `${COLORS.coinA}15`, border: `1px solid ${COLORS.coinA}30` }}>
+              <div className="flex-1 rounded-xl p-3 text-center" style={{ background: COLORS.coinASoft, border: `1px solid ${COLORS.coinALine}` }}>
                 <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{coinA}</p>
                 <p className="text-lg font-bold" style={{ color: COLORS.coinA }}>
                   {latestA >= 0 ? '+' : ''}{latestA.toFixed(4)}%
@@ -145,7 +154,7 @@ export default function PriceChartModal({
               <div className="flex items-center">
                 <span className="text-white font-bold text-sm">VS</span>
               </div>
-              <div className="flex-1 rounded-xl p-3 text-center" style={{ background: `${COLORS.coinB}15`, border: `1px solid ${COLORS.coinB}30` }}>
+              <div className="flex-1 rounded-xl p-3 text-center" style={{ background: COLORS.coinBSoft, border: `1px solid ${COLORS.coinBLine}` }}>
                 <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{coinB}</p>
                 <p className="text-lg font-bold" style={{ color: COLORS.coinB }}>
                   {latestB >= 0 ? '+' : ''}{latestB.toFixed(4)}%
@@ -156,7 +165,7 @@ export default function PriceChartModal({
             {leadingCoin && (
               <div className="mb-4 text-center">
                 <span className="text-xs px-3 py-1 rounded-full font-semibold"
-                  style={{ background: leadingCoin === coinA ? `${COLORS.coinA}20` : `${COLORS.coinB}20`, color: leadingCoin === coinA ? COLORS.coinA : COLORS.coinB }}>
+                  style={{ background: leadingCoin === coinA ? COLORS.coinAFill : COLORS.coinBFill, color: leadingCoin === coinA ? COLORS.coinA : COLORS.coinB }}>
                   {leadingCoin} is currently leading
                 </span>
               </div>

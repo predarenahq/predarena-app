@@ -64,7 +64,11 @@ function App() {
         loginMethods: ["wallet", "email"],
         appearance: {
           theme: "dark",
-          accentColor: "var(--accent)",
+          // A literal hex, deliberately. Privy renders its login in an IFRAME, which
+          // cannot see this document's CSS vars - var(--accent) would resolve to
+          // nothing there. Its type is `#${string}` for exactly this reason.
+          // Keep in sync with --accent (dark): #34D399.
+          accentColor: "#34D399",
           // Added EVM wallets alongside existing Solana wallets
           walletList: [
             "metamask",

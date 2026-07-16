@@ -50,6 +50,17 @@
   --chain-arc:      #6D28D9;
   --chain-arc-soft: rgba(109,40,217,0.12);
 
+  /* Chart series — two hues that must stay apart at a glance. */
+  --chart-a:        #14532D;
+  --chart-a-soft:   rgba(20,83,45,0.08);
+  --chart-a-line:   rgba(20,83,45,0.19);
+  --chart-a-fill:   rgba(20,83,45,0.13);
+  --chart-b:        #6D28D9;
+  --chart-b-soft:   rgba(109,40,217,0.08);
+  --chart-b-line:   rgba(109,40,217,0.19);
+  --chart-b-fill:   rgba(109,40,217,0.13);
+  --chart-entry:    rgba(15,23,42,0.30);
+
   /* Hero — a fixed dark composition, identical in both modes. Not derived from
      --accent-2: that flips to a light mint in dark and would wash the base out
      from under the white hero text. */
@@ -90,6 +101,16 @@
 
   --chain-arc:      #A78BFA;
   --chain-arc-soft: rgba(167,139,250,0.15);
+
+  --chart-a:        #34D399;
+  --chart-a-soft:   rgba(52,211,153,0.08);
+  --chart-a-line:   rgba(52,211,153,0.19);
+  --chart-a-fill:   rgba(52,211,153,0.13);
+  --chart-b:        #A78BFA;
+  --chart-b-soft:   rgba(167,139,250,0.08);
+  --chart-b-line:   rgba(167,139,250,0.19);
+  --chart-b-fill:   rgba(167,139,250,0.13);
+  --chart-entry:    rgba(255,255,255,0.30);
 
   /* Shadows — dark theme (deeper, less diffuse) */
   --shadow-card:   0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
