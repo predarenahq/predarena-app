@@ -2,13 +2,15 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Copy, Check, Link as LinkIcon, ArrowUpRight } from 'lucide-react'
 
+// Aliases only. This file used to carry its own cyan theme, which is why the
+// share flow looked like a different product from the app it shares.
 const COLORS = {
-  bg: '#060d14',
-  panel: '#0d1520',
-  accent: '#00f0ff',
-  lineStrong: 'rgba(255,255,255,0.08)',
-  line: 'rgba(255,255,255,0.12)',
-  textSoft: 'rgba(255,255,255,0.45)',
+  bg: 'var(--bg)',
+  panel: 'var(--panel)',
+  accent: 'var(--accent)',
+  lineStrong: 'var(--border-soft)',
+  line: 'var(--border)',
+  textSoft: 'var(--text-soft)',
 }
 
 interface BetShareModalProps {
@@ -151,12 +153,12 @@ export default function BetShareModal({
             {/* HERO: 3-stop 135deg gradient, dark cyan */}
             <div
               className="relative flex flex-col items-center justify-center px-6 pt-11 pb-8 text-center"
-              style={{ background: 'linear-gradient(135deg, #04181c 0%, #063d45 52%, #0a5f6b 100%)' }}
+              style={{ background: 'var(--hero-grad)' }}
             >
               <span className="relative mb-5 flex items-center justify-center">
                 <span className="absolute rounded-full" style={{ width: 52, height: 52, background: COLORS.accent, opacity: 0.18, transform: 'scale(1.5)', filter: 'blur(2px)' }} />
                 <span className="flex items-center justify-center rounded-full" style={{ width: 52, height: 52, background: COLORS.accent }}>
-                  <Check size={26} color="#04181c" strokeWidth={3} />
+                  <Check size={26} color="var(--accent-ink)" strokeWidth={3} />
                 </span>
               </span>
 
@@ -176,7 +178,7 @@ export default function BetShareModal({
             <div className="p-5 sm:p-6">
               <div
                 className="relative overflow-hidden rounded-[16px] p-5"
-                style={{ background: '#0a1119', border: `1px solid ${COLORS.lineStrong}` }}
+                style={{ background: 'var(--panel-2)', border: `1px solid ${COLORS.lineStrong}` }}
               >
                 <div
                   className="pointer-events-none absolute -right-16 -top-16 h-48 w-48"
@@ -201,7 +203,7 @@ export default function BetShareModal({
                     <button
                       onClick={() => doCopy(code, 'code')}
                       className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors"
-                      style={{ background: copied === 'code' ? 'rgba(0,240,255,0.15)' : COLORS.accent, color: copied === 'code' ? COLORS.accent : '#04181c' }}
+                      style={{ background: copied === 'code' ? 'var(--accent-soft)' : COLORS.accent, color: copied === 'code' ? COLORS.accent : 'var(--accent-ink)' }}
                     >
                       {copied === 'code' ? <Check size={15} /> : <Copy size={15} />}
                       {copied === 'code' ? 'Copied!' : 'Copy code'}
@@ -219,7 +221,7 @@ export default function BetShareModal({
               </div>
 
               {failed && (
-                <p className="mt-3 text-center text-xs" style={{ color: '#f87171' }}>
+                <p className="mt-3 text-center text-xs" style={{ color: 'var(--neg)' }}>
                   Couldn't copy automatically — long-press the code to copy it manually.
                 </p>
               )}

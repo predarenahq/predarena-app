@@ -37,7 +37,7 @@
   --accent:        #14532D;
   --accent-2:      #065F46;
   --brand-grad:    linear-gradient(135deg, #14532D, #065F46);
-  --accent-ink:    #14532D;
+  --accent-ink:    #FFFFFF;   /* readable ON --accent, not next to it */
   --pos:           #047857;
   --pos-soft:      rgba(4,120,87,0.12);
   --neg:           #DC2626;
@@ -81,7 +81,7 @@
   --accent:        #34D399;
   --accent-2:      #6EE7B7;
   --brand-grad:    linear-gradient(135deg, #14532D, #065F46);
-  --accent-ink:    #6EE7B7;
+  --accent-ink:    #0B1F16;   /* near-black on mint (#34D399) */
   --pos:           #34D399;
   --pos-soft:      rgba(52,211,153,0.15);
   --neg:           #F87171;

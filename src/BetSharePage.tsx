@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 const COLORS = {
-  bg: '#060d14',
-  panel: '#0d1520',
-  accent: '#00f0ff',
-  lineStrong: 'rgba(255,255,255,0.08)',
-  textSoft: 'rgba(255,255,255,0.45)',
+  bg: 'var(--bg)',
+  panel: 'var(--panel)',
+  accent: 'var(--accent)',
+  lineStrong: 'var(--border-soft)',
+  textSoft: 'var(--text-soft)',
 }
 
 export default function BetSharePage() {
@@ -60,7 +60,7 @@ export default function BetSharePage() {
             <button
               onClick={() => navigate('/')}
               className="mt-4 px-6 py-2 rounded-xl font-semibold"
-              style={{ background: COLORS.accent, color: '#04181c' }}
+              style={{ background: COLORS.accent, color: 'var(--accent-ink)' }}
             >
               Go to Arena
             </button>
