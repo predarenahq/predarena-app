@@ -2227,6 +2227,24 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
   )
 }
 
+/**
+ * A settled bet has THREE outcomes, not two. History judged `won = winner ===
+ * side`, a boolean - so every void bet rendered as "Lost", telling users they
+ * lost money that was refunded to them.
+ *
+ * For a combo the whole group decides: any void leg voids the bet (matching
+ * settleComboTickets), any lost leg loses it, and it wins only if every leg won.
+ */
+function betOutcome(legs: any[]): { kind: 'won' | 'lost' | 'void'; label: string; tone: string; Icon: any } {
+  if (legs.some((l) => l.battles?.status === 'void')) {
+    return { kind: 'void', label: 'Void', tone: 'var(--text-soft)', Icon: MinusCircle }
+  }
+  if (legs.every((l) => l.battles?.winner === l.side)) {
+    return { kind: 'won', label: 'Won', tone: COLORS.accent, Icon: Trophy }
+  }
+  return { kind: 'lost', label: 'Lost', tone: '#ef4444', Icon: XCircle }
+}
+
 function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -2242,7 +2260,12 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
           .select('*, battles(*)')
           .in('wallet_address', addresses)
           .order('created_at', { ascending: false })
-        setTickets((data || []).filter((t: any) => t.battles?.status === 'settled'))
+        // Void belongs here as much as settled. It used to be filtered out,
+        // so a refunded bet showed in NEITHER view: Running Bets fetches
+        // claimed=false and settlement marks void combos claimed=true after
+        // refunding. The user got their money back with no record of it.
+        setTickets((data || []).filter((t: any) =>
+          t.battles?.status === 'settled' || t.battles?.status === 'void'))
       } catch (err) {
         console.error('Failed to fetch history:', err)
       } finally {
@@ -2264,6 +2287,24 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     </div>
   )
 
+  // One card per BET, not per row. A 4-leg combo is 4 ticket rows sharing a
+  // combo_id, and rendering them individually showed one bet as four cards -
+  // some "Won", some "Lost" - which is meaningless: a combo pays only if every
+  // leg wins. Same grouping RunningBetsPage already does.
+  const historyGroups = React.useMemo(() => {
+    const combos: Record<string, any[]> = {}
+    const out: { key: string; legs: any[] }[] = []
+    for (const t of tickets) {
+      if (t.combo_id) {
+        if (!combos[t.combo_id]) { combos[t.combo_id] = []; out.push({ key: t.combo_id, legs: combos[t.combo_id] }) }
+        combos[t.combo_id].push(t)
+      } else {
+        out.push({ key: t.id, legs: [t] })
+      }
+    }
+    return out
+  }, [tickets])
+
   if (!tickets.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>No settled bets yet</p>
@@ -2275,10 +2316,14 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     <div className="mx-auto max-w-[1700px] px-4 py-8 sm:px-6 xl:px-8">
       <h2 className="text-2xl font-semibold tracking-[-0.02em] mb-6" style={{ color: "var(--text)" }}>Bet History</h2>
       <div className="grid gap-4">
-        {tickets.map((ticket) => {
+        {historyGroups.map(({ key, legs }) => {
+          const ticket = legs[0]
           const battle = ticket.battles
-          const won = battle?.winner === ticket.side
-          const potentialWin = (ticket.stake * ticket.odds).toFixed(2)
+          const isCombo = legs.length > 1
+          const outcome = betOutcome(legs)
+          const won = outcome.kind === 'won'
+          const effOdds = isCombo ? Number(ticket.combo_odds || 1) : Number(ticket.odds)
+          const potentialWin = (ticket.stake * effOdds).toFixed(2)
           const changeA = battle?.start_price_a && battle?.final_price_a 
             ? (((battle.final_price_a - battle.start_price_a) / battle.start_price_a) * 100).toFixed(2)
             : null
@@ -2287,41 +2332,72 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
             : null
 
           return (
-            <div key={ticket.id} className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
+            <div key={key} className="rounded-[18px] p-5 bg-[var(--panel)]" style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}>
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>{battle?.coin_a} vs {battle?.coin_b}</p>
+                    <p className="font-semibold text-[17px]" style={{ color: "var(--text)" }}>
+                      {isCombo ? `Combo · ${legs.length} legs` : `${battle?.coin_a} vs ${battle?.coin_b}`}
+                    </p>
                     <ChainBadge chain={ticket.chain} />
                   </div>
-                  <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>{battle?.league} · {battle?.duration}</p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>
+                    {isCombo ? `${effOdds.toFixed(2)}x combined · all legs must win` : `${battle?.league} · ${battle?.duration}`}
+                  </p>
                 </div>
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
-                  background: won ? 'var(--accent-soft)' : 'rgba(239,68,68,0.13)',
-                  color: won ? COLORS.accent : '#ef4444'
+                  background: outcome.kind === 'won' ? 'var(--accent-soft)'
+                            : outcome.kind === 'void' ? 'rgba(255,255,255,0.06)'
+                            : 'rgba(239,68,68,0.13)',
+                  color: outcome.tone,
                 }}>
-                  {won ? (<span className="inline-flex items-center gap-1"><Trophy className="h-3.5 w-3.5" /> Won</span>) : (<span className="inline-flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Lost</span>)}
+                  <span className="inline-flex items-center gap-1"><outcome.Icon className="h-3.5 w-3.5" /> {outcome.label}</span>
                 </span>
               </div>
+
+              {/* Per-leg breakdown - without it a combo card cannot show WHICH
+                  leg killed the bet. */}
+              {isCombo && (
+                <div className="space-y-1.5 mb-4">
+                  {legs.map((leg: any, i: number) => {
+                    const lb = leg.battles
+                    const pick = leg.side === 1 ? lb?.coin_a : leg.side === 2 ? lb?.coin_b : 'Draw'
+                    const legOut = betOutcome([leg])
+                    return (
+                      <div key={leg.id} className="flex items-center justify-between rounded-[10px] px-3 py-2" style={{ background: 'var(--panel-2)' }}>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-muted)' }}>Leg {i + 1}</span>
+                        <span className="text-sm" style={{ color: 'var(--text)' }}>{lb?.coin_a} vs {lb?.coin_b}</span>
+                        <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>{pick}</span>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: legOut.tone }}>
+                          <legOut.Icon className="h-3 w-3" /> {legOut.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
                   <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Your Pick</p>
                   <p className="font-semibold" style={{ color: "var(--text)" }}>
-                    {ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
+                    {isCombo ? `${legs.length} selections`
+                     : ticket.side === 1 ? battle?.coin_a : ticket.side === 2 ? battle?.coin_b : 'Draw'}
                   </p>
-                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {ticket.odds}x</p>
+                  <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>@ {effOdds.toFixed(2)}x</p>
                 </div>
                 <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
-                  <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{won ? 'Won' : 'Lost'}</p>
-                  <p className="font-semibold" style={{ color: won ? COLORS.accent : '#ef4444' }}>
-                    {won ? `+$${potentialWin}` : `-$${ticket.stake}`}
+                  <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{outcome.label}</p>
+                  <p className="font-semibold" style={{ color: outcome.tone }}>
+                    {outcome.kind === 'won'  ? `+$${potentialWin}`
+                     : outcome.kind === 'void' ? `$${ticket.stake} refunded`
+                     : `-$${ticket.stake}`}
                   </p>
                   <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>Stake: ${ticket.stake}</p>
                 </div>
               </div>
 
-              {(changeA || changeB) && (
+              {!isCombo && (changeA || changeB) && (
                 <div className="rounded-xl p-3 grid grid-cols-2 gap-3" style={{ background: COLORS.accentSoft }}>
                   <div>
                     <p className="text-xs" style={{ color: COLORS.textSoft }}>{battle?.coin_a} move</p>
