@@ -1172,7 +1172,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
 
   return (
     <section className="px-4 pt-6 sm:px-6 xl:px-8">
-      <div className="relative overflow-hidden rounded-[28px] px-6 py-9 sm:px-10 sm:py-11" style={{ background: "radial-gradient(120% 120% at 12% 18%, rgba(52,211,153,0.28) 0%, transparent 44%), radial-gradient(130% 130% at 90% 88%, rgba(110,231,183,0.22) 0%, transparent 46%), linear-gradient(135deg, #0B1F16 0%, #14532D 48%, #065F46 100%)", boxShadow: "0 28px 70px -24px rgba(20,83,45,0.7), inset 0 1px 0 rgba(255,255,255,0.09)" }}>
+      <div className="relative overflow-hidden rounded-[28px] px-6 py-9 sm:px-10 sm:py-11" style={{ background: "var(--hero-grad)", boxShadow: "0 28px 70px -24px rgba(20,83,45,0.7), inset 0 1px 0 rgba(255,255,255,0.09)" }}>
         <div className="absolute inset-y-0 left-0 w-40 bg-[radial-gradient(circle_at_left,rgba(255,255,255,0.14),transparent_65%)]" />
         <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_right,rgba(255,255,255,0.10),transparent_65%)]" />
 

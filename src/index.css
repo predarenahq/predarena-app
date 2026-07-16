@@ -50,6 +50,14 @@
   --chain-arc:      #6D28D9;
   --chain-arc-soft: rgba(109,40,217,0.12);
 
+  /* Hero — a fixed dark composition, identical in both modes. Not derived from
+     --accent-2: that flips to a light mint in dark and would wash the base out
+     from under the white hero text. */
+  --hero-grad:     radial-gradient(120% 120% at 12% 18%, rgba(52,211,153,0.28) 0%, transparent 44%),
+                   radial-gradient(130% 130% at 90% 88%, rgba(110,231,183,0.22) 0%, transparent 46%),
+                   linear-gradient(135deg, #0B1F16 0%, #14532D 48%, #065F46 100%);
+  --hero-shadow:   0 28px 70px -24px rgba(20,83,45,0.7);
+
   /* Shadows — light theme */
   --shadow-card:   0 1px 3px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.05);
   --shadow-hover:  0 12px 32px rgba(20,83,45,0.12);
