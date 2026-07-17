@@ -25,7 +25,6 @@ import {
   Target,
   ClipboardList,
   BarChart3,
-  Newspaper,
   Sun,
   Moon,
   Ticket,
@@ -37,6 +36,7 @@ import {
   Check,
   MinusCircle,
   Loader2,
+  User,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
@@ -1774,12 +1774,15 @@ function BottomNav({
   const location = useLocation()
   const path = location.pathname
 
+  // Five is the ceiling before labels start wrapping on a small phone. News
+  // gives way to Stats: the other four are all "my money" or "place a bet",
+  // News is content that also lives in the drawer nav.
   const items = [
     { label: 'Home', Icon: Swords, route: '/' },
     { label: 'Running', Icon: Target, route: '/running' },
     { label: 'Slip', Icon: ClipboardList, route: '__slip__' },
     { label: 'History', Icon: BarChart3, route: '/history' },
-    { label: 'News', Icon: Newspaper, route: '/news' },
+    { label: 'Stats', Icon: User, route: '/profile' },
   ]
 
   return (
