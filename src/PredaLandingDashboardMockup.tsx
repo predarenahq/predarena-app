@@ -759,6 +759,87 @@ function Toast() {
   )
 }
 
+/**
+ * TEMPORARY test harness for wallet session auth.
+ *
+ * It answers exactly one question: does the server's verifyMessage() accept a
+ * real MetaMask signature over the message we construct? Everything downstream -
+ * locking RLS on tickets and user_balances, and profiles (b) proving address
+ * ownership - is worthless if the answer is no, and the failure would look like
+ * "users cannot see their money".
+ *
+ * The endpoint's validation paths are already proven by curl. This proves the
+ * one part curl cannot: a genuine signature. Delete once the real sign-in flow
+ * replaces it.
+ */
+function SessionTestButton() {
+  const [status, setStatus] = React.useState<string>('')
+  const [busy, setBusy] = React.useState(false)
+
+  async function run() {
+    setBusy(true)
+    setStatus('')
+    try {
+      const eth = (window as any).ethereum
+      if (!eth) { setStatus('No EVM wallet found'); return }
+
+      const [addr] = await eth.request({ method: 'eth_requestAccounts' })
+
+      const nRes = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'nonce', address: addr, chain: 'evm' }),
+      })
+      const n = await nRes.json()
+      if (!nRes.ok) { setStatus(`nonce failed: ${n.error}`); return }
+
+      const sig = await eth.request({ method: 'personal_sign', params: [n.message, addr] })
+
+      const vRes = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', nonce: n.nonce, signature: sig }),
+      })
+      const v = await vRes.json()
+      if (!vRes.ok) { setStatus(`verify failed: ${v.error}`); return }
+
+      // The nonce must be single-use, or a captured signature is replayable and
+      // the whole mechanism is decorative.
+      const rRes = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', nonce: n.nonce, signature: sig }),
+      })
+      const r = await rRes.json()
+      const replayBlocked = r.error === 'nonce_invalid_or_used'
+
+      setStatus(`OK — session for ${v.address.slice(0, 6)}…${v.address.slice(-4)} · replay ${replayBlocked ? 'blocked' : 'NOT BLOCKED'}`)
+    } catch (e: any) {
+      setStatus(e?.message?.slice(0, 80) || 'failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={run}
+        disabled={busy}
+        className="flex w-full items-center justify-center rounded-[12px] px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+        style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", color: "var(--accent)" }}
+      >
+        {busy ? 'Check your wallet…' : 'Test wallet sign-in'}
+      </button>
+      {status && (
+        <p className="mt-2 text-[11px] leading-tight" style={{ color: status.startsWith('OK') ? 'var(--pos)' : 'var(--neg)' }}>
+          {status}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function MobileThemeToggle() {
   const { theme, toggle } = useTheme();
   return (
@@ -1157,6 +1238,7 @@ function MobileShell({
                       phones had no way to change theme at all. Same context as
                       the desktop one - one state, two mount points. */}
                   <MobileThemeToggle />
+                  <SessionTestButton />
                 </div>
                 <SidebarAccordion
                   expanded={true}
