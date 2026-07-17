@@ -1626,14 +1626,10 @@ function SlipDrawer({
               </p>
             </div>
           )}
+        </div>
 
-        {/* Controls live INSIDE the scroller. The old layout pinned this whole
-            block, and it grew past the viewport: stake input + four quick-stakes
-            + combo warning + three odds rows + the chain selector I added. Being
-            shrink-0 inside an overflow-hidden parent, it got CLIPPED - the Place
-            button was not below the fold, it was gone, with nothing to scroll
-            toward. Only the button is pinned now (below), and ~60px cannot
-            outgrow a screen. */}
+        {/* Controls live INSIDE the scroller. Only the button is pinned - see
+            the note on the button below. */}
         <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
             {/* Chain is a property of the SLIP, not of a leg. A combo settles in
                 ONE contract, so half-Solana/half-Arc has no meaning on either
@@ -1718,16 +1714,11 @@ function SlipDrawer({
                 </span>
               </div>
             </div>
-        </div>
-        </div>
 
-        {/* The ONLY pinned element. Everything else scrolls above it, so this
-            bar is a fixed ~60px and stays on screen at any height.
-            Disabled while a bet is in flight: an Arc bet is a quote fetch plus
-            TWO wallet confirmations, so the button sits idle-looking for many
-            seconds - and a double-tap there means two real transactions. */}
-        <div className="shrink-0 border-t px-5 py-3 pb-safe" style={{ borderColor: "var(--border-soft)", background: "var(--panel-2)" }}>
-          <button disabled={!items.length || placing} onClick={onPlaceTicket} className="flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
+          {/* Disabled while a bet is in flight. An Arc bet is a quote fetch plus
+              TWO wallet confirmations, so the button sits idle-looking for many
+              seconds - and a double-tap there means two real transactions. */}
+          <button disabled={!items.length || placing} onClick={onPlaceTicket} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-grad)" }}>
             {placing && <Loader2 className="h-4 w-4 animate-spin" />}
             {placing
               ? (slipChain === 'arc' ? 'Confirm in your wallet…' : 'Placing…')
