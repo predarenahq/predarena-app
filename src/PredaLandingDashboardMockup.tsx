@@ -1126,6 +1126,15 @@ function MobileShell({
               </div>
 
               <div className="preda-scrollbar-hide h-[calc(100%-73px)] overflow-y-auto px-3 py-4">
+                {/* Balance + deposit lived ONLY in the desktop sidebar, which is
+                    lg:block - so on a phone this component never mounted and
+                    there was no way to see your balance or deposit at all. The
+                    68px top bar is already full (menu, logo, ticket, connect),
+                    so it goes here, above the nav, where it is the first thing
+                    in the drawer. */}
+                <div className="mb-4 pb-4 border-b" style={{ borderColor: "var(--border)" }}>
+                  <UserBalancePanel />
+                </div>
                 <SidebarAccordion
                   expanded={true}
                   openSection={openSection}
