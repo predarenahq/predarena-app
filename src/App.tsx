@@ -20,6 +20,7 @@ import { clusterApiUrl } from "@solana/web3.js";
 import PredaLandingDashboardMockup from "./PredaLandingDashboardMockup";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import { arcTestnet } from "./arc/chain";
+import { ThemeProvider } from "./useTheme";
 
 function App() {
   const network  = WalletAdapterNetwork.Devnet;
@@ -58,6 +59,7 @@ function App() {
   }
 
   return (
+    <ThemeProvider>
     <PrivyProvider
       appId={privyAppId}
       config={{
@@ -100,6 +102,7 @@ function App() {
         </WalletProvider>
       </ConnectionProvider>
     </PrivyProvider>
+    </ThemeProvider>
   );
 }
 

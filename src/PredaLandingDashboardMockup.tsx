@@ -759,6 +759,22 @@ function Toast() {
   )
 }
 
+function MobileThemeToggle() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      className="mt-3 flex w-full items-center justify-between rounded-[12px] px-3 py-2.5 text-sm font-medium transition-all active:scale-[0.98]"
+      style={{ background: "var(--panel-2)", border: "1px solid var(--border)", color: "var(--text)" }}
+    >
+      <span>{theme === "dark" ? "Dark mode" : "Light mode"}</span>
+      {theme === "dark"
+        ? <Sun className="h-4 w-4" style={{ color: "var(--text-soft)" }} />
+        : <Moon className="h-4 w-4" style={{ color: "var(--text-soft)" }} />}
+    </button>
+  );
+}
+
 function UserBalancePanel() {
   const { publicKey, connected, sendTransaction, signMessage } = useWallet()
   const [balance, setBalance] = React.useState<number>(0)
@@ -1134,6 +1150,10 @@ function MobileShell({
                     in the drawer. */}
                 <div className="mb-4 pb-4 border-b" style={{ borderColor: "var(--border)" }}>
                   <UserBalancePanel />
+                  {/* The toggle lived only in the desktop header (lg:-gated), so
+                      phones had no way to change theme at all. Same context as
+                      the desktop one - one state, two mount points. */}
+                  <MobileThemeToggle />
                 </div>
                 <SidebarAccordion
                   expanded={true}
