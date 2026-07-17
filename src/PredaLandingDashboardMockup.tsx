@@ -2858,6 +2858,12 @@ export default function PredaLandingDashboardMockup() {
       "/leaderboard": "PRODUCT",
       "/how-to-play": "PRODUCT",
       "/support": "PRODUCT",
+      // MY BETS had no entries here at all, so none of its routes opened their
+      // own section - the links existed but stayed folded inside a collapsed
+      // accordion. That is why /profile looked missing on desktop.
+      "/running": "MY BETS",
+      "/history": "MY BETS",
+      "/profile": "MY BETS",
       "/markets/5m": "MARKETS",
       "/markets/15m": "MARKETS",
       "/markets/30m": "MARKETS",
