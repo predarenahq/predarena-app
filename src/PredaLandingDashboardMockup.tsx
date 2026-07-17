@@ -813,7 +813,23 @@ function SessionTestButton() {
       const r = await rRes.json()
       const replayBlocked = r.error === 'nonce_invalid_or_used'
 
-      setStatus(`OK — session for ${v.address.slice(0, 6)}…${v.address.slice(-4)} · replay ${replayBlocked ? 'blocked' : 'NOT BLOCKED'}`)
+      // The 401s prove it refuses. This proves it ACCEPTS - and returns the
+      // right rows for every address on the profile, which is the thing the
+      // whole client will depend on.
+      const [meRes, tRes, bRes] = await Promise.all([
+        fetch('/api/my-data?type=me',      { headers: { Authorization: `Bearer ${v.token}` } }),
+        fetch('/api/my-data?type=tickets', { headers: { Authorization: `Bearer ${v.token}` } }),
+        fetch('/api/my-data?type=balance', { headers: { Authorization: `Bearer ${v.token}` } }),
+      ])
+      const me = await meRes.json()
+      const t  = await tRes.json()
+      const b  = await bRes.json()
+
+      setStatus(
+        `OK — ${v.address.slice(0, 6)}…${v.address.slice(-4)} · replay ${replayBlocked ? 'blocked' : 'NOT BLOCKED'} · ` +
+        `addresses ${me.addresses?.length ?? '?'} · tickets ${t.tickets?.length ?? t.error} · ` +
+        `balance ${b.total_lamports != null ? (b.total_lamports / 1e9).toFixed(3) + ' SOL' : b.error}`
+      )
     } catch (e: any) {
       setStatus(e?.message?.slice(0, 80) || 'failed')
     } finally {
