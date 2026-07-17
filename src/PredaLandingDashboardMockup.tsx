@@ -1541,7 +1541,7 @@ function SlipDrawer({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-[44] bg-black/20 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-[54] bg-black/20 backdrop-blur-[2px] lg:hidden"
         />
       )}
     </AnimatePresence>
@@ -1551,7 +1551,7 @@ function SlipDrawer({
         ? { x: 0, y: 0, opacity: 1, pointerEvents: "auto" }
         : { x: 0, y: "110%", opacity: 0, pointerEvents: "none" }}
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      className="fixed bottom-0 right-0 left-0 top-auto z-[45] flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
+      className="fixed bottom-0 right-0 left-0 top-auto z-[55] flex max-h-[85dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-[var(--panel)] shadow-[0_-8px_40px_rgba(20,20,30,0.16)] lg:bottom-20 lg:right-5 lg:left-auto lg:top-auto lg:max-h-[calc(100vh-120px)] lg:w-[380px] lg:rounded-[24px] lg:shadow-[0_20px_60px_rgba(20,20,30,0.18)]"
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
