@@ -862,10 +862,10 @@ function UserBalancePanel() {
       // The server verifies the transaction on-chain (finalized, landed in the
       // vault, signed by this wallet) and reads the lamports from the chain.
       // The client no longer touches user_balances at all.
-      const res = await fetch('/api/deposit', {
+      const res = await fetch('/api/wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signature: sig, wallet_address: walletAddr }),
+        body: JSON.stringify({ action: 'deposit', signature: sig, wallet_address: walletAddr }),
       })
 
       const result = await res.json()
@@ -929,10 +929,11 @@ function UserBalancePanel() {
       for (let i = 0; i < sigBytes.length; i++) binary += String.fromCharCode(sigBytes[i])
       const signature = btoa(binary)
 
-      const res = await fetch('/api/withdraw', {
+      const res = await fetch('/api/wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'withdraw',
           wallet_address: walletAddr,
           amount_lamports: lamports,
           signature,

@@ -6,8 +6,8 @@
     "api/arc-keeper.mjs": {
       "maxDuration": 60
     },
-    "api/withdraw.mjs": {
-      "maxDuration": 30
+    "api/wallet.mjs": {
+      "maxDuration": 60
     },
     "api/news.mjs": {
       "maxDuration": 15
