@@ -107,6 +107,22 @@ async function verify(req, res) {
   }
   if (!ok) return res.status(401).json({ error: 'bad_signature' })
 
+  // A session is per ADDRESS, but a human is not. This wallet has three
+  // (Solana adapter, Privy embedded, MetaMask) - so a session scoped to one of
+  // them would make Running Bets show a FRACTION of the user's bets, which is
+  // worse than leaving the tables open. The profile is what a session is really
+  // for: it carries every address this person has proven.
+  //
+  // Called only here, after a signature verifies, so the address is proven.
+  const { data: profile, error: pErr } = await supabase.rpc('get_or_create_profile', {
+    p_address: claimed.address,
+    p_chain: claimed.chain,
+  })
+  if (pErr) {
+    console.error('profile failed:', pErr.message)
+    return res.status(500).json({ error: 'profile_failed' })
+  }
+
   const token = randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS)
   const { error } = await supabase.from('auth_sessions').insert({
@@ -125,18 +141,42 @@ async function verify(req, res) {
     token,
     address: claimed.address,
     chain: claimed.chain,
+    profile_id: profile.profile_id,
+    username: profile.username,
+    addresses: profile.addresses || [claimed.address],
     expires_at: expiresAt.toISOString(),
   })
 }
 
-/** Shared by every authenticated read. Returns the address, or null. */
-export async function addressFromToken(token) {
+/**
+ * Shared by every authenticated read. Returns the session's profile and EVERY
+ * address it owns - not just the one that signed - or null.
+ *
+ * Reads must filter on `addresses`, never on an address the client sends: a
+ * client-supplied address proves nothing, which is why moving the reads
+ * server-side without this would have been pure theatre.
+ */
+export async function sessionFromToken(token) {
   if (!token) return null
-  const { data } = await supabase
+  const { data: sess } = await supabase
     .from('auth_sessions')
     .select('address, chain, expires_at')
     .eq('token', hash(token))
     .gt('expires_at', new Date().toISOString())
     .single()
-  return data || null
+  if (!sess) return null
+
+  const { data: profile } = await supabase.rpc('get_or_create_profile', {
+    p_address: sess.address,
+    p_chain: sess.chain,
+  })
+  if (!profile) return null
+
+  return {
+    address:    sess.address,
+    chain:      sess.chain,
+    profileId:  profile.profile_id,
+    username:   profile.username,
+    addresses:  profile.addresses || [sess.address],
+  }
 }
