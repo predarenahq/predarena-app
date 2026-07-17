@@ -470,12 +470,12 @@ function BreakingNewsPopup() {
   useEffect(() => {
     async function fetchNews() {
       try {
-        const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=BTC,ETH,SOL&sortOrder=latest')
+        const res = await fetch('/api/content?type=news')
         const data = await res.json()
         if (data?.Data?.length) {
           setAllNews(data.Data)
           const first = data.Data[0]
-          setNews({ title: first.title, source: first.source_info?.name || 'Crypto News', url: first.url })
+          setNews({ title: first.title, source: first.source || first.source_info?.name || 'Crypto News', url: first.url })
           setOpen(true)
         }
       } catch {
@@ -493,7 +493,7 @@ function BreakingNewsPopup() {
     const timer = setTimeout(() => {
       const next = (newsIndex + 1) % allNews.length
       const item = allNews[next]
-      setNews({ title: item.title, source: item.source_info?.name || 'Crypto News', url: item.url })
+      setNews({ title: item.title, source: item.source || item.source_info?.name || 'Crypto News', url: item.url })
       setNewsIndex(next)
     }, 9000)
     return () => clearTimeout(timer)

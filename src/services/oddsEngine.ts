@@ -67,7 +67,7 @@ async function get24hMomentum(coin: string): Promise<number> {
 
   try {
     const ticker = Object.keys(COINGECKO_IDS).find(k => COINGECKO_IDS[k] === geckoId) || coin
-    const res = await fetch(`/api/momentum?coins=${ticker}`)
+    const res = await fetch(`/api/content?type=momentum&coins=${ticker}`)
     if (res.ok) {
       const data = await res.json()
       const change24h = data?.[ticker]?.change24h

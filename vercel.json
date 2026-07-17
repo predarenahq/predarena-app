@@ -9,10 +9,7 @@
     "api/wallet.mjs": {
       "maxDuration": 60
     },
-    "api/news.mjs": {
-      "maxDuration": 15
-    },
-    "api/momentum.mjs": {
+    "api/content.mjs": {
       "maxDuration": 15
     }
   },
