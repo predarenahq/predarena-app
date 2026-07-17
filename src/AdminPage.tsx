@@ -1,21 +1,27 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from './lib/supabase'
+import { Download } from 'lucide-react'
 
-const ADMIN_PASSWORD = 'preda2026admin'
+// No supabase import. This page used to query the database directly from the
+// browser with the anon key - so `const ADMIN_PASSWORD = 'preda2026admin'`
+// (readable by anyone in the bundle) only ever gated RENDERING, never data.
+// That is also how the waitlist's real names and emails were world-readable.
+// Everything now comes from /api/admin-stats, which verifies the secret
+// server-side and reads with the service role.
+const SECRET_KEY = 'preda_admin_secret'
 
 const C = {
-  bg:       '#060d14',
-  panel:    '#0d1520',
-  panel2:   '#111f2a',
-  accent:   '#00f0ff',
-  line:     'rgba(255,255,255,0.08)',
-  line2:    'rgba(0,240,255,0.15)',
-  soft:     'rgba(255,255,255,0.45)',
-  softer:   'rgba(255,255,255,0.2)',
-  green:    '#10b981',
-  red:      '#f43f5e',
-  gold:     '#f59e0b',
+  bg:       'var(--bg)',
+  panel:    'var(--panel)',
+  panel2:   'var(--panel-2)',
+  accent:   'var(--accent)',
+  line:     'var(--border)',
+  line2:    'var(--border-soft)',
+  soft:     'var(--text-soft)',
+  softer:   'var(--text-muted)',
+  green:    'var(--pos)',
+  red:      'var(--neg)',
+  gold:     'var(--warn)',
 }
 
 function StatCard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
@@ -52,81 +58,76 @@ export default function AdminPage() {
   const [waitlist, setWaitlist] = useState<any[]>([])
   const [userBalances, setUserBalances] = useState<any[]>([])
   const [ticketStats, setTicketStats] = useState<{ total: number; totalStaked: number; totalPaid: number }>({ total: 0, totalStaked: 0, totalPaid: 0 })
-  const [cronLoading, setCronLoading] = useState(false)
-  const [cronResult, setCronResult] = useState<string | null>(null)
+  const [pnl, setPnl] = useState<any[]>([])
+  // null = unknown. The page hardcoded 85 and valued every user balance with it.
+  const [solPrice, setSolPrice] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'battles' | 'users' | 'waitlist'>('overview')
 
-  const fetchAll = useCallback(async () => {
+  // Returns true when the secret was accepted. Five browser queries became one
+  // authenticated call: the server verifies and reads with the service role, so
+  // a wrong secret yields NO DATA rather than merely a hidden UI.
+  const fetchAll = useCallback(async (secret?: string): Promise<boolean> => {
+    const key = secret ?? sessionStorage.getItem(SECRET_KEY) ?? ''
+    if (!key) return false
     setLoading(true)
     try {
-      const [
-        { data: treas },
-        { data: batt },
-        { data: wl },
-        { data: balances },
-        { data: tickets },
-      ] = await Promise.all([
-        supabase.from('platform_treasury').select('*').single(),
-        supabase.from('battles').select('*, tickets(count)').order('created_at', { ascending: false }).limit(20),
-        supabase.from('waitlist').select('*').order('signed_up_at', { ascending: false }),
-        supabase.from('user_balances').select('*').order('balance_lamports', { ascending: false }).limit(50),
-        supabase.from('tickets').select('stake, odds, claimed, side, created_at'),
-      ])
-
-      if (treas) setTreasury(treas)
-      if (batt) setBattles(batt as any[])
-      if (wl) setWaitlist(wl as any[])
-      if (balances) setUserBalances(balances as any[])
-      if (tickets) {
-        const total = tickets.length
-        const totalStaked = tickets.reduce((s: number, t: any) => s + (t.stake || 0), 0)
-        const totalPaid = tickets.filter((t: any) => t.claimed).reduce((s: number, t: any) => s + (t.stake * t.odds || 0), 0)
-        setTicketStats({ total, totalStaked, totalPaid })
+      const res = await fetch('/api/admin-stats', { headers: { 'x-admin-secret': key } })
+      if (res.status === 401) {
+        sessionStorage.removeItem(SECRET_KEY)
+        return false
       }
+      if (!res.ok) throw new Error(`admin-stats ${res.status}`)
+      const d = await res.json()
+
+      setTreasury(d.treasury)
+      setBattles(d.battles || [])
+      setWaitlist(d.waitlist || [])
+      setUserBalances(d.balances || [])
+      setPnl(d.pnl || [])
+      setSolPrice(d.solPrice ?? null)
+
+      // Derived from admin_pnl, which groups by combo_id. The old code counted
+      // ticket ROWS - so a 4-leg $10 combo showed as "4 bets, $40 staked".
+      const rows = (d.pnl || []) as any[]
+      setTicketStats({
+        total: rows.reduce((a, r) => a + Number(r.bets || 0), 0),
+        totalStaked: rows.reduce((a, r) => a + Number(r.wagered || 0), 0),
+        totalPaid: 0,
+      })
+      return true
     } catch (e) {
       console.error('Admin fetch error:', e)
+      return false
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('preda_admin')
-    if (saved === ADMIN_PASSWORD) {
-      setAuthed(true)
-      fetchAll()
+    if (sessionStorage.getItem(SECRET_KEY)) {
+      fetchAll().then((ok) => setAuthed(ok))
     }
   }, [fetchAll])
 
-  function handleLogin(e: React.FormEvent) {
+  // Auth is now the SERVER's answer, not a string compare the client wins by
+  // default. The old version checked pw === a constant that shipped in the JS.
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    if (pw === ADMIN_PASSWORD) {
-      sessionStorage.setItem('preda_admin', pw)
+    const ok = await fetchAll(pw)
+    if (ok) {
+      sessionStorage.setItem(SECRET_KEY, pw)
       setAuthed(true)
-      fetchAll()
     } else {
       setPwError(true)
       setTimeout(() => setPwError(false), 2000)
     }
   }
 
-  async function triggerCron() {
-    setCronLoading(true)
-    setCronResult(null)
-    try {
-      const res = await fetch('/api/cron')
-      const data = await res.json()
-      setCronResult(data.ok
-        ? `✅ Success · ${data.pricesSaved || 0} prices saved · ${new Date(data.timestamp).toLocaleTimeString()}`
-        : `❌ Error: ${data.errors?.join(', ') || 'Unknown'}`)
-      fetchAll()
-    } catch (e: any) {
-      setCronResult(`❌ Failed: ${e.message}`)
-    } finally {
-      setCronLoading(false)
-    }
-  }
+  // triggerCron removed. It called /api/cron unauthenticated from the browser,
+  // and that endpoint requires CRON_SECRET - a different secret, which cannot go
+  // in a bundle. It has been silently 401ing since cron auth was added. The cron
+  // runs every 5 minutes on its own schedule.
 
   function exportWaitlistCSV() {
     const header = 'Name,Email,Signed Up\n'
@@ -142,7 +143,6 @@ export default function AdminPage() {
   }
 
   const liveBattles = battles.filter(b => b.status === 'live')
-  const solPrice = 85
 
   if (!authed) {
     return (
@@ -197,21 +197,13 @@ export default function AdminPage() {
           <button onClick={() => navigate('/')} className="text-sm" style={{ color: C.soft }}>← Arena</button>
           <div className="w-px h-4" style={{ background: C.line }} />
           <p className="text-white font-bold">Admin Panel</p>
-          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,240,255,0.1)', color: C.accent }}>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-soft)', color: C.accent }}>
             PREDA
           </span>
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={triggerCron}
-            disabled={cronLoading}
-            className="text-sm px-4 py-2 rounded-xl font-medium"
-            style={{ background: cronLoading ? C.line : 'rgba(0,240,255,0.1)', color: C.accent, border: `1px solid ${C.line2}` }}
-          >
-            {cronLoading ? 'Running...' : '▶ Run Cron'}
-          </button>
-          <button
-            onClick={fetchAll}
+            onClick={() => fetchAll()}
             className="text-sm px-4 py-2 rounded-xl font-medium"
             style={{ background: C.line, color: 'white' }}
           >
@@ -219,13 +211,6 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
-
-      {/* Cron result banner */}
-      {cronResult && (
-        <div className="px-6 py-2 text-sm text-center" style={{ background: cronResult.startsWith('✅') ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.1)', color: cronResult.startsWith('✅') ? C.green : C.red }}>
-          {cronResult}
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex border-b px-6" style={{ borderColor: C.line }}>
@@ -250,33 +235,49 @@ export default function AdminPage() {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <>
-            <Section title="Platform Financials">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <StatCard
-                  label="Treasury Balance"
-                  value={`$${(treasury?.balance_usd || 0).toFixed(2)}`}
-                  sub="Platform reserve"
-                  color={C.accent}
-                />
-                <StatCard
-                  label="Total Earned"
-                  value={`$${(treasury?.total_earned_usd || 0).toFixed(2)}`}
-                  sub="All-time fees"
-                  color={C.green}
-                />
-                <StatCard
-                  label="Total Paid Out"
-                  value={`$${(treasury?.total_paid_out_usd || 0).toFixed(2)}`}
-                  sub="Guaranteed payouts covered"
-                  color={C.gold}
-                />
-                <StatCard
-                  label="Net Earnings"
-                  value={`$${((treasury?.total_earned_usd || 0) - (treasury?.total_paid_out_usd || 0)).toFixed(2)}`}
-                  sub="Fees minus drawdowns"
-                  color={C.green}
-                />
-              </div>
+            {/* Derived from tickets, not from platform_treasury. Those
+                balance_usd columns froze on 9 July when apply_treasury_delta did
+                not exist, and this page reported +$93.47 while the tickets said
+                +$126.50 - the wrong SIGN of the business, next to a
+                balance_lamports on the same row saying -$6.90. This cannot drift:
+                it is computed from what happened. */}
+            <Section title="House P&L">
+              {(() => {
+                const net = pnl.reduce((a, r) => a + Number(r.house_pnl || 0), 0)
+                const wagered = pnl.reduce((a, r) => a + Number(r.wagered || 0), 0)
+                const bets = pnl.reduce((a, r) => a + Number(r.bets || 0), 0)
+                const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`
+                return (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <StatCard label="Net P&L" value={money(net)} sub="settled bets, all chains" color={net >= 0 ? C.green : C.red} />
+                      <StatCard label="Total Wagered" value={money(wagered)} sub={`${bets} settled bets`} color={C.gold} />
+                      <StatCard label="Margin" value={wagered ? `${((net / wagered) * 100).toFixed(1)}%` : '—'} sub="net / wagered" color={C.accent} />
+                      <StatCard
+                        label="Treasury (ledger)"
+                        value={treasury?.balance_lamports != null && solPrice != null
+                          ? money((Number(treasury.balance_lamports) / 1e9) * solPrice)
+                          : treasury?.balance_lamports != null
+                            ? `${(Number(treasury.balance_lamports) / 1e9).toFixed(4)} SOL`
+                            : '—'}
+                        sub="lamports counter — drifts with SOL"
+                        color={C.softer}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      {pnl.map((r) => (
+                        <StatCard
+                          key={`${r.chain}-${r.kind}`}
+                          label={`${r.chain} ${r.kind}`}
+                          value={money(Number(r.house_pnl))}
+                          sub={`${r.bets} bets · ${money(Number(r.wagered))} in`}
+                          color={Number(r.house_pnl) >= 0 ? C.green : C.red}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
             </Section>
 
             <Section title="Betting Activity">
@@ -314,10 +315,11 @@ export default function AdminPage() {
                     <p className="text-white font-medium">Settlement Cron</p>
                     <p className="text-xs mt-1" style={{ color: C.soft }}>Runs every 5 minutes via cron-job.org</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: C.green }} />
-                    <span className="text-sm" style={{ color: C.green }}>Active</span>
-                  </div>
+                  {/* The green "Active" dot that used to sit here read nothing -
+                      it said Active whether the cron had run 30 seconds or three
+                      weeks ago. arc-keeper silently mirrored nothing for hours
+                      tonight while looking exactly this healthy. A real status
+                      needs a last-run timestamp; until then, claim nothing. */}
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="rounded-xl p-3 text-center" style={{ background: C.panel2 }}>
@@ -333,19 +335,6 @@ export default function AdminPage() {
                     <p className="text-xs font-mono text-white">60s</p>
                   </div>
                 </div>
-                <button
-                  onClick={triggerCron}
-                  disabled={cronLoading}
-                  className="mt-4 w-full rounded-xl py-3 font-semibold text-black text-sm"
-                  style={{ background: cronLoading ? C.soft : C.accent }}
-                >
-                  {cronLoading ? 'Running Cron...' : '▶ Trigger Cron Manually'}
-                </button>
-                {cronResult && (
-                  <p className="text-xs mt-3 text-center" style={{ color: cronResult.startsWith('✅') ? C.green : C.red }}>
-                    {cronResult}
-                  </p>
-                )}
               </div>
             </Section>
           </>
@@ -450,7 +439,7 @@ export default function AdminPage() {
                 <tbody>
                   {userBalances.map((u, i) => {
                     const solBalance = u.balance_lamports / 1_000_000_000
-                    const usdBalance = solBalance * solPrice
+                    const usdBalance = solPrice != null ? solBalance * solPrice : null
                     const depositedSol = (u.total_deposited || 0) / 1_000_000_000
                     const isTreasury = u.wallet_address === '4xjEzpBki9ekwx56oRSynsrbQ8uXaUa2wxmPhZXeHHNz'
                     return (
@@ -474,7 +463,7 @@ export default function AdminPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right text-white">{solBalance.toFixed(4)}</td>
-                        <td className="px-4 py-3 text-right font-semibold" style={{ color: C.accent }}>${usdBalance.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right font-semibold" style={{ color: C.accent }}>{usdBalance != null ? `$${usdBalance.toFixed(2)}` : '—'}</td>
                         <td className="px-4 py-3 text-right" style={{ color: C.soft }}>{depositedSol.toFixed(4)} SOL</td>
                         <td className="px-4 py-3 text-right text-xs" style={{ color: C.softer }}>
                           {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '—'}
@@ -495,10 +484,10 @@ export default function AdminPage() {
               <p className="text-sm" style={{ color: C.soft }}>{waitlist.length} total signups</p>
               <button
                 onClick={exportWaitlistCSV}
-                className="text-sm px-4 py-2 rounded-xl font-medium"
-                style={{ background: 'rgba(0,240,255,0.1)', color: C.accent, border: `1px solid ${C.line2}` }}
+                className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-xl font-medium"
+                style={{ background: 'var(--accent-soft)', color: C.accent, border: `1px solid ${C.line2}` }}
               >
-                ↓ Export CSV
+                <Download className="h-3.5 w-3.5" /> Export CSV
               </button>
             </div>
             <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
