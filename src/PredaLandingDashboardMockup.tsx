@@ -778,7 +778,7 @@ function MobileThemeToggle() {
 function UserBalancePanel() {
   const { publicKey, connected, sendTransaction, signMessage } = useWallet()
   const [balance, setBalance] = React.useState<number>(0)
-  const [solPrice, setSolPrice] = React.useState<number>(150)
+  const [solPrice, setSolPrice] = React.useState<number | null>(null)
   const [depositAmount, setDepositAmount] = React.useState('')
   const [withdrawAmount, setWithdrawAmount] = React.useState('')
   const [showDeposit, setShowDeposit] = React.useState(false)
@@ -819,9 +819,11 @@ function UserBalancePanel() {
       const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
       const data = await res.json()
       const parsed = data?.parsed?.[0]
-      if (parsed) {
-        setSolPrice(Number(parsed.price.price) * Math.pow(10, parsed.price.expo))
-      }
+      const p = parsed ? Number(parsed.price.price) * Math.pow(10, parsed.price.expo) : NaN
+      // Only accept a real number. On failure solPrice stays null and the UI
+      // shows SOL instead of inventing a USD figure.
+      if (p > 0) setSolPrice(p)
+      else console.error('SOL price unavailable — showing SOL, not USD')
     } catch (err) {
       console.error('Failed to fetch SOL price:', err)
     }
@@ -956,7 +958,7 @@ function UserBalancePanel() {
   }
 
   const balanceSol = balance / 1_000_000_000
-  const balanceUsd = balanceSol * solPrice
+  const balanceUsd = solPrice != null ? balanceSol * solPrice : null
 
   if (!connected) {
     return (
@@ -985,10 +987,10 @@ function UserBalancePanel() {
       <div className="rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
         <p className="text-xs" style={{ color: COLORS.textSoft }}>Balance</p>
         <p className="text-lg font-bold" style={{ color: COLORS.accent }}>
-          {currency === 'USD' ? `$${balanceUsd.toFixed(2)}` : `${balanceSol.toFixed(4)} SOL`}
+          {currency === 'USD' && balanceUsd != null ? `$${balanceUsd.toFixed(2)}` : `${balanceSol.toFixed(4)} SOL`}
         </p>
         <p className="text-xs" style={{ color: COLORS.textSoft }}>
-          {currency === 'USD' ? `${balanceSol.toFixed(4)} SOL` : `$${balanceUsd.toFixed(2)}`}
+          {currency === 'USD' ? `${balanceSol.toFixed(4)} SOL` : balanceUsd != null ? `$${balanceUsd.toFixed(2)}` : 'USD price unavailable'}
         </p>
       </div>
 
