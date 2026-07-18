@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 /**
  * One session for the whole app: the token minted by /api/session, held in
@@ -56,12 +57,29 @@ async function signNonce(): Promise<{ address: string; nonce: string; signature:
   return { address, nonce: data.nonce, signature };
 }
 
+// Solana signs through the wallet adapter, not window.ethereum. The server
+// re-encodes the same message for nacl.verify (UTF-8 bytes) and expects the
+// ed25519 signature base64-encoded, address as the base58 pubkey.
+async function signNonceSolana(
+  publicKey: { toBase58(): string },
+  signMessage: (m: Uint8Array) => Promise<Uint8Array>
+): Promise<{ address: string; nonce: string; signature: string } | null> {
+  const address = publicKey.toBase58();
+  const { res, data } = await postSession({ action: "nonce", address, chain: "solana" });
+  if (!res.ok) return null;
+  const sigBytes = await signMessage(new TextEncoder().encode(data.message));
+  let bin = "";
+  for (const b of sigBytes) bin += String.fromCharCode(b);
+  return { address, nonce: data.nonce, signature: btoa(bin) };
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => {
     try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
   });
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
+  const { publicKey, signMessage } = useWallet();
 
   const setToken = useCallback((t: string | null) => {
     try {
@@ -72,7 +90,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
-    const signed = await signNonce();
+    // A connected Solana wallet that can sign takes the Solana path; otherwise
+    // fall back to the EVM/injected path. This is what puts a Solana address
+    // into sess.addresses, so Solana-placed bets re-enter scope.
+    const signed = (publicKey && signMessage)
+      ? await signNonceSolana(publicKey, signMessage)
+      : await signNonce();
     if (!signed) return false;
     const { res, data } = await postSession({ action: "verify", nonce: signed.nonce, signature: signed.signature });
     if (!res.ok) return false;
@@ -80,7 +103,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setAddresses(data.addresses || [data.address]);
     setUsername(data.username ?? null);
     return true;
-  }, [setToken]);
+  }, [setToken, publicKey, signMessage]);
 
   const signOut = useCallback(() => {
     setToken(null);

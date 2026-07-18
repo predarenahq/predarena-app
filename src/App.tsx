@@ -61,7 +61,6 @@ function App() {
 
   return (
     <ThemeProvider>
-    <SessionProvider>
     <PrivyProvider
       appId={privyAppId}
       config={{
@@ -91,6 +90,7 @@ function App() {
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider wallets={wallets} autoConnect={true}>
           <WalletModalProvider>
+            <SessionProvider>
             <BrowserRouter>
               <Routes>
                 <Route path="/battle/:id" element={<BattleDetailPage />} />
@@ -100,11 +100,11 @@ function App() {
                 <Route path="*" element={<PredaLandingDashboardMockup />} />
               </Routes>
             </BrowserRouter>
+            </SessionProvider>
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>
     </PrivyProvider>
-    </SessionProvider>
     </ThemeProvider>
   );
 }
