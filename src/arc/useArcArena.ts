@@ -84,22 +84,54 @@ export function useArcArena() {
     try {
       await provider.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x4CEF52' }],
+        params: [{ chainId: '0x4CEF52' }],   // 5042002
       })
-    } catch (switchErr) {
-      if ((switchErr as any).code === 4902) {
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: '0x4CEF52',
-            chainName: 'Arc Testnet',
-            // Arc's NATIVE gas token is 18dp; only the USDC ERC-20 interface is
-            // 6dp. Declaring 6 here under-reports the wallet's gas balance by 1e12.
-            nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
-            rpcUrls: [(process.env.REACT_APP_ARC_RPC_URL || 'https://arc-testnet.drpc.org')],
-            blockExplorerUrls: ['https://testnet.arcscan.app'],
-          }]
-        })
+    } catch (switchErr: any) {
+      if (switchErr?.code === 4902) {
+        // Chain unknown to this wallet - add it.
+        try {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x4CEF52',
+              chainName: 'Arc Testnet',
+              // Native gas is 18dp; only the USDC ERC-20 interface is 6dp.
+              // Declaring 6 here under-reports the gas balance by 1e12.
+              nativeCurrency: { name: 'USD Coin', symbol: 'USDC', decimals: 18 },
+              rpcUrls: [(process.env.REACT_APP_ARC_RPC_URL || 'https://arc-testnet.drpc.org')],
+              blockExplorerUrls: ['https://testnet.arcscan.app'],
+            }]
+          })
+        } catch (addErr: any) {
+          if (addErr?.code === 4001) throw new Error('You need to add the Arc network to place this bet.')
+          throw addErr
+        }
+      } else if (switchErr?.code === 4001) {
+        // User rejected the switch. Say so, instead of proceeding to hang.
+        throw new Error('Switch to the Arc network in your wallet to place this bet.')
+      } else {
+        throw switchErr
+      }
+    }
+
+    // The nasty case: the user added Arc PREVIOUSLY with the old, dead RPC
+    // (rpc.testnet.arc.network). addEthereumChain does NOT overwrite an existing
+    // chain's RPC - MetaMask keeps theirs - so the switch above "succeeds" and
+    // every call then hangs on a dead endpoint with no error. We cannot fix
+    // their saved RPC programmatically, but we can detect the hang and tell them
+    // what to do, rather than spinning forever. A live chainId call returns fast
+    // on a good RPC and times out on the dead one.
+    try {
+      await Promise.race([
+        provider.request({ method: 'eth_chainId' }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('rpc_timeout')), 6000)),
+      ])
+    } catch (rpcErr: any) {
+      if (rpcErr?.message === 'rpc_timeout') {
+        throw new Error(
+          'Your Arc network is using an outdated RPC and cannot connect. In your wallet, ' +
+          'edit the Arc Testnet network and set the RPC URL to https://arc-testnet.drpc.org'
+        )
       }
     }
     return createWalletClient({
