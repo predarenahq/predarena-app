@@ -42,6 +42,7 @@ export default async function handler(req, res) {
   const { action } = req.body || {}
   if (action === 'nonce')  return issueNonce(req, res)
   if (action === 'verify') return verify(req, res)
+  if (action === 'link')   return link(req, res)
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -146,6 +147,66 @@ async function verify(req, res) {
     addresses: profile.addresses || [claimed.address],
     expires_at: expiresAt.toISOString(),
   })
+}
+
+/**
+ * Links a NEW wallet to the caller's existing profile.
+ *
+ * TWO proofs, because either alone is exploitable:
+ *   1. the caller's session token -> which profile to link INTO
+ *   2. a fresh signature from the NEW wallet -> that the caller owns it
+ * Without (2), anyone could claim someone else's address into their profile.
+ */
+async function link(req, res) {
+  const auth = req.headers.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const sess = await sessionFromToken(token)
+  if (!sess) return res.status(401).json({ error: 'session_invalid' })
+
+  const { nonce, signature } = req.body || {}
+  if (!nonce || !signature) return res.status(400).json({ error: 'missing_params' })
+
+  const { data: claimed } = await supabase
+    .from('auth_nonces')
+    .update({ used_at: new Date().toISOString() })
+    .eq('nonce', nonce)
+    .is('used_at', null)
+    .gte('created_at', new Date(Date.now() - NONCE_TTL_MS).toISOString())
+    .select()
+    .single()
+  if (!claimed) return res.status(401).json({ error: 'nonce_invalid_or_used' })
+
+  const message = signMessage(nonce)
+  let ok = false
+  try {
+    if (claimed.chain === 'solana') {
+      ok = nacl.sign.detached.verify(
+        new TextEncoder().encode(message),
+        Buffer.from(signature, 'base64'),
+        new PublicKey(claimed.address).toBytes()
+      )
+    } else {
+      ok = await verifyMessage({ address: claimed.address, message, signature })
+    }
+  } catch (err) {
+    console.error('link verify error:', err.message)
+    ok = false
+  }
+  if (!ok) return res.status(401).json({ error: 'bad_signature' })
+
+  const { data, error } = await supabase.rpc('link_wallet', {
+    p_profile_id: sess.profileId,
+    p_address: claimed.address,
+    p_chain: claimed.chain,
+  })
+  if (error) {
+    if (String(error.message).includes('address_belongs_to_another_profile')) {
+      return res.status(409).json({ error: 'address_belongs_to_another_profile' })
+    }
+    console.error('link_wallet error:', error.message)
+    return res.status(500).json({ error: 'link_failed' })
+  }
+  return res.status(200).json(data)
 }
 
 /**
