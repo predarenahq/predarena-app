@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
+import { useSession } from "./useSession";
 
 type Side = "left" | "draw" | "right";
 type MatchBoard = "Live" | "Upcoming";
@@ -1988,28 +1989,28 @@ function PlaceholderPage({
  * Same trap that rendered one combo as four cards in History.
  */
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
+  const { signedIn, myData } = useSession();
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (!walletAddress && !evmAddresses.length) { setLoading(false); return }
+    // Reads go through /api/my-data, scoped SERVER-SIDE to the session's proven
+    // addresses. walletAddress/evmAddresses props stay but no longer drive the
+    // query - the session is the source of truth for whose bets these are.
+    if (!signedIn) { setTickets([]); setLoading(false); return }
     (async () => {
       try {
-        const { supabase } = await import('./lib/supabase');
-        const addresses = [walletAddress, ...evmAddresses].filter(Boolean);
-        const { data } = await supabase
-          .from('tickets')
-          .select('*, battles(status, winner)')
-          .in('wallet_address', addresses)
-          .order('created_at', { ascending: true });
-        setTickets(data || []);
+        const res = await myData('tickets');
+        // my-data returns newest-first; the streak calc below counts
+        // chronologically, so restore oldest-first to keep streaks correct.
+        setTickets((res?.tickets || []).slice().reverse());
       } catch (err) {
         console.error('Failed to fetch profile stats:', err);
       } finally {
         setLoading(false);
       }
     })();
-  }, [walletAddress, evmAddresses.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = React.useMemo(() => {
     // One entry per BET. Combo legs collapse into their combo_id.
@@ -2576,18 +2577,6 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
 
   if (!walletAddress && !evmAddresses.length) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see history</p>
-    </div>
-  )
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <p style={{ color: COLORS.textSoft }}>Loading history...</p>
-    </div>
-  )
-
-  if (!signedIn) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Sign in to see your bet history</p>
       <p className="mt-2 text-sm max-w-xs" style={{ color: COLORS.textSoft }}>A quick wallet signature - no transaction, no fee - proves these bets are yours.</p>
       <button
@@ -2597,6 +2586,12 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
       >
         Sign in with wallet
       </button>
+    </div>
+  )
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <p style={{ color: COLORS.textSoft }}>Loading history...</p>
     </div>
   )
 
@@ -2716,29 +2711,25 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
 }
 
 function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
+  const { signedIn, signIn, myData } = useSession()
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!walletAddress && !evmAddresses.length) {
-      setLoading(false)
-      return
-    }
+    // Reads go through /api/my-data, scoped SERVER-SIDE to the session's proven
+    // addresses. The old query filtered claimed=false in SQL; my-data returns
+    // ALL tickets newest-first, so that filter moves client-side below (same
+    // meaning), and no reordering is needed.
+    if (!signedIn) { setTickets([]); setLoading(false); return }
     async function fetchTickets() {
       try {
-        const { supabase } = await import('./lib/supabase')
-        const addresses = [walletAddress, ...evmAddresses].filter(Boolean)
-        const { data } = await supabase
-          .from('tickets')
-          .select('*, battles(*)')
-          .in('wallet_address', addresses)
-          .eq('claimed', false)
-          .order('created_at', { ascending: false })
+        const res = await myData('tickets')
         // Unclaimed = not fully resolved. Combo legs stay claimed=false (settled
         // ones too) until the whole combo resolves, so combos render complete
         // with per-leg Won/Lost pills. Won AND lost bets flip claimed=true at
         // settlement and move to history.
-        setTickets((data || []).filter((t: any) => t.battles && t.battles?.coin_a))
+        setTickets((res?.tickets || []).filter((t: any) =>
+          t.claimed === false && t.battles && t.battles?.coin_a))
       } catch (err) {
         console.error('Failed to fetch tickets:', err)
       } finally {
@@ -2748,11 +2739,19 @@ function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: 
     fetchTickets()
     const interval = setInterval(fetchTickets, 30000)
     return () => clearInterval(interval)
-  }, [walletAddress, evmAddresses.join(",")]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [signedIn]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!walletAddress && !evmAddresses.length) return (
+  if (!signedIn) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see your bets</p>
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Sign in to see your bets</p>
+      <p className="mt-2 text-sm max-w-xs" style={{ color: COLORS.textSoft }}>A quick wallet signature - no transaction, no fee - proves these bets are yours.</p>
+      <button
+        onClick={signIn}
+        className="mt-5 rounded-[12px] px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+        style={{ background: "var(--brand-grad)" }}
+      >
+        Sign in with wallet
+      </button>
     </div>
   )
 
