@@ -775,6 +775,7 @@ function Toast() {
 function SessionTestButton() {
   const [status, setStatus] = React.useState<string>('')
   const [busy, setBusy] = React.useState(false)
+  const [token, setToken] = React.useState<string>('')
 
   async function run() {
     setBusy(true)
@@ -802,6 +803,7 @@ function SessionTestButton() {
       })
       const v = await vRes.json()
       if (!vRes.ok) { setStatus(`verify failed: ${v.error}`); return }
+      setToken(v.token)
 
       // The nonce must be single-use, or a captured signature is replayable and
       // the whole mechanism is decorative.
@@ -852,8 +854,53 @@ function SessionTestButton() {
           {status}
         </p>
       )}
+      {token && (
+        <button
+          onClick={linkWallet}
+          disabled={busy}
+          className="mt-2 flex w-full items-center justify-center rounded-[12px] px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+          style={{ background: "var(--chain-arc-soft)", border: "1px solid var(--chain-arc)", color: "var(--chain-arc)" }}
+        >
+          {busy ? 'Check your wallet…' : 'Link the wallet now active in MetaMask'}
+        </button>
+      )}
     </div>
   )
+
+  async function linkWallet() {
+    setBusy(true)
+    try {
+      const eth = (window as any).ethereum
+      // Whatever wallet is CURRENTLY selected in MetaMask - switch it first.
+      const [addr] = await eth.request({ method: 'eth_requestAccounts' })
+
+      const nRes = await fetch('/api/session', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'nonce', address: addr, chain: 'evm' }),
+      })
+      const n = await nRes.json()
+      if (!nRes.ok) { setStatus(`nonce failed: ${n.error}`); return }
+
+      const sig = await eth.request({ method: 'personal_sign', params: [n.message, addr] })
+
+      const lRes = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'link', nonce: n.nonce, signature: sig }),
+      })
+      const l = await lRes.json()
+      if (!lRes.ok) { setStatus(`link failed: ${l.error}`); return }
+
+      // Re-read with the SAME token - addresses and tickets should both jump.
+      const t = await (await fetch('/api/my-data?type=tickets', { headers: { Authorization: `Bearer ${token}` } })).json()
+      const me = await (await fetch('/api/my-data?type=me', { headers: { Authorization: `Bearer ${token}` } })).json()
+      setStatus(`LINKED ${addr.slice(0,6)}…${addr.slice(-4)} · now ${me.addresses?.length} addresses · ${t.tickets?.length} tickets`)
+    } catch (e: any) {
+      setStatus(e?.message?.slice(0, 80) || 'link failed')
+    } finally {
+      setBusy(false)
+    }
+  }
 }
 
 function MobileThemeToggle() {
