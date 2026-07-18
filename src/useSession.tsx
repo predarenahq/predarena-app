@@ -99,6 +99,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const me = await myDataInternal("me", token);
     if (me?.addresses) setAddresses(me.addresses);
     return { ok: true };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const myDataInternal = useCallback(async (type: string, tok: string | null) => {
