@@ -2527,25 +2527,25 @@ function betOutcome(legs: any[]): { kind: 'won' | 'lost' | 'void'; label: string
 }
 
 function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
+  const { signedIn, signIn, myData } = useSession()
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!walletAddress && !evmAddresses.length) { setLoading(false); return }
+    // Reads now go through the authenticated endpoint, scoped SERVER-SIDE to the
+    // session's addresses (every linked wallet, not just the connected one).
+    // walletAddress/evmAddresses props are left in place but no longer drive the
+    // query - the session is the source of truth for whose bets these are.
+    if (!signedIn) { setLoading(false); return }
     async function fetchHistory() {
       try {
-        const { supabase } = await import('./lib/supabase')
-        const addresses = [walletAddress, ...evmAddresses].filter(Boolean)
-        const { data } = await supabase
-          .from('tickets')
-          .select('*, battles(*)')
-          .in('wallet_address', addresses)
-          .order('created_at', { ascending: false })
+        const res = await myData('tickets')
+        const data = res?.tickets || []
         // Void belongs here as much as settled. It used to be filtered out,
         // so a refunded bet showed in NEITHER view: Running Bets fetches
         // claimed=false and settlement marks void combos claimed=true after
         // refunding. The user got their money back with no record of it.
-        setTickets((data || []).filter((t: any) =>
+        setTickets(data.filter((t: any) =>
           t.battles?.status === 'settled' || t.battles?.status === 'void'))
       } catch (err) {
         console.error('Failed to fetch history:', err)
@@ -2554,7 +2554,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
       }
     }
     fetchHistory()
-  }, [walletAddress, evmAddresses.join(",")]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [signedIn]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // One card per BET, not per row. A 4-leg combo is 4 ticket rows sharing a
   // combo_id, and rendering them individually showed one bet as four cards -
@@ -2583,6 +2583,20 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <p style={{ color: COLORS.textSoft }}>Loading history...</p>
+    </div>
+  )
+
+  if (!signedIn) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Sign in to see your bet history</p>
+      <p className="mt-2 text-sm max-w-xs" style={{ color: COLORS.textSoft }}>A quick wallet signature - no transaction, no fee - proves these bets are yours.</p>
+      <button
+        onClick={signIn}
+        className="mt-5 rounded-[12px] px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+        style={{ background: "var(--brand-grad)" }}
+      >
+        Sign in with wallet
+      </button>
     </div>
   )
 
