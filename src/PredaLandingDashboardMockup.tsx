@@ -150,6 +150,12 @@ const sidebarSections = [
     ],
   },
   {
+    title: "ACCOUNT",
+    items: [
+      { label: "Account", path: "/settings" },
+    ],
+  },
+  {
     title: "MY BETS",
     items: [
       { label: "Running Bets", path: "/running" },
@@ -2141,6 +2147,15 @@ function PlaceholderPage({
   );
 }
 
+function SettingsPage() {
+  return (
+    <div className="mx-auto max-w-[900px] px-4 py-8 sm:px-6">
+      <h2 className="font-display text-[30px] mb-6" style={{ color: "var(--text)" }}>Account</h2>
+      <SettingsWallets />
+    </div>
+  );
+}
+
 /**
  * Real stats, derived from tickets. Every number here used to be invented
  * ("SolDegen420", 127 bets, +$8,360).
@@ -2246,9 +2261,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
   const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
 
   return (
-    <>
-      <SettingsWallets />
-      <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
+    <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Profile</h2>
         <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
@@ -2273,7 +2286,6 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
         {stats.voided > 0 && <InfoCard label="Void" value={String(stats.voided)} sub="refunded, excluded from win rate" />}
       </div>
     </div>
-    </>
   );
 }
 
@@ -3193,6 +3205,7 @@ export default function PredaLandingDashboardMockup() {
       "/economy": "ARENA",
       "/sports": "ARENA",
       "/fanduel": "ARENA",
+      "/settings": "ACCOUNT",
       "/running": "MY BETS",
       "/history": "MY BETS",
       "/news": "PRODUCT",
@@ -3328,6 +3341,8 @@ export default function PredaLandingDashboardMockup() {
         return <PlaceholderPage title="How to Play" body="Pick left, draw, or right. Build parlays. Relative performance over the selected period decides the winner." />;
       case "/support":
         return <PlaceholderPage title="Support" body="Help center, FAQs, contact, and user support tools will live here." />;
+      case "/settings":
+        return <SettingsPage />;
       case "/profile":
         return <ProfilePage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
       case "/running":
