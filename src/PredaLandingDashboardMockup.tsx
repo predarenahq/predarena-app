@@ -782,9 +782,20 @@ function Toast() {
  * to add a Solana wallet, connect it first, then tap Add.
  */
 function SettingsWallets() {
-  const { signedIn, addresses, username, signIn, signOut, linkWallet } = useSession();
+  const { signedIn, addresses, username, signIn, signOut, linkWallet, setUsernameFor } = useSession();
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
+  const [nameInput, setNameInput] = React.useState("");
+  const [nameMsg, setNameMsg] = React.useState<string | null>(null);
+
+  async function handleSetName() {
+    setNameMsg(null);
+    const r = await setUsernameFor(nameInput);
+    if (r.ok) { setNameMsg("Username set."); setNameInput(""); }
+    else if (r.error === "username_taken") setNameMsg("That username is taken.");
+    else if (r.error === "invalid_username") setNameMsg("3-20 characters: letters, numbers, underscore.");
+    else setNameMsg(`Couldn't set: ${r.error || "error"}`);
+  }
 
   async function handleSignIn() {
     setBusy(true); setMsg(null);
@@ -839,7 +850,28 @@ function SettingsWallets() {
         </button>
       </div>
 
-      <p className="mt-1 text-sm" style={{ color: "var(--text-soft)" }}>
+      {!username && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="Choose a username"
+            className="flex-1 min-w-[160px] rounded-[10px] px-3 py-2 text-sm outline-none"
+            style={{ background: "var(--panel-2)", border: "1px solid var(--border)", color: "var(--text)" }}
+          />
+          <button
+            onClick={handleSetName}
+            disabled={nameInput.trim().length < 3}
+            className="rounded-[10px] px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-40"
+            style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", color: "var(--accent)" }}
+          >
+            Save
+          </button>
+        </div>
+      )}
+      {nameMsg && <p className="mt-2 text-[13px]" style={{ color: nameMsg === "Username set." ? "var(--pos)" : "var(--neg)" }}>{nameMsg}</p>}
+
+      <p className="mt-3 text-sm" style={{ color: "var(--text-soft)" }}>
         {addresses.length} wallet{addresses.length === 1 ? "" : "s"} linked. Bets from all of them show together.
       </p>
 

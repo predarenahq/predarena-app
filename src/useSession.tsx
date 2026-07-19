@@ -27,6 +27,7 @@ type SessionValue = {
   signIn: () => Promise<boolean>;
   signOut: () => void;
   linkWallet: () => Promise<{ ok: boolean; error?: string }>;
+  setUsernameFor: (name: string) => Promise<{ ok: boolean; error?: string }>;
   myData: (type: "tickets" | "balance" | "me") => Promise<any>;
 };
 
@@ -34,6 +35,7 @@ const SessionCtx = createContext<SessionValue>({
   token: null, addresses: [], username: null, signedIn: false,
   signIn: async () => false, signOut: () => {},
   linkWallet: async () => ({ ok: false }),
+  setUsernameFor: async () => ({ ok: false }),
   myData: async () => null,
 });
 
@@ -151,6 +153,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, publicKey, signMessage]);
 
+  const setUsernameFor = useCallback(async (name: string) => {
+    if (!token) return { ok: false, error: "not_signed_in" };
+    const { res, data } = await postSession({ action: "set_username", username: name }, token);
+    if (!res.ok) return { ok: false, error: data.error };
+    setUsername(data.username);
+    return { ok: true };
+  }, [token]);
+
   const myDataInternal = useCallback(async (type: string, tok: string | null) => {
     if (!tok) return null;
     const res = await fetch(`/api/my-data?type=${type}`, { headers: { Authorization: `Bearer ${tok}` } });
@@ -170,7 +180,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   return (
     <SessionCtx.Provider value={{
       token, addresses, username, signedIn: !!token,
-      signIn, signOut, linkWallet, myData,
+      signIn, signOut, linkWallet, setUsernameFor, myData,
     }}>
       {children}
     </SessionCtx.Provider>

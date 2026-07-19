@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   if (action === 'nonce')  return issueNonce(req, res)
   if (action === 'verify') return verify(req, res)
   if (action === 'link')   return link(req, res)
+  if (action === 'set_username') return setUsername(req, res)
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -157,6 +158,29 @@ async function verify(req, res) {
  *   2. a fresh signature from the NEW wallet -> that the caller owns it
  * Without (2), anyone could claim someone else's address into their profile.
  */
+async function setUsername(req, res) {
+  const auth = req.headers.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const sess = await sessionFromToken(token)
+  if (!sess) return res.status(401).json({ error: 'session_invalid' })
+
+  const { username } = req.body || {}
+  if (!username) return res.status(400).json({ error: 'missing_username' })
+
+  const { data, error } = await supabase.rpc('set_username', {
+    p_profile_id: sess.profileId,
+    p_username: username,
+  })
+  if (error) {
+    const m = String(error.message)
+    if (m.includes('invalid_username')) return res.status(400).json({ error: 'invalid_username' })
+    if (m.includes('username_taken'))   return res.status(409).json({ error: 'username_taken' })
+    console.error('set_username error:', m)
+    return res.status(500).json({ error: 'username_failed' })
+  }
+  return res.status(200).json(data)
+}
+
 async function link(req, res) {
   const auth = req.headers.authorization || ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
