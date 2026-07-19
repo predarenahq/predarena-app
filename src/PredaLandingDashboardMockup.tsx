@@ -152,7 +152,7 @@ const sidebarSections = [
   {
     title: "ACCOUNT",
     items: [
-      { label: "Account", path: "/settings" },
+      { label: "Settings", path: "/settings" },
     ],
   },
   {
@@ -2263,7 +2263,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
   return (
     <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Profile</h2>
+        <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Stats</h2>
         <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
       </div>
 
