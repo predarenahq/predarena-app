@@ -113,7 +113,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const linkWallet = useCallback(async () => {
     if (!token) return { ok: false, error: "not_signed_in" };
-    const signed = await signNonce();
+    // Mirror signIn's wallet choice: a connected Solana wallet links via nacl,
+    // otherwise EVM. Without this, linkWallet was EVM-only - you could sign IN
+    // with Solana but never LINK a Solana address to an existing profile, so
+    // Solana bets could not join an EVM-created session.
+    const signed = (publicKey && signMessage)
+      ? await signNonceSolana(publicKey, signMessage)
+      : await signNonce();
     if (!signed) return { ok: false, error: "no_wallet" };
     const { res, data } = await postSession(
       { action: "link", nonce: signed.nonce, signature: signed.signature }, token);
@@ -123,7 +129,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (me?.addresses) setAddresses(me.addresses);
     return { ok: true };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, publicKey, signMessage]);
 
   const myDataInternal = useCallback(async (type: string, tok: string | null) => {
     if (!tok) return null;
