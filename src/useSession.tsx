@@ -47,10 +47,30 @@ async function postSession(body: any, token?: string) {
 // A signature over the server's nonce. EVM via personal_sign for now; the
 // server also verifies Solana (nacl), but the wallet plumbing for that comes
 // with the real multi-wallet UI.
-async function signNonce(): Promise<{ address: string; nonce: string; signature: string } | null> {
+async function signNonce(forcePicker = false): Promise<{ address: string; nonce: string; signature: string } | null> {
   const eth = (window as any).ethereum;
   if (!eth) return null;
-  const [address] = await eth.request({ method: "eth_requestAccounts" });
+
+  // For "add wallet", force the account chooser so the user can pick a DIFFERENT
+  // account than last time. Plain eth_requestAccounts is remembered and returns
+  // the same account silently - which is why adding a second wallet kept linking
+  // the first. wallet_requestPermissions re-opens the picker every time.
+  if (forcePicker) {
+    try {
+      await eth.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+    } catch {
+      // User dismissed the picker - abort rather than fall through to [0].
+      return null;
+    }
+  }
+
+  const accounts = await eth.request({ method: "eth_requestAccounts" });
+  const address = accounts?.[0];
+  if (!address) return null;
+
   const { res, data } = await postSession({ action: "nonce", address, chain: "evm" });
   if (!res.ok) return null;
   const signature = await eth.request({ method: "personal_sign", params: [data.message, address] });
@@ -119,7 +139,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // Solana bets could not join an EVM-created session.
     const signed = (publicKey && signMessage)
       ? await signNonceSolana(publicKey, signMessage)
-      : await signNonce();
+      : await signNonce(true);   // force the account picker for "add wallet"
     if (!signed) return { ok: false, error: "no_wallet" };
     const { res, data } = await postSession(
       { action: "link", nonce: signed.nonce, signature: signed.signature }, token);
