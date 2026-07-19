@@ -69,7 +69,7 @@ async function signNonceSolana(
   if (!res.ok) return null;
   const sigBytes = await signMessage(new TextEncoder().encode(data.message));
   let bin = "";
-  for (const b of sigBytes) bin += String.fromCharCode(b);
+  for (let i = 0; i < sigBytes.length; i++) bin += String.fromCharCode(sigBytes[i]);
   return { address, nonce: data.nonce, signature: btoa(bin) };
 }
 
