@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallets } from "@privy-io/react-auth";
 
 /**
  * One session for the whole app: the token minted by /api/session, held in
@@ -102,6 +103,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const { publicKey, signMessage } = useWallet();
+  const { wallets: privyWallets } = useWallets();
+  // First connected EVM wallet (eip155:*), if any. Address is lowercase from
+  // Privy; the server checksums it in verify, so signing is unaffected.
+  const evmAddress = privyWallets.find((w) => w.chainId?.startsWith("eip155:"))?.address || null;
 
   const setToken = useCallback((t: string | null) => {
     try {
@@ -191,6 +196,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicKey, token]);
+
+  // EVM/Privy auto sign-in - mirror of the Solana effect above, sharing the SAME
+  // autoSignRef so the two can never both fire (a user with both wallets
+  // connected would otherwise double-prompt). Only runs when there's an EVM
+  // address, no Solana wallet took priority, and no session/in-flight sign-in.
+  React.useEffect(() => {
+    if (token) { autoSignRef.current = false; return; }
+    if (publicKey && signMessage) return;   // Solana effect handles this case
+    if (!evmAddress) return;
+    if (autoSignRef.current) return;
+    autoSignRef.current = true;
+    (async () => {
+      try { await signIn(); } finally { autoSignRef.current = false; }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evmAddress, token]);
 
   React.useEffect(() => {
     if (!token) return;
