@@ -177,6 +177,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Rehydrate profile from the stored token on mount. Without this, a refresh
   // keeps the token but forgets username + addresses (they reset to empty),
   // so the account panel looks signed-out-ish until you sign in again.
+  // Auto sign-in when a Solana wallet connects. If the address is already linked,
+  // signIn() resolves to the full profile; if not, it creates/links per the
+  // server rules. Guarded so it fires once per connect, never mid-flight.
+  const autoSignRef = React.useRef(false);
+  React.useEffect(() => {
+    if (token) { autoSignRef.current = false; return; }   // already signed in
+    if (!publicKey || !signMessage) return;               // no solana wallet
+    if (autoSignRef.current) return;                      // sign-in in flight
+    autoSignRef.current = true;
+    (async () => {
+      try { await signIn(); } finally { autoSignRef.current = false; }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicKey, token]);
+
   React.useEffect(() => {
     if (!token) return;
     (async () => {
