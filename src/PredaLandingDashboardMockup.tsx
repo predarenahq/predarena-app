@@ -773,6 +773,117 @@ function Toast() {
  * one part curl cannot: a genuine signature. Delete once the real sign-in flow
  * replaces it.
  */
+/**
+ * SettingsWallets - sign in once, see linked wallets, add more.
+ *
+ * Stops the split-brain: "Add wallet" links the connected wallet into the
+ * EXISTING profile via linkWallet(), instead of a bare sign-in forking a second
+ * profile. linkWallet already signs Solana (adapter) or EVM (personal_sign), so
+ * to add a Solana wallet, connect it first, then tap Add.
+ */
+function SettingsWallets() {
+  const { signedIn, addresses, username, signIn, signOut, linkWallet } = useSession();
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState<string | null>(null);
+
+  async function handleSignIn() {
+    setBusy(true); setMsg(null);
+    try {
+      const ok = await signIn();
+      if (!ok) setMsg("Sign-in was cancelled or failed.");
+    } finally { setBusy(false); }
+  }
+
+  async function handleAdd() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await linkWallet();
+      if (r.ok) setMsg("Wallet linked.");
+      else if (r.error === "address_belongs_to_another_profile")
+        setMsg("That wallet is already linked to a different account.");
+      else if (r.error === "no_wallet")
+        setMsg("Connect the wallet you want to add first, then tap Add wallet.");
+      else setMsg(`Couldn't link: ${r.error || "unknown error"}`);
+    } finally { setBusy(false); }
+  }
+
+  const short = (a: string) => a.length > 12 ? `${a.slice(0, 6)}...${a.slice(-4)}` : a;
+  const chainOf = (a: string) => a.startsWith("0x") ? "EVM (Ethereum / Arc)" : "Solana";
+
+  if (!signedIn) return (
+    <div className="rounded-[18px] p-6 mb-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+      <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Your account</h3>
+      <p className="mt-1 text-sm" style={{ color: "var(--text-soft)" }}>
+        Sign in with your wallet to see all your bets in one place. A quick signature - no transaction, no fee.
+      </p>
+      <button
+        onClick={handleSignIn}
+        disabled={busy}
+        className="mt-4 rounded-[12px] px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-50"
+        style={{ background: "var(--brand-grad)" }}
+      >
+        {busy ? "Check your wallet..." : "Sign in with wallet"}
+      </button>
+      {msg && <p className="mt-3 text-[13px]" style={{ color: "var(--neg)" }}>{msg}</p>}
+    </div>
+  );
+
+  return (
+    <div className="rounded-[18px] p-6 mb-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
+          {username ? username : "Your account"}
+        </h3>
+        <button onClick={signOut} className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>
+          Sign out
+        </button>
+      </div>
+
+      <p className="mt-1 text-sm" style={{ color: "var(--text-soft)" }}>
+        {addresses.length} wallet{addresses.length === 1 ? "" : "s"} linked. Bets from all of them show together.
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {addresses.map((a, i) => (
+          <div key={a} className="flex items-center justify-between rounded-[12px] px-4 py-3"
+               style={{ background: "var(--panel-2)", border: "1px solid var(--border-soft)" }}>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>{short(a)}</p>
+              <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{chainOf(a)}</p>
+            </div>
+            {i === 0 && (
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] rounded-full px-2.5 py-1"
+                    style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+                Primary
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-[12px] p-3" style={{ background: "var(--panel-2)", border: "1px dashed var(--border)" }}>
+        <p className="text-[13px]" style={{ color: "var(--text-soft)" }}>
+          Bet from another wallet? Connect it with the wallet button, then:
+        </p>
+        <button
+          onClick={handleAdd}
+          disabled={busy}
+          className="mt-2 rounded-[10px] px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+          style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", color: "var(--accent)" }}
+        >
+          {busy ? "Check your wallet..." : "Add connected wallet"}
+        </button>
+      </div>
+
+      {msg && (
+        <p className="mt-3 text-[13px]" style={{ color: msg === "Wallet linked." ? "var(--pos)" : "var(--neg)" }}>
+          {msg}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SessionTestButton() {
   const [status, setStatus] = React.useState<string>('')
   const [busy, setBusy] = React.useState(false)
@@ -2084,7 +2195,9 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
   const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
 
   return (
-    <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
+    <>
+      <SettingsWallets />
+      <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Profile</h2>
         <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
@@ -2109,6 +2222,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
         {stats.voided > 0 && <InfoCard label="Void" value={String(stats.voided)} sub="refunded, excluded from win rate" />}
       </div>
     </div>
+    </>
   );
 }
 
