@@ -174,6 +174,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return res.json();
   }, [setToken]);
 
+  // Rehydrate profile from the stored token on mount. Without this, a refresh
+  // keeps the token but forgets username + addresses (they reset to empty),
+  // so the account panel looks signed-out-ish until you sign in again.
+  React.useEffect(() => {
+    if (!token) return;
+    (async () => {
+      const me = await myDataInternal("me", token);
+      if (me) {
+        setAddresses(me.addresses || []);
+        setUsername(me.username ?? null);
+      }
+      // If me is null, myDataInternal already cleared an expired token.
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const myData = useCallback((type: "tickets" | "balance" | "me") =>
     myDataInternal(type, token), [myDataInternal, token]);
 
