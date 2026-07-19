@@ -1989,7 +1989,7 @@ function PlaceholderPage({
  * Same trap that rendered one combo as four cards in History.
  */
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
-  const { signedIn, myData } = useSession();
+  const { signedIn, signIn, myData } = useSession();
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -2069,9 +2069,17 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     };
   }, [tickets]);
 
-  if (!walletAddress && !evmAddresses.length) return (
+  if (!signedIn) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Connect your wallet to see your stats</p>
+      <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Sign in to see your stats</p>
+      <p className="mt-2 text-sm max-w-xs" style={{ color: "var(--text-soft)" }}>A quick wallet signature - no transaction, no fee - proves these bets are yours.</p>
+      <button
+        onClick={signIn}
+        className="mt-5 rounded-[12px] px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+        style={{ background: "var(--brand-grad)" }}
+      >
+        Sign in with wallet
+      </button>
     </div>
   );
 
@@ -2575,7 +2583,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     return out
   }, [tickets])
 
-  if (!walletAddress && !evmAddresses.length) return (
+  if (!signedIn) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Sign in to see your bet history</p>
       <p className="mt-2 text-sm max-w-xs" style={{ color: COLORS.textSoft }}>A quick wallet signature - no transaction, no fee - proves these bets are yours.</p>
