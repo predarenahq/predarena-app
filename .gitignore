@@ -29,4 +29,3 @@ yarn-error.log*
 derive_vault.mjs
 *.bak[0-9]*
 *.bak_*
-*.bak_*
