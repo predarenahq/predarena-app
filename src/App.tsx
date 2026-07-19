@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BattleDetailPage from "./BattleDetailPage";
+import PublicProfilePage from "./PublicProfilePage";
 import NewsPage from "./NewsPage";
 import BetSharePage from "./BetSharePage";
 import AdminPage from "./AdminPage";
@@ -94,6 +95,7 @@ function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/battle/:id" element={<BattleDetailPage />} />
+                <Route path="/u/:username" element={<PublicProfilePage />} />
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/bet/:code" element={<BetSharePage />} />
                 <Route path="/admin" element={<AdminPage />} />
