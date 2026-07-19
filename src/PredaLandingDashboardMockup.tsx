@@ -2317,8 +2317,19 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 }
 
 function AuthSection() {
-  const { login, authenticated, user, logout } = usePrivy();
+  const { login, authenticated, logout } = usePrivy();
   const { theme, toggle } = useTheme();
+  const { signedIn, username, signIn, signOut } = useSession();
+  const { disconnect: disconnectSolana } = useWallet();
+
+  // One logout clears everything: session token, Privy (EVM), and the Solana
+  // adapter. Each used to disconnect independently, so signing out left the
+  // Solana wallet still connected.
+  const logoutAll = async () => {
+    signOut();
+    try { await disconnectSolana(); } catch { /* not connected */ }
+    try { await logout(); } catch { /* privy already out */ }
+  };
 
 
 
@@ -2327,29 +2338,36 @@ function AuthSection() {
     <div className="flex items-center justify-between w-full px-2">
       {/* LEFT GROUP */}
       <div className="flex items-center gap-2">
-        {!authenticated ? (
+        {signedIn ? (
+          <>
+            <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+              {username ? `@${username}` : "Signed in"}
+            </div>
+            <button
+              onClick={logoutAll}
+              className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[var(--panel-2)] active:scale-[0.98]"
+              style={{ background: "var(--panel-2)", color: "var(--text-2)" }}
+            >
+              Logout
+            </button>
+          </>
+        ) : authenticated ? (
+          // Connected via Privy but the session isn't signed yet - this is the
+          // state that used to render a bogus @User. Nudge them to finish.
+          <button
+            onClick={signIn}
+            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-[var(--panel)] font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
+            style={{ background: "var(--text)" }}
+          >
+            Finish sign-in
+          </button>
+        ) : (
           <button
             onClick={login}
             className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-[var(--panel)] font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
             style={{ background: "var(--text)" }}
           >
             Login with X
-          </button>
-        ) : (
-          <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-            @{user?.twitter?.username || "User"}
-          </div>
-        )}
-
-
-
-        {authenticated && (
-          <button
-            onClick={logout}
-            className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[var(--panel-2)] active:scale-[0.98]"
-            style={{ background: "var(--panel-2)", color: "var(--text-2)" }}
-          >
-            Logout
           </button>
         )}
       </div>
