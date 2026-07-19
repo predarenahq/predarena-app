@@ -782,7 +782,7 @@ function Toast() {
  * to add a Solana wallet, connect it first, then tap Add.
  */
 function SettingsWallets() {
-  const { signedIn, addresses, username, signIn, signOut, linkWallet, setUsernameFor } = useSession();
+  const { signedIn, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet } = useSession();
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
   const [nameInput, setNameInput] = React.useState("");
@@ -892,6 +892,25 @@ function SettingsWallets() {
           </div>
         ))}
       </div>
+
+      {unlinkedWallet && addresses.length > 0 && (
+        <div className="mt-4 rounded-[12px] p-3" style={{ background: "var(--warn-soft, var(--panel-2))", border: "1px solid var(--warn, var(--accent))" }}>
+          <p className="text-[13px] font-medium" style={{ color: "var(--text)" }}>
+            You've connected {short(unlinkedWallet)} - it's not linked to your account yet.
+          </p>
+          <p className="mt-1 text-[12px]" style={{ color: "var(--text-soft)" }}>
+            Link it to see this wallet's bets in your profile.
+          </p>
+          <button
+            onClick={handleAdd}
+            disabled={busy}
+            className="mt-2 rounded-[10px] px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+            style={{ background: "var(--accent)", color: "var(--accent-ink, #fff)" }}
+          >
+            {busy ? "Check your wallet..." : `Link ${short(unlinkedWallet)}`}
+          </button>
+        </div>
+      )}
 
       <div className="mt-4 rounded-[12px] p-3" style={{ background: "var(--panel-2)", border: "1px dashed var(--border)" }}>
         <p className="text-[13px]" style={{ color: "var(--text-soft)" }}>

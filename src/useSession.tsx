@@ -29,6 +29,7 @@ type SessionValue = {
   signOut: () => void;
   linkWallet: () => Promise<{ ok: boolean; error?: string }>;
   setUsernameFor: (name: string) => Promise<{ ok: boolean; error?: string }>;
+  unlinkedWallet: string | null;   // a connected address not yet on the profile (banner cue)
   myData: (type: "tickets" | "balance" | "me") => Promise<any>;
 };
 
@@ -37,6 +38,7 @@ const SessionCtx = createContext<SessionValue>({
   signIn: async () => false, signOut: () => {},
   linkWallet: async () => ({ ok: false }),
   setUsernameFor: async () => ({ ok: false }),
+  unlinkedWallet: null,
   myData: async () => null,
 });
 
@@ -213,6 +215,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evmAddress, token]);
 
+  // A connected wallet that ISN'T on the profile yet - the cue for a
+  // non-blocking "link this wallet?" banner. Detection only; never signs.
+  const solAddr = publicKey?.toBase58() || null;
+  const unlinkedWallet = React.useMemo(() => {
+    if (!token) return null;
+    const linked = addresses.map((a) => a.toLowerCase());
+    for (const a of [solAddr, evmAddress]) {
+      if (a && !linked.includes(a.toLowerCase())) return a;
+    }
+    return null;
+  }, [token, addresses, solAddr, evmAddress]);
+
   React.useEffect(() => {
     if (!token) return;
     (async () => {
@@ -232,7 +246,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   return (
     <SessionCtx.Provider value={{
       token, addresses, username, signedIn: !!token,
-      signIn, signOut, linkWallet, setUsernameFor, myData,
+      signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, myData,
     }}>
       {children}
     </SessionCtx.Provider>
