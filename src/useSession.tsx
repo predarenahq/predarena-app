@@ -135,6 +135,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [setToken, publicKey, signMessage]);
 
   const signOut = useCallback(() => {
+    suppressAutoSign.current = true;   // don't let auto-sign-in refire before disconnect completes
     setToken(null);
     setAddresses([]);
     setUsername(null);
@@ -181,6 +182,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return res.json();
   }, [setToken]);
 
+  // When BOTH wallets are disconnected, a later reconnect should auto-sign
+  // again - so clear the suppress flag once we're truly wallet-less.
+  React.useEffect(() => {
+    if (!publicKey && !evmAddress) suppressAutoSign.current = false;
+  }, [publicKey, evmAddress]);
+
   // Rehydrate profile from the stored token on mount. Without this, a refresh
   // keeps the token but forgets username + addresses (they reset to empty),
   // so the account panel looks signed-out-ish until you sign in again.
@@ -188,8 +195,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // signIn() resolves to the full profile; if not, it creates/links per the
   // server rules. Guarded so it fires once per connect, never mid-flight.
   const autoSignRef = React.useRef(false);
+  const suppressAutoSign = React.useRef(false);  // set on logout, cleared on true disconnect
   React.useEffect(() => {
     if (token) { autoSignRef.current = false; return; }   // already signed in
+    if (suppressAutoSign.current) return;                 // just logged out; wait for reconnect
     if (!publicKey || !signMessage) return;               // no solana wallet
     if (autoSignRef.current) return;                      // sign-in in flight
     autoSignRef.current = true;
@@ -205,6 +214,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // address, no Solana wallet took priority, and no session/in-flight sign-in.
   React.useEffect(() => {
     if (token) { autoSignRef.current = false; return; }
+    if (suppressAutoSign.current) return;   // just logged out; wait for reconnect
     if (publicKey && signMessage) return;   // Solana effect handles this case
     if (!evmAddress) return;
     if (autoSignRef.current) return;
