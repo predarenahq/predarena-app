@@ -8,11 +8,12 @@ import Avatar from "./Avatar";
  * chooses whether to include the net P&L amount (their own number, their call).
  */
 export default function ShareStatsModal({
-  open, onClose, username, stats,
+  open, onClose, username, stats, avatarUrl,
 }: {
   open: boolean;
   onClose: () => void;
   username: string | null;
+  avatarUrl?: string | null;
   stats: { winRate: string; won: number; lost: number; total: number; pnl: number; since: string };
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -91,7 +92,7 @@ export default function ShareStatsModal({
             <span style={{ color: "#34D399", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>PREDARENA</span>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ color: "#9ca3af", fontSize: 14 }}>{handle}</span>
-              <Avatar seed={username} size={36} />
+              <Avatar seed={username} size={36} uploadedUrl={avatarUrl} />
             </div>
           </div>
 

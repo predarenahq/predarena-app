@@ -2318,6 +2318,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         username={username}
+        avatarUrl={avatarUrl}
         stats={{ winRate: stats.winRate, won: stats.won, lost: stats.lost, total: stats.total, pnl: stats.pnl, since: stats.since }}
       />
 

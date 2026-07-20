@@ -16,6 +16,7 @@ export default function Avatar({
     <img
       src={src}
       alt="avatar"
+      crossOrigin="anonymous"
       width={size}
       height={size}
       style={{ width: size, height: size, borderRadius: size * 0.28, background: "var(--panel-2)", flexShrink: 0 }}
