@@ -883,6 +883,7 @@ function SettingsWallets() {
             <button onClick={() => fileRef.current?.click()} disabled={avatarBusy} className="text-[11px]" style={{ color: "var(--text-soft)" }}>
               {avatarBusy ? "Uploading..." : "Change avatar"}
             </button>
+            {avatarMsg && <p className="text-[11px] mt-0.5" style={{ color: "var(--neg)" }}>{avatarMsg}</p>}
           </div>
         </div>
         <button onClick={signOut} className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>
