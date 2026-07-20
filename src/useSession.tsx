@@ -100,7 +100,7 @@ async function signNonceSolana(
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => {
-    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+    try { const t = localStorage.getItem(TOKEN_KEY); console.log("[TOKEN INIT]", t ? "found in localStorage" : "EMPTY"); return t; } catch { return null; }
   });
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
@@ -192,10 +192,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const autoSignRef = React.useRef(false);
   const suppressAutoSign = React.useRef(false);  // set on logout, cleared on true disconnect
   React.useEffect(() => {
+    console.log("[AUTOSIGN sol] token:", token ? "SET" : "null", "publicKey:", publicKey?.toBase58()?.slice(0,6) || "null", "suppress:", suppressAutoSign.current);
     if (token) { autoSignRef.current = false; return; }   // already signed in
     if (suppressAutoSign.current) return;                 // just logged out; wait for reconnect
     if (!publicKey || !signMessage) return;               // no solana wallet
     if (autoSignRef.current) return;                      // sign-in in flight
+    console.log("[AUTOSIGN sol] FIRING signIn - token was null when this ran");
     autoSignRef.current = true;
     (async () => {
       try { await signIn(); } finally { autoSignRef.current = false; }
