@@ -120,7 +120,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async () => {
     suppressAutoSign.current = false;   // explicit intent re-enables auto-sign
-    try { localStorage.removeItem('preda_logged_out'); } catch {}
     // A connected Solana wallet that can sign takes the Solana path; otherwise
     // fall back to the EVM/injected path. This is what puts a Solana address
     // into sess.addresses, so Solana-placed bets re-enter scope.

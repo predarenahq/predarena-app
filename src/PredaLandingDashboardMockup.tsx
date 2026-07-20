@@ -2357,7 +2357,6 @@ function AuthSection() {
   // adapter. Each used to disconnect independently, so signing out left the
   // Solana wallet still connected.
   const logoutAll = async () => {
-    try { localStorage.setItem('preda_logged_out', '1'); } catch {}
     signOut();
     try { await disconnectSolana(); } catch { /* not connected */ }
     try { await logout(); } catch { /* privy already out */ }
