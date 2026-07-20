@@ -119,6 +119,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(async () => {
+    suppressAutoSign.current = false;   // explicit intent re-enables auto-sign
     // A connected Solana wallet that can sign takes the Solana path; otherwise
     // fall back to the EVM/injected path. This is what puts a Solana address
     // into sess.addresses, so Solana-placed bets re-enter scope.
@@ -181,12 +182,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok) return null;
     return res.json();
   }, [setToken]);
-
-  // When BOTH wallets are disconnected, a later reconnect should auto-sign
-  // again - so clear the suppress flag once we're truly wallet-less.
-  React.useEffect(() => {
-    if (!publicKey && !evmAddress) suppressAutoSign.current = false;
-  }, [publicKey, evmAddress]);
 
   // Rehydrate profile from the stored token on mount. Without this, a refresh
   // keeps the token but forgets username + addresses (they reset to empty),
