@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BattleDetailPage from "./BattleDetailPage";
 import PublicProfilePage from "./PublicProfilePage";
@@ -25,6 +25,16 @@ import { ThemeProvider } from "./useTheme";
 import { SessionProvider } from "./useSession";
 
 function App() {
+  // Capture ?ref=<username> from the landing URL into localStorage, so a referral
+  // link attributes even though the user won't create a profile until sign-in.
+  // Read + cleared at sign-in (useSession). Runs once on load.
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get("ref");
+      if (ref) localStorage.setItem("preda_ref", ref);
+    } catch {}
+  }, []);
+
   const network  = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
