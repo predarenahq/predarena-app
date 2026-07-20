@@ -63,7 +63,8 @@ export default function ShareStatsModal({
 
         {/* THE CARD - this is what renders to PNG */}
         <div ref={cardRef} style={{
-          width: "100%", aspectRatio: "1.91 / 1", borderRadius: 16, padding: 28,
+          width: 600, height: 314, borderRadius: 16, padding: 28, boxSizing: "border-box",
+          maxWidth: "100%",
           background: "linear-gradient(135deg, #1a1d23 0%, #0f1115 100%)",
           display: "flex", flexDirection: "column", justifyContent: "space-between",
           border: "1px solid #2a2e37",

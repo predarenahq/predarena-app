@@ -850,9 +850,12 @@ function SettingsWallets() {
   return (
     <div className="rounded-[18px] p-6 mb-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-          {username ? username : "Your account"}
-        </h3>
+        <div className="flex items-center gap-3">
+          <Avatar seed={username} size={44} />
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
+            {username ? username : "Your account"}
+          </h3>
+        </div>
         <button onClick={signOut} className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>
           Sign out
         </button>

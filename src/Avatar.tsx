@@ -5,7 +5,7 @@ import React from "react";
  * address as fallback) always yields the same avatar - no storage needed. When
  * uploads land later, an uploaded URL overrides the generated one.
  */
-const STYLE = "avataaars";  // change here to swap the whole app's avatar style
+const STYLE = "bottts";  // change here to swap the whole app's avatar style
 
 export default function Avatar({
   seed, size = 40, uploadedUrl,
