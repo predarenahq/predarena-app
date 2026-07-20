@@ -32,7 +32,7 @@ export default function ShareStatsModal({
       const dataUrl = await toPng(cardRef.current, {
         width: 500,
         height: 297,
-        pixelRatio: 2,
+        pixelRatio: 1,
         cacheBust: true,
         style: { transform: "none", margin: "0" },
       });
