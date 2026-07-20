@@ -138,6 +138,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setToken(data.token);
     setAddresses(data.addresses || [data.address]);
     setUsername(data.username ?? null);
+    // Referral capture: if this user arrived via ?ref=<username> (stored on
+    // landing), attribute it now that they have a profile. One-time; cleared
+    // after. Failures (self-ref, not found, already referred) are silent.
+    try {
+      const ref = localStorage.getItem("preda_ref");
+      if (ref) {
+        await postSession({ action: "capture_referral", ref }, data.token);
+        localStorage.removeItem("preda_ref");
+      }
+    } catch {}
     return true;
   }, [setToken, publicKey, signMessage]);
 

@@ -45,6 +45,7 @@ export default async function handler(req, res) {
   if (action === 'link')   return link(req, res)
   if (action === 'set_username') return setUsername(req, res)
   if (action === 'set_avatar')   return setAvatar(req, res)
+  if (action === 'capture_referral') return captureReferral(req, res)
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -159,6 +160,28 @@ async function verify(req, res) {
  *   2. a fresh signature from the NEW wallet -> that the caller owns it
  * Without (2), anyone could claim someone else's address into their profile.
  */
+async function captureReferral(req, res) {
+  const auth = req.headers.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const sess = await sessionFromToken(token)
+  if (!sess) return res.status(401).json({ error: 'session_invalid' })
+
+  const { ref } = req.body || {}
+  if (!ref || typeof ref !== 'string') return res.status(400).json({ error: 'missing_ref' })
+
+  const { data, error } = await supabase.rpc('capture_referral', {
+    p_referred_id: sess.profileId,
+    p_referrer_username: ref,
+  })
+  if (error) {
+    console.error('capture_referral error:', error.message)
+    return res.status(500).json({ error: 'capture_failed' })
+  }
+  // Always 200 - a failed capture (self-referral, not found, already referred)
+  // is not an error the user should see; it just silently doesn't apply.
+  return res.status(200).json(data)
+}
+
 async function setAvatar(req, res) {
   const auth = req.headers.authorization || ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
