@@ -32,7 +32,7 @@ type SessionValue = {
   avatarUrl: string | null;
   uploadAvatar: (file: File) => Promise<{ ok: boolean; error?: string }>;
   unlinkedWallet: string | null;   // a connected address not yet on the profile (banner cue)
-  myData: (type: "tickets" | "balance" | "me") => Promise<any>;
+  myData: (type: "tickets" | "balance" | "me" | "referrals") => Promise<any>;
 };
 
 const SessionCtx = createContext<SessionValue>({
@@ -298,7 +298,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const myData = useCallback((type: "tickets" | "balance" | "me") =>
+  const myData = useCallback((type: "tickets" | "balance" | "me" | "referrals") =>
     myDataInternal(type, token), [myDataInternal, token]);
 
   return (
