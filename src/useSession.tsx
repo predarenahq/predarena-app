@@ -100,7 +100,7 @@ async function signNonceSolana(
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => {
-    try { const t = localStorage.getItem(TOKEN_KEY); console.log("[TOKEN INIT]", t ? "found in localStorage" : "EMPTY"); return t; } catch { return null; }
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
   });
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
@@ -120,6 +120,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async () => {
     suppressAutoSign.current = false;   // explicit intent re-enables auto-sign
+    try { localStorage.removeItem("preda_logged_out"); } catch {}
     // A connected Solana wallet that can sign takes the Solana path; otherwise
     // fall back to the EVM/injected path. This is what puts a Solana address
     // into sess.addresses, so Solana-placed bets re-enter scope.
@@ -137,6 +138,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(() => {
     suppressAutoSign.current = true;   // don't let auto-sign-in refire before disconnect completes
+    try { localStorage.setItem("preda_logged_out", "1"); } catch {}
     setToken(null);
     setAddresses([]);
     setUsername(null);
@@ -190,14 +192,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // signIn() resolves to the full profile; if not, it creates/links per the
   // server rules. Guarded so it fires once per connect, never mid-flight.
   const autoSignRef = React.useRef(false);
-  const suppressAutoSign = React.useRef(false);  // set on logout, cleared on true disconnect
+  // Backed by localStorage so an explicit logout survives refresh (a useRef
+  // resets on reload, which let auto-sign fire after logout+refresh).
+  const suppressAutoSign = React.useRef(
+    (() => { try { return localStorage.getItem("preda_logged_out") === "1"; } catch { return false; } })()
+  );
   React.useEffect(() => {
-    console.log("[AUTOSIGN sol] token:", token ? "SET" : "null", "publicKey:", publicKey?.toBase58()?.slice(0,6) || "null", "suppress:", suppressAutoSign.current);
     if (token) { autoSignRef.current = false; return; }   // already signed in
     if (suppressAutoSign.current) return;                 // just logged out; wait for reconnect
     if (!publicKey || !signMessage) return;               // no solana wallet
     if (autoSignRef.current) return;                      // sign-in in flight
-    console.log("[AUTOSIGN sol] FIRING signIn - token was null when this ran");
     autoSignRef.current = true;
     (async () => {
       try { await signIn(); } finally { autoSignRef.current = false; }
