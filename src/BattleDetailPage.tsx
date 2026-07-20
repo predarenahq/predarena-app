@@ -319,6 +319,11 @@ export default function BattleDetailPage() {
       showToast('Betting is closed for this battle', 'error')
       return
     }
+    // Betting gate: must be signed in (session), not just wallet-connected.
+    if (!signedIn) {
+      const ok = await signIn()
+      if (!ok) { showToast('Sign in to place a bet', 'error'); return }
+    }
     if (!selectedSide || !stake || !battle) return
     try {
       // Map UI side (1/2/3) to Solidity enum (CoinA/CoinB/Draw)
