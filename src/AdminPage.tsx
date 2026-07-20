@@ -57,12 +57,13 @@ export default function AdminPage() {
   const [battles, setBattles] = useState<any[]>([])
   const [waitlist, setWaitlist] = useState<any[]>([])
   const [userBalances, setUserBalances] = useState<any[]>([])
+  const [referralEarnings, setReferralEarnings] = useState<any[]>([])
   const [ticketStats, setTicketStats] = useState<{ total: number; totalStaked: number; totalPaid: number }>({ total: 0, totalStaked: 0, totalPaid: 0 })
   const [pnl, setPnl] = useState<any[]>([])
   // null = unknown. The page hardcoded 85 and valued every user balance with it.
   const [solPrice, setSolPrice] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'battles' | 'users' | 'waitlist'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'battles' | 'users' | 'waitlist' | 'referrals'>('overview')
 
   // Returns true when the secret was accepted. Five browser queries became one
   // authenticated call: the server verifies and reads with the service role, so
@@ -84,6 +85,7 @@ export default function AdminPage() {
       setBattles(d.battles || [])
       setWaitlist(d.waitlist || [])
       setUserBalances(d.balances || [])
+      setReferralEarnings(d.referralEarnings || [])
       setPnl(d.pnl || [])
       setSolPrice(d.solPrice ?? null)
 
@@ -187,6 +189,7 @@ export default function AdminPage() {
     { id: 'battles', label: 'Battles' },
     { id: 'users', label: 'Users' },
     { id: 'waitlist', label: 'Waitlist' },
+    { id: 'referrals', label: 'Referrals' },
   ] as const
 
   return (
@@ -478,6 +481,36 @@ export default function AdminPage() {
         )}
 
         {/* WAITLIST TAB */}
+        {activeTab === 'referrals' && (
+          <Section title="Referrer Earnings">
+            <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: C.panel2, borderBottom: `1px solid ${C.line}` }}>
+                    <th className="text-left px-4 py-3" style={{ color: C.soft }}>Referrer</th>
+                    <th className="text-right px-4 py-3" style={{ color: C.soft }}>Friends Referred</th>
+                    <th className="text-right px-4 py-3" style={{ color: C.soft }}>USDC Earned</th>
+                    <th className="text-right px-4 py-3" style={{ color: C.soft }}>Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referralEarnings.length === 0 && (
+                    <tr><td colSpan={4} className="text-center px-4 py-8" style={{ color: C.soft }}>No referral earnings yet.</td></tr>
+                  )}
+                  {referralEarnings.map((r, i) => (
+                    <tr key={i} style={{ borderBottom: `1px solid ${C.line}` }}>
+                      <td className="text-left px-4 py-3 text-white">@{r.username || '-'}</td>
+                      <td className="text-right px-4 py-3 text-white">{r.referred_count ?? 0}</td>
+                      <td className="text-right px-4 py-3" style={{ color: C.accent }}>${Number(r.usd_earned || 0).toFixed(2)}</td>
+                      <td className="text-right px-4 py-3 text-white">{r.points ?? 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
+
         {activeTab === 'waitlist' && (
           <Section title="Waitlist Signups">
             <div className="flex items-center justify-between mb-4">

@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const [pnl, treasury, battles, waitlist, balances, solPrice] = await Promise.all([
+    const [pnl, treasury, battles, waitlist, balances, solPrice, referralEarnings] = await Promise.all([
       // Ticket-derived P&L: computed from what happened, so it cannot drift.
       supabase.rpc('admin_pnl'),
       // The lamports counter, for comparison only. It is denominated in SOL, so
@@ -58,6 +58,7 @@ export default async function handler(req, res) {
       supabase.from('waitlist').select('*').order('signed_up_at', { ascending: false }),
       supabase.from('user_balances').select('*').order('balance_lamports', { ascending: false }).limit(50),
       getSolPrice(),
+      supabase.rpc('admin_referral_earnings'),
     ])
 
     return res.status(200).json({
@@ -67,6 +68,7 @@ export default async function handler(req, res) {
       battles:  battles.data || [],
       waitlist: waitlist.data || [],
       balances: balances.data || [],
+      referralEarnings: referralEarnings.data || [],
       // null means unknown. The page hardcoded 85 and valued every user balance
       // with it; UserBalancePanel had the same bug with 150. Never invent a price.
       solPrice,
