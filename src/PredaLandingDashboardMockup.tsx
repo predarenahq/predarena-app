@@ -2203,6 +2203,21 @@ function SettingsPage() {
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
   const { signedIn, myData, username, avatarUrl } = useSession();
   const [shareOpen, setShareOpen] = React.useState(false);
+  const [refStats, setRefStats] = React.useState<{ referred_count: number; usd_earned: number; points: number } | null>(null);
+  const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!signedIn) { setRefStats(null); return }
+    (async () => {
+      try { const r = await myData('referrals'); if (r) setRefStats(r); } catch {}
+    })();
+  }, [signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const refLink = username ? `predarena-app.vercel.app/?ref=${username}` : null;
+  function copyRefLink() {
+    if (!refLink) return;
+    try { navigator.clipboard.writeText(`https://${refLink}`); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  }
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -2339,6 +2354,34 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
 
         {stats.open > 0 && <InfoCard label="Still Running" value={String(stats.open)} sub="not counted above" />}
         {stats.voided > 0 && <InfoCard label="Void" value={String(stats.voided)} sub="refunded, excluded from win rate" />}
+      </div>
+
+      {/* REFERRALS */}
+      <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--border)" }}>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Refer friends, earn rewards</h3>
+        <p className="text-sm mb-4" style={{ color: "var(--text-soft)" }}>Share your link. Earn USDC and points when the people you invite play.</p>
+
+        {refLink ? (
+          <div className="flex flex-wrap items-center gap-2 mb-5">
+            <div className="flex-1 min-w-[220px] rounded-[10px] px-3 py-2.5 text-sm font-mono truncate"
+                 style={{ background: "var(--panel-2)", border: "1px solid var(--border)", color: "var(--text)" }}>
+              {refLink}
+            </div>
+            <button onClick={copyRefLink}
+              className="rounded-[10px] px-4 py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+              style={{ background: "var(--brand-grad)" }}>
+              {copied ? "Copied!" : "Copy link"}
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Set a username in Settings to get your referral link.</p>
+        )}
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <InfoCard label="Friends Referred" value={String(refStats?.referred_count ?? 0)} />
+          <InfoCard label="USDC Earned" value={`$${(refStats?.usd_earned ?? 0).toFixed(2)}`} tone={(refStats?.usd_earned ?? 0) > 0 ? 'pos' : undefined} />
+          <InfoCard label="Points" value={String(refStats?.points ?? 0)} />
+        </div>
       </div>
     </div>
   );

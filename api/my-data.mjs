@@ -71,6 +71,15 @@ export default async function handler(req, res) {
       })
     }
 
+    if (type === 'referrals') {
+      const { data, error } = await supabase.rpc('referral_stats', { p_profile_id: sess.profileId })
+      if (error) {
+        console.error('referral_stats error:', error.message)
+        return res.status(500).json({ error: 'referrals_failed' })
+      }
+      return res.status(200).json(data)
+    }
+
     return res.status(400).json({ error: 'invalid_type' })
   } catch (err) {
     console.error('my-data error:', err.message)

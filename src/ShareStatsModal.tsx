@@ -24,7 +24,7 @@ export default function ShareStatsModal({
   const pnlUp = stats.pnl >= 0;
   const pnlStr = `${pnlUp ? "+" : "-"}$${Math.abs(stats.pnl).toFixed(2)}`;
   const handle = username ? `@${username}` : "PredArena bettor";
-  const profileUrl = username ? `predarena-app.vercel.app/u/${username}` : "predarena-app.vercel.app";
+  const profileUrl = username ? `predarena-app.vercel.app/?ref=${username}` : "predarena-app.vercel.app";
 
   const download = useCallback(async () => {
     if (!cardRef.current) return;
