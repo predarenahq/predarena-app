@@ -44,6 +44,7 @@ export default async function handler(req, res) {
   if (action === 'verify') return verify(req, res)
   if (action === 'link')   return link(req, res)
   if (action === 'set_username') return setUsername(req, res)
+  if (action === 'set_avatar')   return setAvatar(req, res)
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -158,6 +159,45 @@ async function verify(req, res) {
  *   2. a fresh signature from the NEW wallet -> that the caller owns it
  * Without (2), anyone could claim someone else's address into their profile.
  */
+async function setAvatar(req, res) {
+  const auth = req.headers.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const sess = await sessionFromToken(token)
+  if (!sess) return res.status(401).json({ error: 'session_invalid' })
+
+  // Expect a data URL: "data:image/png;base64,...."
+  const { image } = req.body || {}
+  if (!image || typeof image !== 'string') return res.status(400).json({ error: 'missing_image' })
+
+  const m = image.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/)
+  if (!m) return res.status(400).json({ error: 'invalid_image_type' })
+  const ext = m[1] === 'jpeg' ? 'jpg' : m[1]
+  const bytes = Buffer.from(m[2], 'base64')
+
+  // 2MB cap. Base64 inflates ~33%, so the JSON body stays under Vercel's 4.5MB.
+  if (bytes.length > 2 * 1024 * 1024) return res.status(413).json({ error: 'image_too_large' })
+
+  const path = `${sess.profileId}/avatar.${ext}`
+  const { error: upErr } = await supabase.storage
+    .from('avatars')
+    .upload(path, bytes, { contentType: `image/${m[1]}`, upsert: true })
+  if (upErr) {
+    console.error('avatar upload error:', upErr.message)
+    return res.status(500).json({ error: 'upload_failed' })
+  }
+
+  const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+  // Cache-bust so the new image shows immediately (same path, upsert).
+  const url = `${pub.publicUrl}?v=${Date.now()}`
+
+  const { error: rpcErr } = await supabase.rpc('set_avatar', { p_profile_id: sess.profileId, p_url: url })
+  if (rpcErr) {
+    console.error('set_avatar rpc error:', rpcErr.message)
+    return res.status(500).json({ error: 'save_failed' })
+  }
+  return res.status(200).json({ ok: true, avatar_url: url })
+}
+
 async function setUsername(req, res) {
   const auth = req.headers.authorization || ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null

@@ -29,6 +29,8 @@ type SessionValue = {
   signOut: () => void;
   linkWallet: () => Promise<{ ok: boolean; error?: string }>;
   setUsernameFor: (name: string) => Promise<{ ok: boolean; error?: string }>;
+  avatarUrl: string | null;
+  uploadAvatar: (file: File) => Promise<{ ok: boolean; error?: string }>;
   unlinkedWallet: string | null;   // a connected address not yet on the profile (banner cue)
   myData: (type: "tickets" | "balance" | "me") => Promise<any>;
 };
@@ -38,6 +40,8 @@ const SessionCtx = createContext<SessionValue>({
   signIn: async () => false, signOut: () => {},
   linkWallet: async () => ({ ok: false }),
   setUsernameFor: async () => ({ ok: false }),
+  avatarUrl: null,
+  uploadAvatar: async () => ({ ok: false }),
   unlinkedWallet: null,
   myData: async () => null,
 });
@@ -104,6 +108,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   });
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { publicKey, signMessage } = useWallet();
   const { wallets: privyWallets } = useWallets();
   // First connected EVM wallet (eip155:*), if any. Address is lowercase from
@@ -164,6 +169,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, publicKey, signMessage]);
 
+  const uploadAvatar = useCallback(async (file: File) => {
+    if (!token) return { ok: false, error: "not_signed_in" };
+    if (file.size > 2 * 1024 * 1024) return { ok: false, error: "image_too_large" };
+    // Read the file as a data URL and send to the authenticated endpoint.
+    const image: string = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(new Error("read_failed"));
+      r.readAsDataURL(file);
+    });
+    const { res, data } = await postSession({ action: "set_avatar", image }, token);
+    if (!res.ok) return { ok: false, error: data.error };
+    setAvatarUrl(data.avatar_url);
+    return { ok: true };
+  }, [token]);
+
   const setUsernameFor = useCallback(async (name: string) => {
     if (!token) return { ok: false, error: "not_signed_in" };
     const { res, data } = await postSession({ action: "set_username", username: name }, token);
@@ -191,6 +212,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Auto sign-in when a Solana wallet connects. If the address is already linked,
   // signIn() resolves to the full profile; if not, it creates/links per the
   // server rules. Guarded so it fires once per connect, never mid-flight.
+  // Rehydrate the profile from the stored token on mount - without this, a
+  // refresh keeps the token but forgets username/addresses/avatar (they reset
+  // to empty). Loads them from my-data so the account panel and avatar persist.
+  React.useEffect(() => {
+    if (!token) return;
+    (async () => {
+      const me = await myDataInternal("me", token);
+      if (me) {
+        setAddresses(me.addresses || []);
+        setUsername(me.username ?? null);
+        setAvatarUrl(me.avatar_url ?? null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const autoSignRef = React.useRef(false);
   // Backed by localStorage so an explicit logout survives refresh (a useRef
   // resets on reload, which let auto-sign fire after logout+refresh).
@@ -257,7 +294,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   return (
     <SessionCtx.Provider value={{
       token, addresses, username, signedIn: !!token,
-      signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, myData,
+      signIn, signOut, linkWallet, setUsernameFor, avatarUrl, uploadAvatar, unlinkedWallet, myData,
     }}>
       {children}
     </SessionCtx.Provider>

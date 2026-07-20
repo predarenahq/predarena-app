@@ -58,11 +58,16 @@ export default async function handler(req, res) {
     }
 
     if (type === 'me') {
+      // avatar_url lives on the profile, not the session - fetch it so the
+      // uploaded avatar survives refresh (rehydrate reads this).
+      const { data: prof } = await supabase
+        .from('profiles').select('avatar_url').eq('id', sess.profileId).single()
       return res.status(200).json({
         profile_id: sess.profileId,
         username:   sess.username,
         addresses:  sess.addresses,
         address:    sess.address,
+        avatar_url: prof?.avatar_url ?? null,
       })
     }
 

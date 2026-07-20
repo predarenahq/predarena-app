@@ -790,7 +790,22 @@ function Toast() {
  * to add a Solana wallet, connect it first, then tap Add.
  */
 function SettingsWallets() {
-  const { signedIn, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet } = useSession();
+  const { signedIn, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, avatarUrl, uploadAvatar } = useSession();
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [avatarBusy, setAvatarBusy] = React.useState(false);
+  const [avatarMsg, setAvatarMsg] = React.useState<string | null>(null);
+
+  async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarBusy(true); setAvatarMsg(null);
+    const r = await uploadAvatar(file);
+    if (!r.ok) {
+      setAvatarMsg(r.error === "image_too_large" ? "Image must be under 2MB." : `Upload failed: ${r.error || "error"}`);
+    }
+    setAvatarBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState<string | null>(null);
   const [nameInput, setNameInput] = React.useState("");
@@ -851,10 +866,24 @@ function SettingsWallets() {
     <div className="rounded-[18px] p-6 mb-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Avatar seed={username} size={44} />
-          <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-            {username ? username : "Your account"}
-          </h3>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={avatarBusy}
+            title="Change avatar"
+            className="relative rounded-[12px] overflow-hidden transition-opacity hover:opacity-80 disabled:opacity-50"
+            style={{ lineHeight: 0 }}
+          >
+            <Avatar seed={username} size={44} uploadedUrl={avatarUrl} />
+          </button>
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleAvatarPick} style={{ display: "none" }} />
+          <div>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
+              {username ? username : "Your account"}
+            </h3>
+            <button onClick={() => fileRef.current?.click()} disabled={avatarBusy} className="text-[11px]" style={{ color: "var(--text-soft)" }}>
+              {avatarBusy ? "Uploading..." : "Change avatar"}
+            </button>
+          </div>
         </div>
         <button onClick={signOut} className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>
           Sign out
@@ -2171,7 +2200,7 @@ function SettingsPage() {
  * Same trap that rendered one combo as four cards in History.
  */
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
-  const { signedIn, myData, username } = useSession();
+  const { signedIn, myData, username, avatarUrl } = useSession();
   const [shareOpen, setShareOpen] = React.useState(false);
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -2270,7 +2299,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Avatar seed={username} size={48} />
+          <Avatar seed={username} size={48} uploadedUrl={avatarUrl} />
           <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Stats</h2>
         </div>
         <div className="flex items-center gap-3">
