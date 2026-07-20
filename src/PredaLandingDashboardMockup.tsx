@@ -3013,6 +3013,7 @@ export default function PredaLandingDashboardMockup() {
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
+  const { signedIn, signIn } = useSession();  // betting gate: bets require a session
   const [oddsFlash, setOddsFlash] = useState<Record<string, 'up' | 'down'>>({});
   const flashTimers = React.useRef<Record<string, any>>({});
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -3523,6 +3524,20 @@ export default function PredaLandingDashboardMockup() {
 
   const handlePlaceTicket = async () => {
     if (!slipSelections.length) return
+
+    // BETTING GATE: must be logged in (session), not just wallet-connected.
+    // Placed before the Arc/Solana split so ONE check covers both chains. In
+    // practice this rarely triggers - auto-sign-in fires on wallet connect - so
+    // it's the safety net for the edge case (connected but sign-in declined or
+    // failed), and it's what ties every bet to a profile.
+    if (!signedIn) {
+      const ok = await signIn()
+      if (!ok) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Sign in to place a bet', type: 'error' } }))
+        return
+      }
+    }
+
     if (slipChain === 'arc') return handlePlaceTicketArc()
 
     // Solana from here. The wallet guard lives INSIDE this branch - it used to
