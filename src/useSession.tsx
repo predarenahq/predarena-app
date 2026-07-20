@@ -4,7 +4,7 @@ import { useWallets } from "@privy-io/react-auth";
 
 /**
  * One session for the whole app: the token minted by /api/session, held in
- * sessionStorage, and a myData() helper every read site calls instead of
+ * localStorage, and a myData() helper every read site calls instead of
  * touching Supabase directly.
  *
  * Why this exists: tickets and user_balances are world-readable via the anon
@@ -100,7 +100,7 @@ async function signNonceSolana(
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => {
-    try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
   });
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
@@ -112,8 +112,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const setToken = useCallback((t: string | null) => {
     try {
-      if (t) sessionStorage.setItem(TOKEN_KEY, t);
-      else sessionStorage.removeItem(TOKEN_KEY);
+      if (t) localStorage.setItem(TOKEN_KEY, t);
+      else localStorage.removeItem(TOKEN_KEY);
     } catch { /* private mode */ }
     setTokenState(t);
   }, []);
