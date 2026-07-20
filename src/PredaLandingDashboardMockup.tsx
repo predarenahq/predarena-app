@@ -42,6 +42,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
 import { useSession } from "./useSession";
 import ShareStatsModal from "./ShareStatsModal";
+import Avatar from "./Avatar";
 
 type Side = "left" | "draw" | "right";
 type MatchBoard = "Live" | "Upcoming";
@@ -2264,8 +2265,11 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
 
   return (
     <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
-      <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Stats</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar seed={username} size={48} />
+          <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Stats</h2>
+        </div>
         <div className="flex items-center gap-3">
           <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
           <button

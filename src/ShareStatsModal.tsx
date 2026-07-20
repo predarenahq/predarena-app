@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback } from "react";
 import { toPng } from "html-to-image";
+import Avatar from "./Avatar";
 
 /**
  * Shareable P&L card. Opens from "Share my stats" on the private profile.
@@ -69,7 +70,10 @@ export default function ShareStatsModal({
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ color: "#34D399", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>PREDARENA</span>
-            <span style={{ color: "#9ca3af", fontSize: 14 }}>{handle}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ color: "#9ca3af", fontSize: 14 }}>{handle}</span>
+              <Avatar seed={username} size={36} />
+            </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>

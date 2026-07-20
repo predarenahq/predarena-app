@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Avatar from "./Avatar";
 
 /**
  * Public, shareable profile at /u/<username>. Standalone - NOT inside the
@@ -40,9 +41,7 @@ export default function PublicProfilePage() {
       {state === "ok" && data && (
         <div className="w-full max-w-lg rounded-[24px] p-8" style={{ background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[16px] text-lg font-bold text-white" style={{ background: "var(--brand-grad)" }}>
-              {data.username?.[0]?.toUpperCase() || "?"}
-            </div>
+            <Avatar seed={data.username} size={48} />
             <div>
               <p className="text-xl font-semibold" style={{ color: "var(--text)" }}>@{data.username}</p>
               <p className="text-xs" style={{ color: "var(--text-soft)" }}>PredArena bettor</p>
