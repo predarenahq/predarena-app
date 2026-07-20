@@ -29,7 +29,7 @@ export default function ShareStatsModal({
     if (!cardRef.current) return;
     setBusy(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { width: 600, height: 314, pixelRatio: 2, cacheBust: true });
+      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true });
       const a = document.createElement("a");
       a.download = `predarena-${username || "stats"}.png`;
       a.href = dataUrl;
@@ -62,18 +62,8 @@ export default function ShareStatsModal({
         </div>
 
         {/* THE CARD - this is what renders to PNG */}
-        <div style={{ width: "100%", overflow: "hidden", display: "flex", justifyContent: "center" }}>
-        <div style={{ transform: "scale(var(--card-scale, 1))", transformOrigin: "top center", width: 600 }}
-             ref={(el) => {
-               // Scale the preview to fit the modal width, capture stays 600x314.
-               if (el) {
-                 const avail = el.parentElement?.clientWidth || 600;
-                 el.style.setProperty("--card-scale", String(Math.min(1, avail / 600)));
-                 el.style.height = `${314 * Math.min(1, avail / 600)}px`;
-               }
-             }}>
         <div ref={cardRef} style={{
-          width: 600, height: 314, borderRadius: 16, padding: 28, boxSizing: "border-box",
+          width: "100%", aspectRatio: "1.91 / 1", borderRadius: 16, padding: 22, boxSizing: "border-box",
           background: "linear-gradient(135deg, #1a1d23 0%, #0f1115 100%)",
           display: "flex", flexDirection: "column", justifyContent: "space-between",
           border: "1px solid #2a2e37",
@@ -105,8 +95,6 @@ export default function ShareStatsModal({
             </div>
             <div style={{ color: "#6b7280", fontSize: 12 }}>{profileUrl}</div>
           </div>
-        </div>
-        </div>
         </div>
 
         {/* Toggle */}
