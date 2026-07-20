@@ -29,12 +29,9 @@ export default function ShareStatsModal({
     if (!cardRef.current) return;
     setBusy(true);
     try {
-      const el = cardRef.current;
-      const w = el.offsetWidth;
-      const h = el.offsetHeight;
-      const dataUrl = await toPng(el, {
-        width: w,
-        height: h,
+      const dataUrl = await toPng(cardRef.current, {
+        width: 500,
+        height: 297,
         pixelRatio: 3,
         cacheBust: true,
         style: { transform: "none", margin: "0" },
@@ -70,9 +67,22 @@ export default function ShareStatsModal({
           <button onClick={onClose} className="text-sm" style={{ color: "var(--text-soft)" }}>Close</button>
         </div>
 
-        {/* THE CARD - this is what renders to PNG */}
+        {/* THE CARD - always 500x297 for capture; preview scaled to fit modal */}
+        <div style={{ width: "100%", display: "flex", justifyContent: "center", overflow: "hidden" }}>
+        <div
+          ref={(wrap) => {
+            if (wrap) {
+              const avail = wrap.parentElement?.clientWidth || 500;
+              const scale = Math.min(1, avail / 500);
+              wrap.style.transform = `scale(${scale})`;
+              wrap.style.transformOrigin = "top center";
+              wrap.style.height = `${297 * scale}px`;
+            }
+          }}
+          style={{ width: 500 }}
+        >
         <div ref={cardRef} style={{
-          width: "100%", aspectRatio: "1.91 / 1", borderRadius: 16, padding: 22, boxSizing: "border-box",
+          width: 500, height: 297, borderRadius: 16, padding: 22, boxSizing: "border-box", flexShrink: 0,
           background: "linear-gradient(135deg, #1a1d23 0%, #0f1115 100%)",
           display: "flex", flexDirection: "column", justifyContent: "space-between",
           border: "1px solid #2a2e37",
@@ -104,6 +114,8 @@ export default function ShareStatsModal({
             </div>
             <div style={{ color: "#6b7280", fontSize: 12 }}>{profileUrl}</div>
           </div>
+        </div>
+        </div>
         </div>
 
         {/* Toggle */}
