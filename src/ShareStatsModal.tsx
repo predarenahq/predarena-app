@@ -29,7 +29,16 @@ export default function ShareStatsModal({
     if (!cardRef.current) return;
     setBusy(true);
     try {
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true });
+      const el = cardRef.current;
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      const dataUrl = await toPng(el, {
+        width: w,
+        height: h,
+        pixelRatio: 3,
+        cacheBust: true,
+        style: { transform: "none", margin: "0" },
+      });
       const a = document.createElement("a");
       a.download = `predarena-${username || "stats"}.png`;
       a.href = dataUrl;
