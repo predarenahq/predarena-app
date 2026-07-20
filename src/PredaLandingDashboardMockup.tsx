@@ -41,6 +41,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
 import { useSession } from "./useSession";
+import ShareStatsModal from "./ShareStatsModal";
 
 type Side = "left" | "draw" | "right";
 type MatchBoard = "Live" | "Upcoming";
@@ -2166,7 +2167,8 @@ function SettingsPage() {
  * Same trap that rendered one combo as four cards in History.
  */
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
-  const { signedIn, myData } = useSession();
+  const { signedIn, myData, username } = useSession();
+  const [shareOpen, setShareOpen] = React.useState(false);
   const [tickets, setTickets] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -2264,8 +2266,23 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     <div className="rounded-[24px] bg-[var(--panel)] p-8" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>Stats</h2>
-        <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs font-medium" style={{ color: "var(--text-soft)" }}>Betting since {stats.since}</p>
+          <button
+            onClick={() => setShareOpen(true)}
+            className="rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-all active:scale-[0.98]"
+            style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", color: "var(--accent)" }}
+          >
+            Share my stats
+          </button>
+        </div>
       </div>
+      <ShareStatsModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        username={username}
+        stats={{ winRate: stats.winRate, won: stats.won, lost: stats.lost, total: stats.total, pnl: stats.pnl, since: stats.since }}
+      />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <InfoCard label="Net P&L" value={money(stats.pnl)} tone={stats.pnl > 0 ? 'pos' : stats.pnl < 0 ? 'neg' : undefined} />
