@@ -10,6 +10,7 @@ import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWallets, usePrivy } from '@privy-io/react-auth'
 import { useArcArena } from './arc/useArcArena'
+import { useSession } from './useSession'
 import { ArcSide } from './arc/contracts'
 
 const COLORS = {
@@ -51,6 +52,7 @@ export default function BattleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { publicKey, connected } = useWallet()
+  const { signedIn, signIn } = useSession()
   const { wallets } = useWallets()
   const { connectWallet } = usePrivy()
 
@@ -240,6 +242,11 @@ export default function BattleDetailPage() {
     if (bettingLocked) {
       showToast('Betting is closed for this battle', 'error')
       return
+    }
+    // Betting gate: must be signed in (session), not just wallet-connected.
+    if (!signedIn) {
+      const ok = await signIn()
+      if (!ok) { showToast('Sign in to place a bet', 'error'); return }
     }
     if (!connected || !publicKey || !selectedSide || !stake || !battle) return
     setLoading(true)
