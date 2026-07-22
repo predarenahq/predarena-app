@@ -3104,7 +3104,13 @@ export default function PredaLandingDashboardMockup() {
   const [slipOpen, setSlipOpen] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<MatchBoard>("Live");
   const [selectedClass, setSelectedClass] = useState("All");
-  const [stake, setStake] = useState("100");
+  // Persist stake across refresh, alongside the slip. Defaults to 100.
+  const [stake, setStake] = useState(() => {
+    try { return localStorage.getItem("preda_stake") || "100"; } catch { return "100"; }
+  });
+  React.useEffect(() => {
+    try { localStorage.setItem("preda_stake", stake); } catch {}
+  }, [stake]);
   // Slip selections now come from the shared SlipContext so the battle detail
   // page can add to the same slip. The type is structurally identical.
   const { slipSelections, setSlipSelections } = useSlip() as unknown as { slipSelections: SlipSelection[]; setSlipSelections: React.Dispatch<React.SetStateAction<SlipSelection[]>> };
