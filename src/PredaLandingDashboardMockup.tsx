@@ -41,6 +41,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
 import { useSession } from "./useSession";
+import { useSlip } from "./SlipContext";
 import ShareStatsModal from "./ShareStatsModal";
 import Avatar from "./Avatar";
 
@@ -3104,7 +3105,9 @@ export default function PredaLandingDashboardMockup() {
   const [selectedBoard, setSelectedBoard] = useState<MatchBoard>("Live");
   const [selectedClass, setSelectedClass] = useState("All");
   const [stake, setStake] = useState("100");
-  const [slipSelections, setSlipSelections] = useState<SlipSelection[]>([]);
+  // Slip selections now come from the shared SlipContext so the battle detail
+  // page can add to the same slip. The type is structurally identical.
+  const { slipSelections, setSlipSelections } = useSlip() as unknown as { slipSelections: SlipSelection[]; setSlipSelections: React.Dispatch<React.SetStateAction<SlipSelection[]>> };
   // When the server rejects a leg for odds drift we sync that leg to the
   // server's price and flip the button to a confirm state for one tap.
   const [requoteReady, setRequoteReady] = useState(false);

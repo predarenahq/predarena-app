@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SlipProvider } from "./SlipContext";
 import BattleDetailPage from "./BattleDetailPage";
 import PublicProfilePage from "./PublicProfilePage";
 import NewsPage from "./NewsPage";
@@ -101,6 +102,7 @@ function App() {
         <WalletProvider wallets={wallets} autoConnect={true}>
           <WalletModalProvider>
             <SessionProvider>
+            <SlipProvider>
             <BrowserRouter>
               <Routes>
                 <Route path="/battle/:id" element={<BattleDetailPage />} />
@@ -111,6 +113,7 @@ function App() {
                 <Route path="*" element={<PredaLandingDashboardMockup />} />
               </Routes>
             </BrowserRouter>
+            </SlipProvider>
             </SessionProvider>
           </WalletModalProvider>
         </WalletProvider>
