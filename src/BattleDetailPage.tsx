@@ -55,35 +55,6 @@ export default function BattleDetailPage() {
   const { publicKey, connected } = useWallet()
   const { signedIn, signIn } = useSession()
   const { slipSelections, setSlipSelections } = useSlip()
-
-  // Add the current pick to the SHARED slip (same shape as the homepage's
-  // handlePick). Placement stays on the homepage slip panel - this just stacks
-  // the pick. Dedup by matchId; re-adding the same side toggles it off.
-  const slipCount = slipSelections.length
-  const inSlip = battle ? slipSelections.some((x: any) => x.matchId === battle.id) : false
-  function addToSlip() {
-    if (!battle || !selectedSide) return
-    const chosenSide = selectedSide === 1 ? 'left' : selectedSide === 2 ? 'right' : 'draw'
-    const pickLabel = selectedSide === 1 ? battle.coin_a : selectedSide === 2 ? battle.coin_b : 'Draw'
-    const oddsAtPick = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
-    setSlipSelections((prev: any[]) => {
-      const existing = prev.find((x) => x.matchId === battle.id)
-      if (existing && existing.chosenSide === chosenSide) {
-        return prev.filter((x) => x.matchId !== battle.id)  // toggle off
-      }
-      const next = {
-        matchId: battle.id,
-        arcBattleId: battle.arc_battle_id ?? null,
-        matchTitle: `${battle.coin_a}/${battle.coin_b}`,
-        chosenSide,
-        pickLabel,
-        oddsAtPick,
-        duration: battle.duration,
-      }
-      return [...prev.filter((x) => x.matchId !== battle.id), next]
-    })
-    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Added to slip', type: 'success' } }))
-  }
   const { wallets } = useWallets()
   const { connectWallet } = usePrivy()
 
@@ -460,6 +431,35 @@ export default function BattleDetailPage() {
 
   const stakeUSD = parseFloat(stake) || 0
   const selectedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
+
+  // Add the current pick to the SHARED slip (same shape as the homepage's
+  // handlePick). Placement stays on the homepage slip panel - this just stacks
+  // the pick. Dedup by matchId; re-adding the same side toggles it off.
+  const slipCount = slipSelections.length
+  const inSlip = battle ? slipSelections.some((x: any) => x.matchId === battle.id) : false
+  function addToSlip() {
+    if (!battle || !selectedSide) return
+    const chosenSide = selectedSide === 1 ? 'left' : selectedSide === 2 ? 'right' : 'draw'
+    const pickLabel = selectedSide === 1 ? battle.coin_a : selectedSide === 2 ? battle.coin_b : 'Draw'
+    const oddsAtPick = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
+    setSlipSelections((prev: any[]) => {
+      const existing = prev.find((x) => x.matchId === battle.id)
+      if (existing && existing.chosenSide === chosenSide) {
+        return prev.filter((x) => x.matchId !== battle.id)  // toggle off
+      }
+      const next = {
+        matchId: battle.id,
+        arcBattleId: battle.arc_battle_id ?? null,
+        matchTitle: `${battle.coin_a}/${battle.coin_b}`,
+        chosenSide,
+        pickLabel,
+        oddsAtPick,
+        duration: battle.duration,
+      }
+      return [...prev.filter((x) => x.matchId !== battle.id), next]
+    })
+    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Added to slip', type: 'success' } }))
+  }
   const potentialWin = (stakeUSD * selectedOdds).toFixed(2)
   const balanceUSD = (userBalance / 1_000_000_000 * solPrice).toFixed(2)
 
