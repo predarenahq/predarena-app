@@ -27,8 +27,24 @@ type SlipCtx = {
 
 const Ctx = createContext<SlipCtx | null>(null);
 
+const STORAGE_KEY = "preda_slip";
+
 export function SlipProvider({ children }: { children: React.ReactNode }) {
-  const [slipSelections, setSlipSelections] = useState<SharedSlipSelection[]>([]);
+  // Persist the slip across refreshes - important now that picks are made across
+  // routes (homepage + battle pages) and a refresh shouldn't lose them. Only the
+  // picks array is stored; placement still re-validates odds server-side at bet
+  // time, so a stale stored pick can't place at a bad price.
+  const [slipSelections, setSlipSelections] = useState<SharedSlipSelection[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+
+  React.useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(slipSelections)); } catch {}
+  }, [slipSelections]);
+
   return <Ctx.Provider value={{ slipSelections, setSlipSelections }}>{children}</Ctx.Provider>;
 }
 
