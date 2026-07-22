@@ -84,13 +84,12 @@ function App() {
           // Keep in sync with --accent (dark): #34D399.
           accentColor: "#34D399",
           // Added EVM wallets alongside existing Solana wallets
+          // EVM only. The Solana wallet-adapter owns Solana wallets - listing
+          // them here too made both systems race for the same extension on load.
           walletList: [
             "metamask",
-            "phantom",
-            "solflare",
             "coinbase_wallet",
-            "detected_solana_wallets",
-            "detected_wallets",
+            "wallet_connect",
           ],
         },
         // Arc testnet as the supported EVM chain
