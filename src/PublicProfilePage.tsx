@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
+import { Share2, Check } from "lucide-react";
 
 /**
  * Public, shareable profile at /u/<username>. Standalone - NOT inside the
@@ -13,6 +14,21 @@ export default function PublicProfilePage() {
   const nav = useNavigate();
   const [data, setData] = useState<any>(null);
   const [state, setState] = useState<"loading" | "ok" | "notfound">("loading");
+  const [copied, setCopied] = useState(false);
+
+  // Native share sheet where available (mobile), clipboard copy everywhere else.
+  async function shareProfile() {
+    const url = `${window.location.origin}/u/${username}`;
+    const title = `@${username} on PredArena`;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch { /* dismissed */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {}
+  }
 
   useEffect(() => {
     (async () => {
@@ -40,12 +56,22 @@ export default function PublicProfilePage() {
 
       {state === "ok" && data && (
         <div className="w-full max-w-lg rounded-[24px] p-8" style={{ background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
-          <div className="flex items-center gap-3">
-            <Avatar seed={data.username} size={48} uploadedUrl={data.avatar_url} />
-            <div>
-              <p className="text-xl font-semibold" style={{ color: "var(--text)" }}>@{data.username}</p>
-              <p className="text-xs" style={{ color: "var(--text-soft)" }}>PredArena bettor</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar seed={data.username} size={48} uploadedUrl={data.avatar_url} />
+              <div className="min-w-0">
+                <p className="text-xl font-semibold truncate" style={{ color: "var(--text)" }}>@{data.username}</p>
+                <p className="text-xs" style={{ color: "var(--text-soft)" }}>PredArena bettor</p>
+              </div>
             </div>
+            <button
+              onClick={shareProfile}
+              className="flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-semibold transition-all active:scale-[0.97]"
+              style={{ background: "var(--panel-2)", border: "1px solid var(--border)", color: copied ? "var(--accent)" : "var(--text)" }}
+            >
+              {copied ? <Check size={14} /> : <Share2 size={14} />}
+              {copied ? "Copied" : "Share"}
+            </button>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
