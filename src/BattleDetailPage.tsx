@@ -283,8 +283,8 @@ export default function BattleDetailPage() {
           betting_locked: 'Betting is closed for this battle',
           battle_not_live: 'This battle is no longer live',
           insufficient_balance: 'Insufficient balance. Deposit more SOL to continue.',
-          price_unavailable: 'Price feed unavailable — try again in a moment',
-          invalid_odds: 'Odds changed while you were betting — refresh and retry',
+          price_unavailable: 'Price feed unavailable. Try again in a moment',
+          invalid_odds: 'Odds changed while you were betting. Refresh and retry',
           stake_too_small: 'Stake is too small',
         }
         showToast(messages[result.error] || 'Bet failed', 'error')
@@ -656,7 +656,7 @@ export default function BattleDetailPage() {
           {isArc && (
             <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid var(--chain-arc-soft)' }}>
               <p style={{ color: 'var(--chain-arc)' }}>
-                ⬡ Betting on Arc — payouts settle in USDC on-chain. Sub-second finality.
+                ⬡ Betting on Arc. Payouts settle in USDC on-chain. Sub-second finality.
               </p>
             </div>
           )}

@@ -45,8 +45,8 @@ const QUOTE_ERRORS: Record<string, string> = {
   battle_not_live:        'This battle is no longer live',
   battle_ended:           'This battle has ended',
   betting_locked:         'Betting is closed for this battle',
-  pricing_unavailable:    'Price feed unavailable — try again in a moment',
-  insufficient_liquidity: 'The house cannot cover this bet right now — try a smaller stake',
+  pricing_unavailable:    'Price feed unavailable. Try again in a moment',
+  insufficient_liquidity: 'The house cannot cover this bet right now. Try a smaller stake',
   odds_too_high:          'Those odds are out of range',
   invalid_stake:          'Enter a valid stake',
 }

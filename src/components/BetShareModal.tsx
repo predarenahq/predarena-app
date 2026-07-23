@@ -222,7 +222,7 @@ export default function BetShareModal({
 
               {failed && (
                 <p className="mt-3 text-center text-xs" style={{ color: 'var(--neg)' }}>
-                  Couldn't copy automatically — long-press the code to copy it manually.
+                  Couldn't copy automatically. Long-press the code to copy it manually.
                 </p>
               )}
 

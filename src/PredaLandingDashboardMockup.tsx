@@ -195,8 +195,8 @@ const showSlides = [
     cta: "Get Started",
   },
   {
-    title: "LIVE ON SOLANA",
-    text: "Built by humans and AI on the Solana blockchain for the best user experience.",
+    title: "LIVE ON SOLANA AND ARC",
+    text: "Built for the best user experience.",
     cta: "Start Betting",
   },
 ];
@@ -1043,7 +1043,7 @@ function SessionTestButton() {
       const b  = await bRes.json()
 
       setStatus(
-        `OK — ${v.address.slice(0, 6)}…${v.address.slice(-4)} · replay ${replayBlocked ? 'blocked' : 'NOT BLOCKED'} · ` +
+        `OK ${v.address.slice(0, 6)}…${v.address.slice(-4)} · replay ${replayBlocked ? 'blocked' : 'NOT BLOCKED'} · ` +
         `addresses ${me.addresses?.length ?? '?'} · tickets ${t.tickets?.length ?? t.error} · ` +
         `balance ${b.total_lamports != null ? (b.total_lamports / 1e9).toFixed(3) + ' SOL' : b.error}`
       )
@@ -1235,15 +1235,15 @@ function UserBalancePanel() {
         setDepositAmount('')
         setShowDeposit(false)
         window.dispatchEvent(new CustomEvent('toast', {
-          detail: { message: 'Deposit sent — confirming on-chain. Your balance will update shortly.', type: 'success' }
+          detail: { message: 'Deposit sent. Confirming on-chain. Your balance will update shortly.', type: 'success' }
         }))
         return
       }
 
       if (!res.ok) {
         const messages: Record<string, string> = {
-          deposit_pending: 'Still confirming — your balance will update shortly',
-          tx_not_found_or_not_finalized: 'Transaction not finalized yet — try again in a moment',
+          deposit_pending: 'Still confirming. Your balance will update shortly',
+          tx_not_found_or_not_finalized: 'Transaction not finalized yet. Try again in a moment',
           tx_failed: 'The deposit transaction failed on-chain',
           not_a_vault_deposit: 'That transaction was not a deposit to the vault',
           no_vault_credit: 'No funds reached the vault',
@@ -1572,7 +1572,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                   <span className="rounded-full border border-white/25 px-3 py-1 text-xs font-semibold text-white/85">
-                    Built by humans and AI
+                    Built for everyone
                   </span>
                   <span className="rounded-full border border-white/25 px-3 py-1 text-xs font-semibold text-white/85">
                     Live on Solana
@@ -2060,7 +2060,7 @@ function SlipDrawer({
                 {slipChain === 'arc' && !arcConnected
                   ? 'Connect an EVM wallet to bet on Arc'
                   : notOnArc === items.length
-                    ? 'Not on Arc yet — still being mirrored'
+                    ? 'Not on Arc yet, still being mirrored'
                     : `${notOnArc} of ${items.length} not on Arc yet`}
               </p>
             )}
@@ -2081,7 +2081,7 @@ function SlipDrawer({
               {items.length > 1 && (
                 <div className="rounded-xl px-3 py-2 mb-2" style={{ background: 'var(--neg-soft)', border: '1px solid var(--neg-soft)' }}>
                   <p className="text-xs font-medium" style={{ color: 'var(--neg)' }}>
-                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo Bet — If any leg loses, the entire bet loses
+                    <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo Bet. If any leg loses, the entire bet loses
                   </p>
                 </div>
               )}
@@ -2644,7 +2644,7 @@ function RunningTicketCard({ ticket }: { ticket: any }) {
       </div>
       {isCombo && (
         <p className="text-xs mt-3 text-center px-3 py-2 rounded-xl" style={{ background: 'rgba(244,63,94,0.08)', color: 'var(--neg)' }}>
-          <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo — all {ticket.combo_legs} legs must win
+          <AlertTriangle className="inline h-3.5 w-3.5 mr-1 -mt-0.5" /> Combo: all {ticket.combo_legs} legs must win
         </p>
       )}
       <BookingCodeRow code={ticket.share_code} />
@@ -3295,12 +3295,12 @@ export default function PredaLandingDashboardMockup() {
             detail: {
               message: expired > 0
                 ? `Loaded ${restored.length} leg(s); ${expired} expired and were skipped.`
-                : `Bet loaded — ${restored.length} leg(s) ready. Set your stake and place.`,
+                : `Bet loaded. ${restored.length} leg(s) ready. Set your stake and place.`,
               type: 'success',
             },
           }));
         } else {
-          window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'This shared bet has expired — its battles already ended.', type: 'error' } }));
+          window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'This shared bet has expired. Its battles already ended.', type: 'error' } }));
         }
       } catch (e) {
         console.error('slip restore failed:', e);
@@ -3740,8 +3740,8 @@ export default function PredaLandingDashboardMockup() {
           battle_not_live: 'One of your selections is no longer live',
           battle_not_found: 'A selected battle no longer exists',
           insufficient_balance: 'Insufficient balance. Deposit more SOL to continue.',
-          price_unavailable: 'Price feed unavailable — try again in a moment',
-          invalid_odds: 'Odds changed while you were betting — refresh and retry',
+          price_unavailable: 'Price feed unavailable. Try again in a moment',
+          invalid_odds: 'Odds changed while you were betting. Refresh and retry',
           stake_too_small: 'Stake is too small',
         }
         window.dispatchEvent(new CustomEvent('toast', {

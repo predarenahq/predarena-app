@@ -263,7 +263,7 @@ export default function AdminPage() {
                           : treasury?.balance_lamports != null
                             ? `${(Number(treasury.balance_lamports) / 1e9).toFixed(4)} SOL`
                             : '—'}
-                        sub="lamports counter — drifts with SOL"
+                        sub="lamports counter, drifts with SOL"
                         color={C.softer}
                       />
                     </div>
