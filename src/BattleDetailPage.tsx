@@ -22,7 +22,7 @@ const COLORS = {
   line: 'var(--border-soft)',
   textSoft: 'var(--text-soft)',
   coinA: 'var(--accent)',
-  coinB: 'var(--accent-2)',
+  coinB: '#F59E0B',   // amber - clear contrast vs the emerald coinA (was --accent-2, another green)
   green: 'var(--pos)',
   red: 'var(--neg)',
   arc: 'var(--accent)',
