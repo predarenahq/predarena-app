@@ -46,10 +46,20 @@ export default function PublicProfilePage() {
       {/* Header - the way home is always visible, not just a CTA at the bottom */}
       <header className="sticky top-0 z-40 backdrop-blur-xl" style={{ background: "color-mix(in srgb, var(--panel) 92%, transparent)", borderBottom: "1px solid var(--border)" }}>
         <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-between px-4">
-          <button onClick={() => nav("/")} className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-bold text-white" style={{ background: "var(--brand-grad)" }}>P</div>
-            <span className="font-display text-[15px]" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDARENA</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => nav("/")}
+              aria-label="Back to PredArena"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition-all active:scale-95"
+              style={{ background: "var(--panel-2)", border: "1px solid var(--border)", color: "var(--text)" }}
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <button onClick={() => nav("/")} className="flex items-center gap-2 transition-opacity hover:opacity-80">
+              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-bold text-white" style={{ background: "var(--brand-grad)" }}>P</div>
+              <span className="font-display text-[15px]" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDARENA</span>
+            </button>
+          </div>
           {state === "ok" && (
             <button
               onClick={shareProfile}

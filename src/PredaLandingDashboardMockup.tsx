@@ -334,6 +334,14 @@ function formatOdds(value: number) {
   return `${value.toFixed(2)}x`;
 }
 
+function betPlacedAt(legs: any[]): string {
+  const times = legs.map((l) => new Date(l.created_at).getTime()).filter((t) => !Number.isNaN(t));
+  if (!times.length) return "";
+  return new Date(Math.min(...times)).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 function calculateTotalOdds(selections: SlipSelection[]) {
   if (!selections.length) return 0;
   return selections.reduce((total, selection) => total * selection.oddsAtPick, 1);
@@ -2928,6 +2936,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
                   </div>
                   <p className="text-xs mt-1 font-medium" style={{ color: "var(--text-soft)" }}>
                     {isCombo ? `${effOdds.toFixed(2)}x combined · all legs must win` : `${battle?.league} · ${battle?.duration}`}
+                    {betPlacedAt(legs) ? ` · ${betPlacedAt(legs)}` : ""}
                   </p>
                 </div>
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
