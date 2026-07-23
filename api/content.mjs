@@ -36,6 +36,18 @@ async function profileHandler(req, res) {
   return res.status(200).json(publicFields)
 }
 
+async function searchHandler(req, res) {
+  const q = (req.query?.q || '').trim()
+  if (q.length < 2) return res.status(200).json([])
+  const { data, error } = await supabase.rpc('search_users', { p_query: q })
+  if (error) {
+    console.error('search_users error:', error.message)
+    return res.status(500).json({ error: 'search_failed' })
+  }
+  res.setHeader('Cache-Control', 's-maxage=30')
+  return res.status(200).json(data || [])
+}
+
 /**
  * News + momentum behind one function.
  *
@@ -53,5 +65,6 @@ export default async function handler(req, res) {
   if (type === 'momentum') return momentumHandler(req, res)
   if (type === 'profile')  return profileHandler(req, res)
   if (type === 'bets')     return betsHandler(req, res)
+  if (type === 'search')   return searchHandler(req, res)
   return res.status(400).json({ error: 'invalid_type' })
 }

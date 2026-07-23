@@ -44,6 +44,7 @@ import { useSession } from "./useSession";
 import { useSlip } from "./SlipContext";
 import ShareStatsModal from "./ShareStatsModal";
 import Avatar from "./Avatar";
+import UserSearch from "./UserSearch";
 
 type Side = "left" | "draw" | "right";
 type MatchBoard = "Live" | "Upcoming";
@@ -662,6 +663,7 @@ function DesktopHeader({
         </button>
 
         <div className="flex items-center flex-1 px-5 gap-3">
+          <UserSearch />
           <BookingCodeInput />
           <AuthSection />
         </div>
