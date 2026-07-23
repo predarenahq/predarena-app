@@ -41,7 +41,7 @@ export default function PublicProfilePage() {
       {state === "ok" && data && (
         <div className="w-full max-w-lg rounded-[24px] p-8" style={{ background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center gap-3">
-            <Avatar seed={data.username} size={48} />
+            <Avatar seed={data.username} size={48} uploadedUrl={data.avatar_url} />
             <div>
               <p className="text-xl font-semibold" style={{ color: "var(--text)" }}>@{data.username}</p>
               <p className="text-xs" style={{ color: "var(--text-soft)" }}>PredArena bettor</p>
