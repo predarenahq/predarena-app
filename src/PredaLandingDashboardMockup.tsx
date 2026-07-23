@@ -2423,7 +2423,7 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 
           <div className="mt-5 flex flex-wrap gap-2.5 text-sm">
             <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "var(--panel-2)", color: "var(--text-2)" }}>
-              Built by humans and AI
+              Built for everyone
             </span>
             <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
               Live on Solana
