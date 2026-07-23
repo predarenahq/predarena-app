@@ -45,7 +45,7 @@ export default function PublicProfilePage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       {/* Header - the way home is always visible, not just a CTA at the bottom */}
       <header className="sticky top-0 z-40 backdrop-blur-xl" style={{ background: "color-mix(in srgb, var(--panel) 92%, transparent)", borderBottom: "1px solid var(--border)" }}>
-        <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-between px-4">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => nav("/")}
@@ -73,7 +73,7 @@ export default function PublicProfilePage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl px-4 pb-16 pt-8">
+      <main className="mx-auto w-full max-w-5xl px-4 pb-16 pt-8">
         {state === "loading" && (
           <p className="py-24 text-center" style={{ color: "var(--text-soft)" }}>Loading…</p>
         )}
@@ -89,7 +89,8 @@ export default function PublicProfilePage() {
         )}
 
         {state === "ok" && data && (
-          <>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:items-start">
+            <div className="space-y-6 lg:sticky lg:top-[76px]">
             {/* Hero - win rate carries the page, the way it does on the share card */}
             <section className="rounded-[24px] p-7" style={{ background: "var(--panel)", border: "1px solid var(--border)", boxShadow: "var(--shadow-card)" }}>
               <div className="flex items-center gap-4">
@@ -124,16 +125,17 @@ export default function PublicProfilePage() {
               </div>
             </section>
 
-            <PublicBets username={data.username} />
-
             <button
               onClick={() => nav("/")}
-              className="mt-8 w-full rounded-[14px] px-5 py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.99]"
+              className="w-full rounded-[14px] px-5 py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.99]"
               style={{ background: "var(--brand-grad)" }}
             >
               Start betting on PredArena
             </button>
-          </>
+            </div>
+
+            <PublicBets username={data.username} />
+          </div>
         )}
       </main>
     </div>
@@ -198,7 +200,7 @@ function PublicBets({ username }: { username: string }) {
   };
 
   return (
-    <section className="mt-6 rounded-[24px] p-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
+    <section className="rounded-[24px] p-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
       <div className="mb-4 flex items-baseline justify-between">
         <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Recent bets</p>
         {total > 0 && <p className="text-xs" style={{ color: "var(--text-soft)" }}>{total} total</p>}

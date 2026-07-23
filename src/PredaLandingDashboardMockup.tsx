@@ -1575,7 +1575,7 @@ function Showboard({ onNavigate }: { onNavigate: (path: string) => void }) {
                     Built for everyone
                   </span>
                   <span className="rounded-full border border-white/25 px-3 py-1 text-xs font-semibold text-white/85">
-                    Live on Solana
+                    Live on Solana and Arc
                   </span>
                 </div>
               </motion.div>
@@ -2426,7 +2426,7 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
               Built for everyone
             </span>
             <span className="rounded-full px-3.5 py-1.5 text-[13px] font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-              Live on Solana
+              Live on Solana and Arc
             </span>
           </div>
         </div>
