@@ -1231,7 +1231,7 @@ function UserBalancePanel() {
       const res = await fetch('/api/wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'deposit', signature: sig, wallet_address: walletAddr }),
+        body: JSON.stringify({ action: 'deposit', signature: sig, wallet_address: pk.toBase58() }),
       })
 
       const result = await res.json()
@@ -1273,7 +1273,13 @@ function UserBalancePanel() {
   }
 
   async function handleWithdraw() {
-    if (!connected || !publicKey || !withdrawAmount) return
+    if (!withdrawAmount) return
+    let pk = publicKey
+    if (!connected || !pk) {
+      pk = await ensureConnected()
+      if (!pk) return
+    }
+    const liveAddr = pk.toBase58()
     setLoading(true)
     try {
       const lamports = Math.floor(Number(withdrawAmount) * 1_000_000_000)
@@ -1289,7 +1295,7 @@ function UserBalancePanel() {
       if (!signMessage) {
         throw new Error('Your wallet does not support message signing')
       }
-      const message = `PredArena withdraw ${lamports} to ${walletAddr} at ${Date.now()}`
+      const message = `PredArena withdraw ${lamports} to ${liveAddr} at ${Date.now()}`
       const sigBytes = await signMessage(new TextEncoder().encode(message))
       let binary = ''
       for (let i = 0; i < sigBytes.length; i++) binary += String.fromCharCode(sigBytes[i])
@@ -1300,7 +1306,7 @@ function UserBalancePanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'withdraw',
-          wallet_address: walletAddr,
+          wallet_address: liveAddr,
           amount_lamports: lamports,
           signature,
           message,

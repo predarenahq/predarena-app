@@ -12,6 +12,7 @@ import { useWallets, usePrivy } from '@privy-io/react-auth'
 import { useArcArena } from './arc/useArcArena'
 import { useSession } from './useSession'
 import { useSlip } from './SlipContext'
+import { useWalletConnect } from './useWalletConnect'
 import { ArcSide } from './arc/contracts'
 
 const COLORS = {
@@ -55,6 +56,7 @@ export default function BattleDetailPage() {
   const { publicKey, connected } = useWallet()
   const { signedIn, signIn } = useSession()
   const { slipSelections, setSlipSelections } = useSlip()
+  const { ensureConnected } = useWalletConnect()
   const { wallets } = useWallets()
   const { connectWallet } = usePrivy()
 
@@ -250,11 +252,16 @@ export default function BattleDetailPage() {
       const ok = await signIn()
       if (!ok) { showToast('Sign in to place a bet', 'error'); return }
     }
-    if (!connected || !publicKey || !selectedSide || !stake || !battle) return
+    if (!selectedSide || !stake || !battle) return
+    let pk = publicKey
+    if (!connected || !pk) {
+      pk = await ensureConnected()
+      if (!pk) { showToast('Connect your wallet to place a bet', 'error'); return }
+    }
     setLoading(true)
     try {
       const stakeUSD = parseFloat(stake)
-      const walletAddr = publicKey.toBase58()
+      const walletAddr = pk.toBase58()
       const lockedOdds = selectedSide === 1 ? oddsA : selectedSide === 2 ? oddsB : oddsDraw
 
       // Server does the pricing, the atomic debit, the ticket insert and the
