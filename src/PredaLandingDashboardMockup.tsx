@@ -42,6 +42,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "./useTheme";
 import { useSession } from "./useSession";
 import { useSlip } from "./SlipContext";
+import { useWalletConnect } from "./useWalletConnect";
 import ShareStatsModal from "./ShareStatsModal";
 import Avatar from "./Avatar";
 import UserSearch from "./UserSearch";
@@ -3142,6 +3143,7 @@ export default function PredaLandingDashboardMockup() {
   const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
   const wallet = useWallet();
   const { publicKey, connected } = wallet;
+  const { ensureConnected } = useWalletConnect();
   const { wallets: privyWallets } = useWallets();
 
   // Every EVM address this user might have bet from. Three bugs lived here:
@@ -3660,11 +3662,15 @@ export default function PredaLandingDashboardMockup() {
 
     // Solana from here. The wallet guard lives INSIDE this branch - it used to
     // sit at the top and would have blocked Arc-only users outright.
-    if (!connected || !publicKey) {
-      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Connect your wallet first', type: 'error' } }))
-      return
+    let pk = publicKey
+    if (!connected || !pk) {
+      pk = await ensureConnected()
+      if (!pk) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Connect your wallet to place a bet', type: 'error' } }))
+        return
+      }
     }
-    const walletAddr = publicKey.toBase58()
+    const walletAddr = pk.toBase58()
     const totalStake = Number(stake)
 
     const isCombo = slipSelections.length > 1
