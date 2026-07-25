@@ -54,7 +54,7 @@ export default function BattleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { publicKey, connected } = useWallet()
-  const { signedIn, signIn } = useSession()
+  const { signedIn, signIn, myData } = useSession()
   const { slipSelections, setSlipSelections } = useSlip()
   const { ensureConnected } = useWalletConnect()
   const { wallets } = useWallets()
@@ -116,14 +116,17 @@ export default function BattleDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    const solAddr = connected && publicKey ? publicKey.toBase58() : ''
-    const addrs = [solAddr, arcAddress].filter(Boolean)
-    if (!addrs.length) { setHasUserBet(false); return }
+    if (!signedIn) { setHasUserBet(false); return }
     ;(async () => {
-      const { data } = await supabase.from('tickets').select('id').eq('battle_id', id).in('wallet_address', addrs).limit(1)
-      setHasUserBet(!!(data && data.length))
+      // Through the session (my-data, service-role scoped) instead of a direct
+      // anon read - so this keeps working once the open RLS policy is dropped.
+      try {
+        const res = await myData('tickets')
+        const mine = (res?.tickets || []).some((t: any) => t.battle_id === id)
+        setHasUserBet(mine)
+      } catch { setHasUserBet(false) }
     })()
-  }, [id, connected, publicKey, arcAddress])
+  }, [id, signedIn])  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const sharedSide = searchParams.get('side')
@@ -230,9 +233,13 @@ export default function BattleDetailPage() {
   }
 
   async function fetchUserBalance() {
-    const walletAddr = publicKey!.toBase58()
-    const { data } = await supabase.from('user_balances').select('balance_lamports').eq('wallet_address', walletAddr).single()
-    if (data) setUserBalance(data.balance_lamports)
+    // Through the session (my-data, service-role) so it survives the RLS lockdown.
+    // total_lamports sums the session's addresses - the combined custodial balance.
+    if (!signedIn) { setUserBalance(0); return }
+    try {
+      const bal = await myData('balance')
+      if (bal) setUserBalance(bal.total_lamports || 0)
+    } catch { /* leave prior balance */ }
     try {
       const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
       const json = await res.json()

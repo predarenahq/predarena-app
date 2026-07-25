@@ -1138,6 +1138,7 @@ function MobileThemeToggle() {
 function UserBalancePanel() {
   const { publicKey, connected, sendTransaction, signMessage } = useWallet()
   const { ensureConnected } = useWalletConnect()
+  const session = useSession()
   const [balance, setBalance] = React.useState<number>(0)
   const [solPrice, setSolPrice] = React.useState<number | null>(null)
   const [depositAmount, setDepositAmount] = React.useState('')
@@ -1150,18 +1151,16 @@ function UserBalancePanel() {
   const walletAddr = publicKey?.toBase58() || ''
 
   const fetchBalance = React.useCallback(async () => {
+    // Through the session (my-data, service-role) so it survives the RLS lockdown.
+    // total_lamports sums the session's addresses - the combined custodial balance.
+    if (!session.signedIn) { setBalance(0); return }
     try {
-      const { supabase } = await import('./lib/supabase')
-      const { data } = await supabase
-        .from('user_balances')
-        .select('balance_lamports')
-        .eq('wallet_address', walletAddr)
-        .single()
-      if (data) setBalance(data.balance_lamports)
+      const bal = await session.myData('balance')
+      if (bal) setBalance(bal.total_lamports || 0)
     } catch (err) {
       console.error('Failed to fetch balance:', err)
     }
-  }, [walletAddr])
+  }, [session])
 
   React.useEffect(() => {
     if (!walletAddr) return
