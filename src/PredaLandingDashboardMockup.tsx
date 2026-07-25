@@ -2537,7 +2537,11 @@ function AuthSection() {
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
-        <WalletMultiButton style={{ borderRadius: "8px", background: "var(--brand-grad)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />
+        {/* The raw WalletMultiButton reflects the LIVE adapter, which is empty
+            after refresh with autoConnect off - so it showed "Connect" even when
+            signed in. Only show it when not signed in; the session UI (username +
+            Logout) covers the signed-in state. */}
+        {!signedIn && <WalletMultiButton style={{ borderRadius: "8px", background: "var(--brand-grad)", color: "#fff", fontWeight: 500, fontSize: "14px", height: "36px", padding: "0 16px", boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)", transition: "all 0.15s" }} />}
       </div>
     </div>
   );
