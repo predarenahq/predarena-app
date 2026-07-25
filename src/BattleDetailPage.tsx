@@ -771,9 +771,13 @@ export default function BattleDetailPage() {
             )
           ) : (
             !connected ? (
-              <div className="text-center py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.line}` }}>
-                <p style={{ color: COLORS.textSoft }}>Connect wallet to place a bet</p>
-              </div>
+              <button
+                onClick={() => ensureConnected()}
+                className="w-full rounded-xl py-3 font-semibold text-black"
+                style={{ background: COLORS.accent }}
+              >
+                Connect Solana Wallet
+              </button>
             ) : (
               <button
                 onClick={() => handlePlaceBet(requoteOdds ?? undefined)}
