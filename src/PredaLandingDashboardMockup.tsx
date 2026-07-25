@@ -2552,7 +2552,7 @@ function _PredaAuthControls({
   const { publicKey, connected } = wallet;
 
 
-  const walletAddress = connected && publicKey ? publicKey.toBase58() : "";
+  const walletAddress = (connected && publicKey ? publicKey.toBase58() : "") || (session.addresses.find((a) => !a.startsWith("0x")) || "");
   const twitterUsername =
     authenticated && user?.twitter?.username ? user.twitter.username : "";
     
@@ -3143,7 +3143,11 @@ export default function PredaLandingDashboardMockup() {
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
-  const { signedIn, signIn, token } = useSession();  // betting gate: bets require a session
+  const { signedIn, signIn, token, addresses } = useSession();  // betting gate: bets require a session
+  // Solana address from the session (survives refresh) or the live wallet. With
+  // autoConnect off the adapter is empty after reload, but the session still
+  // holds the proven address - so the UI shows connected and reads stay scoped.
+  const sessionSolAddr = React.useMemo(() => addresses.find((a) => !a.startsWith('0x')) || '', [addresses]);
   const [oddsFlash, setOddsFlash] = useState<Record<string, 'up' | 'down'>>({});
   const flashTimers = React.useRef<Record<string, any>>({});
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -3476,11 +3480,11 @@ export default function PredaLandingDashboardMockup() {
       case "/settings":
         return <SettingsPage />;
       case "/profile":
-        return <ProfilePage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
+        return <ProfilePage walletAddress={(connected && publicKey ? publicKey.toBase58() : "") || sessionSolAddr} evmAddresses={evmAddresses} />;
       case "/running":
-        return <RunningBetsPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
+        return <RunningBetsPage walletAddress={(connected && publicKey ? publicKey.toBase58() : "") || sessionSolAddr} evmAddresses={evmAddresses} />;
       case "/history":
-        return <HistoryPage walletAddress={connected && publicKey ? publicKey.toBase58() : ""} evmAddresses={evmAddresses} />;
+        return <HistoryPage walletAddress={(connected && publicKey ? publicKey.toBase58() : "") || sessionSolAddr} evmAddresses={evmAddresses} />;
       default:
         return (
           <section className="overflow-hidden rounded-[24px] border bg-[var(--panel)]" style={{ borderColor: "var(--border)" }}>
