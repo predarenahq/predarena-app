@@ -99,7 +99,13 @@ function App() {
       }}
     >
       <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider wallets={wallets} autoConnect={true}>
+        {/* autoConnect OFF: the Solana wallet is custodial-only - needed just
+            for the deliberate moments (sign-in, deposit, withdraw, bet), each of
+            which now connects on demand via ensureConnected(). Leaving it on made
+            the adapter grab a wallet on every load and race Privy for shared
+            extensions (the Zerion glitch). Auth persists via the session token,
+            not a live wallet connection, so refresh stays signed in. */}
+        <WalletProvider wallets={wallets} autoConnect={false}>
           <WalletModalProvider>
             <SessionProvider>
             <SlipProvider>
