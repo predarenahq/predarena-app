@@ -1137,6 +1137,7 @@ function MobileThemeToggle() {
 
 function UserBalancePanel() {
   const { publicKey, connected, sendTransaction, signMessage } = useWallet()
+  const { ensureConnected } = useWalletConnect()
   const [balance, setBalance] = React.useState<number>(0)
   const [solPrice, setSolPrice] = React.useState<number | null>(null)
   const [depositAmount, setDepositAmount] = React.useState('')
@@ -1190,7 +1191,12 @@ function UserBalancePanel() {
   }
 
   async function handleDeposit() {
-    if (!connected || !publicKey || !depositAmount) return
+    if (!depositAmount) return
+    let pk = publicKey
+    if (!connected || !pk) {
+      pk = await ensureConnected()
+      if (!pk) return
+    }
     setLoading(true)
     try {
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
@@ -1206,7 +1212,7 @@ function UserBalancePanel() {
       
       const tx = new Transaction().add(
         SystemProgram.transfer({
-          fromPubkey: publicKey,
+          fromPubkey: pk,
           toPubkey: vaultAddress,
           lamports,
         })
