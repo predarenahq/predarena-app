@@ -1148,7 +1148,9 @@ function UserBalancePanel() {
   const [currency, setCurrency] = React.useState<'SOL' | 'USD'>('USD')
   const [loading, setLoading] = React.useState(false)
 
-  const walletAddr = publicKey?.toBase58() || ''
+  // Falls back to the session's Solana address on refresh (autoConnect off leaves
+  // the adapter empty, but the session keeps the proven address).
+  const walletAddr = (publicKey?.toBase58() || '') || (session.addresses.find((a) => !a.startsWith('0x')) || '')
 
   const fetchBalance = React.useCallback(async () => {
     // Through the session (my-data, service-role) so it survives the RLS lockdown.
@@ -2552,7 +2554,7 @@ function _PredaAuthControls({
   const { publicKey, connected } = wallet;
 
 
-  const walletAddress = (connected && publicKey ? publicKey.toBase58() : "") || (session.addresses.find((a) => !a.startsWith("0x")) || "");
+  const walletAddress = connected && publicKey ? publicKey.toBase58() : "";
   const twitterUsername =
     authenticated && user?.twitter?.username ? user.twitter.username : "";
     
