@@ -3143,7 +3143,7 @@ export default function PredaLandingDashboardMockup() {
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
-  const { signedIn, signIn } = useSession();  // betting gate: bets require a session
+  const { signedIn, signIn, token } = useSession();  // betting gate: bets require a session
   const [oddsFlash, setOddsFlash] = useState<Record<string, 'up' | 'down'>>({});
   const flashTimers = React.useRef<Record<string, any>>({});
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -3710,7 +3710,7 @@ export default function PredaLandingDashboardMockup() {
       // server can stamp it onto the tickets (RLS blocks a client-side stamp).
       const res = await fetch('/api/place-bet', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           wallet_address: walletAddr,
           stake: totalStake,
