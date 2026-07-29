@@ -28,6 +28,7 @@ const KEEPER_ABI = [
   'function resolveCombo(uint256 comboId)',
   'function getBattleTickets(uint256 id) view returns (uint256[])',
   'function internalBalance(address) view returns (uint256)',
+  'function getCombo(uint256 id) view returns (tuple(uint256 id, address player, uint256 stake, uint256 comboOdds, uint256 payout, uint8 outcome, bool closed))',
   'function getTicket(uint256 id) view returns (tuple(uint256 id, uint256 battleId, address player, uint8 side, uint256 stake, uint256 odds, uint256 payout, bool closed))',
   'function getBattle(uint256 id) view returns (tuple(uint256 id, string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB, uint256 finalPriceA, uint256 finalPriceB, uint8 winner, uint8 status))',
   'event BattleCreated(uint256 indexed id, string coinA, string coinB, uint256 startTime, uint256 endTime)',
@@ -320,6 +321,101 @@ async function claimArcWinners(contract) {
   return { claimed, battlesSwept, mirrored }
 }
 
+// ── Claim winning/refunded COMBOS → internal balance (v3 Design C) ──────────────
+// Combos have no chain-side battle index, so we find claimable ones in the DB:
+// distinct arc_combo_id whose legs are all settled/void and not yet claimed.
+// For each: resolveCombo (grades it) then claimCombo (pays Won or Refund into
+// the owner's internalBalance). Lost combos are graded by resolveCombo (releasing
+// liability) but have nothing to claim. Same idempotency/resumability as singles:
+// claimCombo on an already-closed combo reverts and is caught; a combo stays
+// unclaimed (retried next run) until its claimCombo lands.
+async function claimArcCombos(contract) {
+  // Candidate combos: arc combos not yet claimed, whose every leg's battle is
+  // settled or void. We check the legs in SQL via the shared arc_combo_id.
+  const { data: legRows } = await supabase
+    .from('tickets')
+    .select('arc_combo_id, wallet_address, battle_id, claimed, battles(arc_status)')
+    .eq('chain', 'arc')
+    .not('arc_combo_id', 'is', null)
+    .eq('claimed', false)
+
+  if (!legRows?.length) return { combosClaimed: 0 }
+
+  // Group legs by combo; a combo is ready only if ALL its legs' battles are done.
+  const byCombo = new Map()
+  for (const r of legRows) {
+    const k = String(r.arc_combo_id)
+    if (!byCombo.has(k)) byCombo.set(k, { id: r.arc_combo_id, owner: r.wallet_address, legs: [] })
+    byCombo.get(k).legs.push(r.battles?.arc_status)
+  }
+
+  const ready = []
+  for (const c of byCombo.values()) {
+    const allDone = c.legs.every((st) => st === 'settled' || st === 'void')
+    if (allDone) ready.push(c)
+  }
+  if (!ready.length) return { combosClaimed: 0 }
+
+  let combosClaimed = 0
+  const creditedOwners = new Set()
+
+  for (const c of ready.slice(0, BATCH_SIZE)) {
+    try {
+      const cid = BigInt(c.id)
+      const combo = await contract.getCombo(cid)
+      if (combo.closed) {
+        // Already claimed (or lost+closed) on-chain — mark our legs claimed so we
+        // stop re-scanning it. (A lost combo is closed by resolveCombo with
+        // nothing to pay; a won/refund one is closed by claimCombo.)
+        await supabase.from('tickets').update({ claimed: true }).eq('arc_combo_id', c.id)
+        continue
+      }
+
+      // Grade it first if still pending (permissionless on-chain).
+      const outcome = Number(combo.outcome) // 0 Pending,1 Won,2 Lost,3 Refund
+      if (outcome === 0) {
+        const rtx = await contract.resolveCombo(cid)
+        await rtx.wait()
+      }
+
+      // Re-read after resolve to get the final outcome.
+      const graded = await contract.getCombo(cid)
+      const finalOutcome = Number(graded.outcome)
+
+      if (finalOutcome === 1 || finalOutcome === 3) {
+        // Won or Refund: claim into the owner's internal balance.
+        const ctx = await contract.claimCombo(cid)
+        await ctx.wait()
+        creditedOwners.add(c.owner)
+        combosClaimed++
+        await supabase.from('tickets').update({ claimed: true }).eq('arc_combo_id', c.id)
+      } else if (finalOutcome === 2) {
+        // Lost: resolveCombo already closed it and released liability. Nothing to
+        // claim; mark our legs claimed so we stop scanning it.
+        await supabase.from('tickets').update({ claimed: true }).eq('arc_combo_id', c.id)
+      }
+      // (Pending shouldn't happen after resolve; if it does, leave for next run.)
+    } catch (err) {
+      // One combo failing (RPC blip, already_closed race) never aborts the batch.
+      console.error(`combo claim failed for arc_combo_id ${c.id}:`, err.message)
+    }
+  }
+
+  // Mirror the credited owners' fresh on-chain internalBalance, same as singles.
+  let mirrored = 0
+  for (const owner of creditedOwners) {
+    try {
+      const onchain = await contract.internalBalance(owner)
+      await supabase.rpc('set_arc_balance', { p_wallet: owner, p_usdc: Number(onchain) })
+      mirrored++
+    } catch (err) {
+      console.error(`combo mirror failed for ${owner}:`, err.message)
+    }
+  }
+
+  return { combosClaimed, mirrored }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -344,6 +440,7 @@ export default async function handler(req, res) {
   try { results.createArcBattles  = await createArcBattles(contract)  } catch (e) { results.createError  = e.message }
   try { results.settleArcBattles  = await settleArcBattles(contract)  } catch (e) { results.settleError  = e.message }
   try { results.claimArcWinners   = await claimArcWinners(contract)   } catch (e) { results.claimError   = e.message }
+  try { results.claimArcCombos    = await claimArcCombos(contract)    } catch (e) { results.comboClaimError = e.message }
 
   res.status(200).json(results)
 }
