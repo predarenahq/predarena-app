@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { sessionFromToken } from './session.mjs'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { priceLeg, MAX_SINGLE_ODDS } from '../lib/oddsEngine.mjs'
 
@@ -91,8 +92,19 @@ async function getVaultLamports() {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
+  // Verify the session and that the bettor owns the wallet they're betting from.
+  // Without this, an unauthenticated request could place a custodial-fund-moving
+  // bet attributed to any address. The client sends Authorization: Bearer <token>.
+  const auth = req.headers.authorization || ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const sess = await sessionFromToken(token)
+  if (!sess) return res.status(401).json({ error: 'not_signed_in' })
+
   const { wallet_address, stake, legs, chain, code } = req.body || {}
   if (!wallet_address) return res.status(400).json({ error: 'missing_wallet' })
+  if (!sess.addresses.includes(wallet_address)) {
+    return res.status(403).json({ error: 'wallet_not_yours' })
+  }
   if (!Array.isArray(legs) || legs.length === 0) return res.status(400).json({ error: 'no_legs' })
   if (!(Number(stake) > 0)) return res.status(400).json({ error: 'invalid_stake' })
 

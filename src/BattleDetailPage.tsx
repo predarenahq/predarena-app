@@ -54,7 +54,7 @@ export default function BattleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { publicKey, connected } = useWallet()
-  const { signedIn, signIn, myData } = useSession()
+  const { signedIn, signIn, myData, token } = useSession()
   const { slipSelections, setSlipSelections } = useSlip()
   const { ensureConnected } = useWalletConnect()
   const { wallets } = useWallets()
@@ -275,7 +275,7 @@ export default function BattleDetailPage() {
       // pool bump in one transaction. The client no longer writes any of it.
       const res = await fetch('/api/place-bet', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           wallet_address: walletAddr,
           stake: stakeUSD,
