@@ -1141,6 +1141,9 @@ function UserBalancePanel() {
   const session = useSession()
   const [balance, setBalance] = React.useState<number>(0)
   const [usdc, setUsdc] = React.useState<number>(0)  // Arc winnings, mirrored from internalBalance (6dp)
+  const { withdraw: arcWithdraw, loading: arcWithdrawing } = useArcArena()
+  const [showArcWithdraw, setShowArcWithdraw] = React.useState(false)
+  const [arcWithdrawAmount, setArcWithdrawAmount] = React.useState('')
   const [solPrice, setSolPrice] = React.useState<number | null>(null)
   const [depositAmount, setDepositAmount] = React.useState('')
   const [withdrawAmount, setWithdrawAmount] = React.useState('')
@@ -1274,6 +1277,27 @@ function UserBalancePanel() {
     }
   }
 
+  async function handleArcWithdraw() {
+    const dollars = Number(arcWithdrawAmount)
+    if (!(dollars > 0)) return
+    const baseUnits = Math.floor(dollars * 1e6)
+    if (baseUnits > usdc) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Amount exceeds your Arc balance', type: 'error' } }))
+      return
+    }
+    try {
+      await arcWithdraw(BigInt(baseUnits))
+      // Optimistic: drop the shown balance now. The keeper re-syncs the mirror
+      // to the true on-chain value on its next run.
+      setUsdc((u) => Math.max(0, u - baseUnits))
+      setArcWithdrawAmount('')
+      setShowArcWithdraw(false)
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: `Withdrew $${dollars.toFixed(2)} USDC to your wallet`, type: 'success' } }))
+    } catch (err: any) {
+      window.dispatchEvent(new CustomEvent('toast', { detail: { message: err?.shortMessage || err?.message || 'Withdrawal failed', type: 'error' } }))
+    }
+  }
+
   async function handleWithdraw() {
     if (!withdrawAmount) return
     let pk = publicKey
@@ -1381,6 +1405,47 @@ function UserBalancePanel() {
             ${(usdc / 1e6).toFixed(2)}
           </p>
           <p className="text-xs" style={{ color: COLORS.textSoft }}>from Arc winnings</p>
+          {!showArcWithdraw ? (
+            <button
+              onClick={() => { setShowArcWithdraw(true); setArcWithdrawAmount((usdc / 1e6).toFixed(2)) }}
+              className="mt-2 w-full rounded-[10px] py-2 text-xs font-semibold"
+              style={{ background: COLORS.accent, color: '#000' }}
+            >
+              Withdraw USDC
+            </button>
+          ) : (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  value={arcWithdrawAmount}
+                  onChange={(e) => setArcWithdrawAmount(e.target.value)}
+                  placeholder="Amount in USDC"
+                  className="flex-1 rounded-[10px] px-3 py-2 text-sm outline-none"
+                  style={{ background: 'var(--panel)', border: '1px solid var(--border)', color: 'var(--text)' }}
+                />
+                <button
+                  onClick={() => setArcWithdrawAmount((usdc / 1e6).toFixed(2))}
+                  className="rounded-[10px] px-2.5 py-2 text-xs font-semibold"
+                  style={{ background: 'var(--panel-2)', color: 'var(--text)' }}
+                >Max</button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleArcWithdraw}
+                  disabled={arcWithdrawing}
+                  className="flex-1 rounded-[10px] py-2 text-xs font-semibold disabled:opacity-50"
+                  style={{ background: COLORS.accent, color: '#000' }}
+                >{arcWithdrawing ? 'Withdrawing...' : 'Confirm'}</button>
+                <button
+                  onClick={() => { setShowArcWithdraw(false); setArcWithdrawAmount('') }}
+                  className="rounded-[10px] px-3 py-2 text-xs font-medium"
+                  style={{ background: 'var(--panel-2)', color: 'var(--text-soft)' }}
+                >Cancel</button>
+              </div>
+              <p className="text-[10px]" style={{ color: COLORS.textSoft }}>Sent to your connected Arc wallet.</p>
+            </div>
+          )}
         </div>
       )}
 

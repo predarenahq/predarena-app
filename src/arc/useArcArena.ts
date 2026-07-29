@@ -403,6 +403,34 @@ export function useArcArena() {
     }
   }, [getWalletClient])
 
+  // ── Write: withdraw internal USDC to your wallet ────────────────────────────
+  // Design C: winnings accrue in the contract's internalBalance. withdraw() is
+  // the only path USDC leaves - it debits internalBalance[msg.sender], transfers
+  // to the caller's wallet, and re-checks solvency. User-signed via their EVM
+  // wallet (the contract pays msg.sender), so the caller must be connected.
+  const withdraw = useCallback(async (amountBaseUnits: bigint) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const walletClient = await getWalletClient()
+      const [address]    = await walletClient.getAddresses()
+      const tx = await walletClient.writeContract({
+        address:      PREDARENA_ADDRESS,
+        abi:          PREDARENA_ABI,
+        functionName: 'withdraw',
+        args:         [amountBaseUnits],
+        account:      address,
+      })
+      return await publicClient.waitForTransactionReceipt({ hash: tx })
+    } catch (err: any) {
+      const msg = err?.shortMessage || err?.message || 'Withdrawal failed'
+      setError(msg)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [getWalletClient])
+
   // Refund a ticket whose battle was cancelled.
   const refund = useCallback(async (ticketId: bigint) => {
     setLoading(true)
@@ -451,6 +479,7 @@ export function useArcArena() {
     placeCombo,
     claim,
     refund,
+    withdraw,
     // Helpers
     formatUSDC,
     isLive,
