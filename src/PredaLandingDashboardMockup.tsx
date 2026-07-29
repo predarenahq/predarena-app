@@ -1359,20 +1359,30 @@ function UserBalancePanel() {
       <p className="text-xs" style={{ color: COLORS.textSoft }}>
         {walletAddr.slice(0, 4)}...{walletAddr.slice(-4)}
       </p>
+      {/* SOL balance (Solana custodial) - its own labelled box with the USD/SOL toggle */}
       <div className="rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
-        <p className="text-xs" style={{ color: COLORS.textSoft }}>Balance</p>
-        <p className="text-lg font-bold" style={{ color: COLORS.accent }}>
+        <div className="flex items-center gap-1.5">
+          <img src={COIN_ICONS.SOL} alt="" className="h-3.5 w-3.5 rounded-full" />
+          <p className="text-xs font-medium" style={{ color: COLORS.textSoft }}>Solana Balance</p>
+        </div>
+        <p className="text-lg font-bold mt-0.5" style={{ color: COLORS.accent }}>
           {currency === 'USD' && balanceUsd != null ? `$${balanceUsd.toFixed(2)}` : `${balanceSol.toFixed(4)} SOL`}
         </p>
         <p className="text-xs" style={{ color: COLORS.textSoft }}>
           {currency === 'USD' ? `${balanceSol.toFixed(4)} SOL` : balanceUsd != null ? `$${balanceUsd.toFixed(2)}` : 'USD price unavailable'}
         </p>
-        {usdc > 0 && (
-          <p className="text-xs mt-1 font-semibold" style={{ color: COLORS.accent }}>
-            + ${(usdc / 1e6).toFixed(2)} USDC from Arc
-          </p>
-        )}
       </div>
+
+      {/* Arc USDC balance (winnings) - separate box, only when there's a balance */}
+      {usdc > 0 && (
+        <div className="rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
+          <p className="text-xs font-medium" style={{ color: COLORS.textSoft }}>Arc Balance (USDC)</p>
+          <p className="text-lg font-bold mt-0.5" style={{ color: COLORS.accent }}>
+            ${(usdc / 1e6).toFixed(2)}
+          </p>
+          <p className="text-xs" style={{ color: COLORS.textSoft }}>from Arc winnings</p>
+        </div>
+      )}
 
       {showDeposit && (
         <div className="space-y-2">
