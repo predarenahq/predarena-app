@@ -1140,6 +1140,7 @@ function UserBalancePanel() {
   const { ensureConnected } = useWalletConnect()
   const session = useSession()
   const [balance, setBalance] = React.useState<number>(0)
+  const [usdc, setUsdc] = React.useState<number>(0)  // Arc winnings, mirrored from internalBalance (6dp)
   const [solPrice, setSolPrice] = React.useState<number | null>(null)
   const [depositAmount, setDepositAmount] = React.useState('')
   const [withdrawAmount, setWithdrawAmount] = React.useState('')
@@ -1158,7 +1159,7 @@ function UserBalancePanel() {
     if (!session.signedIn) { setBalance(0); return }
     try {
       const bal = await session.myData('balance')
-      if (bal) setBalance(bal.total_lamports || 0)
+      if (bal) { setBalance(bal.total_lamports || 0); setUsdc(bal.total_usdc || 0) }
     } catch (err) {
       console.error('Failed to fetch balance:', err)
     }
@@ -1366,6 +1367,11 @@ function UserBalancePanel() {
         <p className="text-xs" style={{ color: COLORS.textSoft }}>
           {currency === 'USD' ? `${balanceSol.toFixed(4)} SOL` : balanceUsd != null ? `$${balanceUsd.toFixed(2)}` : 'USD price unavailable'}
         </p>
+        {usdc > 0 && (
+          <p className="text-xs mt-1 font-semibold" style={{ color: COLORS.accent }}>
+            + ${(usdc / 1e6).toFixed(2)} USDC from Arc
+          </p>
+        )}
       </div>
 
       {showDeposit && (
