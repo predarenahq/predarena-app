@@ -11,7 +11,7 @@ const supabase = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.SU
 
 const ARC_RPC           = process.env.ARC_RPC_URL || 'https://arc-testnet.drpc.org'
 const ARC_CHAIN_ID      = 5042002
-const PREDARENA_ADDRESS = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
+const PREDARENA_ADDRESS = '0x45b26ABB170064727a5102Ac816A6f201b63D904'
 const USDC_DECIMALS     = 6
 const ODDS_DECIMALS     = 10000n
 const MIN_ODDS_RAW      = 10100n      // 1.01x  - PredArena.MIN_ODDS
