@@ -1,5 +1,6 @@
 // Auto-generated from PredArena.sol — do not edit manually.
 // Regenerate: forge inspect PredArena abi --json
+// v3 (Design C internal balance) — contract 0x45b26ABB170064727a5102Ac816A6f201b63D904
 export const PREDARENA_ABI = [
   {
     "type": "constructor",
@@ -756,6 +757,25 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
+    "name": "internalBalance",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isSolvent",
     "inputs": [],
     "outputs": [
@@ -1174,6 +1194,19 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "function",
+    "name": "withdraw",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "withdrawHouse",
     "inputs": [
       {
@@ -1473,6 +1506,25 @@ export const PREDARENA_ABI = [
   },
   {
     "type": "event",
+    "name": "InternalCredited",
+    "inputs": [
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Refunded",
     "inputs": [
       {
@@ -1495,29 +1547,24 @@ export const PREDARENA_ABI = [
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Withdrawn",
+    "inputs": [
+      {
+        "name": "player",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   }
-] as const
-
-export const ERC20_ABI = [
-  {
-    type: "function",
-    name: "approve",
-    inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
-    name: "allowance",
-    inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "balanceOf",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-] as const
+] as const;
