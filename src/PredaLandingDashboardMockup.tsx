@@ -1362,7 +1362,7 @@ function UserBalancePanel() {
       {/* SOL balance (Solana custodial) - its own labelled box with the USD/SOL toggle */}
       <div className="rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
         <div className="flex items-center gap-1.5">
-          <img src={COIN_ICONS.SOL} alt="" className="h-3.5 w-3.5 rounded-full" />
+          <img src={coinIcons.SOL} alt="" className="h-3.5 w-3.5 rounded-full" />
           <p className="text-xs font-medium" style={{ color: COLORS.textSoft }}>Solana Balance</p>
         </div>
         <p className="text-lg font-bold mt-0.5" style={{ color: COLORS.accent }}>
