@@ -35,12 +35,14 @@ export default async function handler(req, res) {
       // per profile, so this returns each address's balance separately.
       const { data, error } = await supabase
         .from('user_balances')
-        .select('wallet_address, balance_lamports')
+        .select('wallet_address, balance_lamports, usdc_balance')
         .in('wallet_address', sess.addresses)
       if (error) throw error
       return res.status(200).json({
         balances: data || [],
         total_lamports: (data || []).reduce((t, r) => t + Number(r.balance_lamports || 0), 0),
+        // Arc winnings, mirrored from the contract's internalBalance (6dp USDC).
+        total_usdc: (data || []).reduce((t, r) => t + Number(r.usdc_balance || 0), 0),
       })
     }
 

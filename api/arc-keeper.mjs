@@ -27,6 +27,7 @@ const KEEPER_ABI = [
   'function claimCombo(uint256 comboId)',
   'function resolveCombo(uint256 comboId)',
   'function getBattleTickets(uint256 id) view returns (uint256[])',
+  'function internalBalance(address) view returns (uint256)',
   'function getTicket(uint256 id) view returns (tuple(uint256 id, uint256 battleId, address player, uint8 side, uint256 stake, uint256 odds, uint256 payout, bool closed))',
   'function getBattle(uint256 id) view returns (tuple(uint256 id, string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB, uint256 finalPriceA, uint256 finalPriceB, uint8 winner, uint8 status))',
   'event BattleCreated(uint256 indexed id, string coinA, string coinB, uint256 startTime, uint256 endTime)',
@@ -255,6 +256,7 @@ async function claimArcWinners(contract) {
 
   let claimed = 0
   let battlesSwept = 0
+  const creditedOwners = new Set()  // EVM addresses we claimed for this run
 
   for (const b of battles) {
     try {
@@ -277,6 +279,7 @@ async function claimArcWinners(contract) {
           const tx = await contract.claim(tid)
           await tx.wait()
           claimed++
+          creditedOwners.add(t.player)  // checksummed EVM addr, matches what place-bet-arc stored
         } catch (err) {
           // A single failed claim (RPC blip, already_closed race) must not abort
           // the battle. If anything is left unclaimed, we won't flip the flag, so
@@ -298,7 +301,23 @@ async function claimArcWinners(contract) {
     }
   }
 
-  return { claimed, battlesSwept }
+  // Mirror the on-chain internalBalance into the DB for every winner we credited
+  // this run, so the app shows the Arc USDC. We read the fresh on-chain total
+  // (not the sum of this run's claims) so prior unwithdrawn balance is included -
+  // the chain is the source of truth, the DB is a display cache. A mirror failure
+  // is non-fatal: the claim already landed on-chain, and the next run re-mirrors.
+  let mirrored = 0
+  for (const owner of creditedOwners) {
+    try {
+      const onchain = await contract.internalBalance(owner)
+      await supabase.rpc('set_arc_balance', { p_wallet: owner, p_usdc: Number(onchain) })
+      mirrored++
+    } catch (err) {
+      console.error(`mirror failed for ${owner}:`, err.message)
+    }
+  }
+
+  return { claimed, battlesSwept, mirrored }
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
