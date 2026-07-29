@@ -416,6 +416,58 @@ async function claimArcCombos(contract) {
   return { combosClaimed, mirrored }
 }
 
+// ── Referral credit on Arc single losses (v3 Design C) ──────────────────────────
+// The original gap: credit_referrer_for_loss only ran in the Solana settlement
+// path. Arc settles on-chain via the keeper, so referred Arc losses credited the
+// referrer nothing. This pass finds Arc SINGLE losses in the DB (settled battle,
+// side != winner, not yet referral_credited) and credits the referrer 2% in USDC
+// (usdc_referral_balance - a SEPARATE column the balance mirror never overwrites).
+// Idempotent two ways: the DB `referral_credited` flag stops re-scans, and the
+// RPC's unique(ticket_id) in referral_earnings blocks a double-credit outright.
+// Combo-loss referral is deferred (a combo loss is one credit across N legs).
+async function creditArcReferrals() {
+  // Losing Arc singles not yet credited. combo_id null = single. Join the battle
+  // to compare side vs winner. Bounded so a big backlog doesn't blow the budget.
+  const { data: losers } = await supabase
+    .from('tickets')
+    .select('id, wallet_address, side, stake, battles!inner(winner, arc_status)')
+    .eq('chain', 'arc')
+    .is('combo_id', null)
+    .eq('referral_credited', false)
+    .eq('battles.arc_status', 'settled')
+    .limit(50)
+
+  if (!losers?.length) return { referralsCredited: 0 }
+
+  let referralsCredited = 0
+  for (const t of losers) {
+    const winner = Number(t.battles?.winner ?? 0)
+    // Only losers. A winner (side == winner) or ungraded (winner 0) is skipped,
+    // but we still mark graded winners credited=true so we stop re-scanning them.
+    if (winner === 0) continue                 // not graded yet, leave for later
+    if (Number(t.side) === winner) {
+      await supabase.from('tickets').update({ referral_credited: true }).eq('id', t.id)
+      continue                                 // winner: no referral on a win
+    }
+    try {
+      await supabase.rpc('credit_referrer_for_loss_usdc', {
+        p_wallet: t.wallet_address,
+        p_ticket_id: t.id,
+        p_loss_usdc: Number(t.stake),
+      })
+      referralsCredited++
+    } catch (e) {
+      console.error('arc referral credit failed', t.id, e?.message)
+      continue                                 // leave uncredited; retried next run
+    }
+    // Mark done so we don't re-scan. The RPC's unique(ticket_id) is the real
+    // double-credit guard; this flag is just to stop re-querying.
+    await supabase.from('tickets').update({ referral_credited: true }).eq('id', t.id)
+  }
+
+  return { referralsCredited }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -441,6 +493,7 @@ export default async function handler(req, res) {
   try { results.settleArcBattles  = await settleArcBattles(contract)  } catch (e) { results.settleError  = e.message }
   try { results.claimArcWinners   = await claimArcWinners(contract)   } catch (e) { results.claimError   = e.message }
   try { results.claimArcCombos    = await claimArcCombos(contract)    } catch (e) { results.comboClaimError = e.message }
+  try { results.creditArcReferrals = await creditArcReferrals()      } catch (e) { results.referralError = e.message }
 
   res.status(200).json(results)
 }
