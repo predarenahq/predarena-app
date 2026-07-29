@@ -14,12 +14,21 @@ const supabase = createClient(
 // killed mid-loop. dRPC answers the same call in 1.5s.
 const ARC_RPC     = process.env.ARC_RPC_URL || 'https://arc-testnet.drpc.org'
 const BATCH_SIZE  = 3
-const PREDARENA   = '0x71B30dF164c0441Dc9DF5a156D02efaB103096E3'
+const PREDARENA   = '0x45b26ABB170064727a5102Ac816A6f201b63D904'  // v3 Design C internal-balance
 
 const KEEPER_ABI = [
   'function createBattle(string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB) returns (uint256 battleId)',
   'function settleBattle(uint256 battleId, uint256 finalPriceA, uint256 finalPriceB)',
   'function nextBattleId() view returns (uint256)',
+  // v3 Design C: the keeper auto-claims winners so payouts land in each
+  // player's on-chain internalBalance (no user action). claim/claimCombo no
+  // longer require msg.sender==player, so the keeper may call them for anyone.
+  'function claim(uint256 ticketId)',
+  'function claimCombo(uint256 comboId)',
+  'function resolveCombo(uint256 comboId)',
+  'function getBattleTickets(uint256 id) view returns (uint256[])',
+  'function getTicket(uint256 id) view returns (tuple(uint256 id, uint256 battleId, address player, uint8 side, uint256 stake, uint256 odds, uint256 payout, bool closed))',
+  'function getBattle(uint256 id) view returns (tuple(uint256 id, string coinA, string coinB, string league, string duration, uint256 startTime, uint256 endTime, uint256 startPriceA, uint256 startPriceB, uint256 finalPriceA, uint256 finalPriceB, uint8 winner, uint8 status))',
   'event BattleCreated(uint256 indexed id, string coinA, string coinB, uint256 startTime, uint256 endTime)',
 ]
 
@@ -223,6 +232,75 @@ async function settleArcBattles(contract) {
   return { settled }
 }
 
+// ── Claim winners → internal balance (v3 Design C) ──────────────────────────────
+// After a battle settles, the keeper claims each WINNING single ticket so its
+// payout lands in the player's on-chain internalBalance (no user action). Losers
+// revert not_a_winner and are skipped; already-claimed tickets revert
+// already_closed and are skipped - so this is idempotent and resumable. A
+// timeout mid-batch just leaves the rest for the next run (the on-chain `closed`
+// flag is the resume state). Combos are handled separately (they need
+// resolveCombo first and are tracked by combo id, not battle).
+async function claimArcWinners(contract) {
+  // Settled battles whose winners we haven't finished claiming. arc_winners_claimed
+  // starts NULL/false; we flip it true once every winning ticket is closed.
+  const { data: battles } = await supabase
+    .from('battles')
+    .select('id, arc_battle_id')
+    .not('arc_battle_id', 'is', null)
+    .eq('arc_status', 'settled')
+    .or('arc_winners_claimed.is.null,arc_winners_claimed.eq.false')
+    .limit(BATCH_SIZE)
+
+  if (!battles?.length) return { claimed: 0, battlesSwept: 0 }
+
+  let claimed = 0
+  let battlesSwept = 0
+
+  for (const b of battles) {
+    try {
+      const bid = BigInt(b.arc_battle_id)
+      const battle = await contract.getBattle(bid)
+      const winner = Number(battle.winner)   // 0 None,1 CoinA,2 CoinB,3 Draw
+
+      // Only Settled battles reach here; if somehow not settled, skip this run.
+      if (Number(battle.status) !== 2) continue
+
+      const ticketIds = await contract.getBattleTickets(bid)
+      let allDone = true
+
+      for (const tid of ticketIds) {
+        try {
+          const t = await contract.getTicket(tid)
+          if (t.closed) continue                 // already settled/claimed
+          if (Number(t.side) !== winner) continue // loser: nothing to claim, leave closed=false
+          // A winning, unclaimed ticket: claim it into the owner's internal balance.
+          const tx = await contract.claim(tid)
+          await tx.wait()
+          claimed++
+        } catch (err) {
+          // A single failed claim (RPC blip, already_closed race) must not abort
+          // the battle. If anything is left unclaimed, we won't flip the flag, so
+          // the next run retries it.
+          allDone = false
+          console.error(`claim failed ticket ${tid} (battle ${b.arc_battle_id}):`, err.message)
+        }
+      }
+
+      // Losing tickets stay closed=false forever (nothing to claim), so "allDone"
+      // means: every WINNING ticket is now closed. We approximate that by having
+      // hit no errors this pass - a clean sweep. If clean, mark the battle done.
+      if (allDone) {
+        await supabase.from('battles').update({ arc_winners_claimed: true }).eq('id', b.id)
+        battlesSwept++
+      }
+    } catch (err) {
+      console.error(`claimArcWinners failed for arc_battle_id ${b.arc_battle_id}:`, err.message)
+    }
+  }
+
+  return { claimed, battlesSwept }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -246,6 +324,7 @@ export default async function handler(req, res) {
 
   try { results.createArcBattles  = await createArcBattles(contract)  } catch (e) { results.createError  = e.message }
   try { results.settleArcBattles  = await settleArcBattles(contract)  } catch (e) { results.settleError  = e.message }
+  try { results.claimArcWinners   = await claimArcWinners(contract)   } catch (e) { results.claimError   = e.message }
 
   res.status(200).json(results)
 }
