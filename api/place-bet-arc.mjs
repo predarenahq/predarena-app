@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
     // ---- COMBO ----------------------------------------------------------
     if (isCombo || decoded.eventName === 'ComboPlaced') {
-      const { player, stake, comboOdds, battleIds, sides } = decoded.args
+      const { comboId, player, stake, comboOdds, battleIds, sides } = decoded.args
 
       if (!Array.isArray(leg_odds) || leg_odds.length !== battleIds.length) {
         return res.status(400).json({ error: 'leg_odds_mismatch' })
@@ -159,6 +159,7 @@ export default async function handler(req, res) {
 
       const { data, error } = await supabase.rpc('record_arc_combo', {
         p_wallet: player,
+        p_combo_id: Number(comboId),
         p_legs: legs,
         p_stake: Number(stake) / 10 ** USDC_DECIMALS,
         p_combo_odds: Number(comboOdds) / ODDS_DECIMALS,
