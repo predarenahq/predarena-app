@@ -56,7 +56,7 @@ export default function PublicProfilePage() {
               <ArrowLeft size={16} />
             </button>
             <button onClick={() => nav("/")} className="flex items-center gap-2 transition-opacity hover:opacity-80">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-bold text-white" style={{ background: "var(--brand-grad)" }}>P</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-[10px]" style={{ background: "var(--brand-grad)" }}><img src="/preda-mark-white.png" alt="" className="h-5 w-5" /></div>
               <span className="font-display text-[15px]" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>predarena</span>
             </button>
           </div>
