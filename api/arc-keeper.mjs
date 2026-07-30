@@ -86,29 +86,23 @@ async function createArcBattles(contract) {
   // existed. The second leaves arc_claimed_at NULL - and `NULL < cutoff` is
   // never true in SQL, so a plain .lt() filter would never reap those rows and
   // the battle would be invisible to every future run. Catch both.
-  await supabase
-    .from('battles')
-    .update({ arc_status: null, arc_claimed_at: null })
-    .eq('arc_status', 'creating')
-    .or(`arc_claimed_at.is.null,arc_claimed_at.lt.${new Date(Date.now() - 5 * 60 * 1000).toISOString()}`)
-
-  // Pick a SMALL batch. maxDuration is 60s and each battle costs a
-  // createBattle + tx.wait() against a rate-limited public RPC, so a big batch
-  // gets the function killed mid-loop - which skips the catch and strands every
-  // claimed row at 'creating' forever. Three per run finishes comfortably; the
-  // cron drains the backlog across runs.
-  // Self-heal: a battle marked 'creating' with no arc_battle_id and a stale
-  // claim timestamp is a dead run (the keeper timed out mid-mint before). The
-  // candidate filter below excludes 'creating', so without this reset those
-  // battles are stuck forever. Reset anything 'creating' for >3 min back to
-  // 'pending' so it gets retried. 3 min is well past a normal create pass.
-  const staleCutoff = new Date(Date.now() - 3 * 60 * 1000).toISOString()
+  // Reclaim ALL stranded 'creating' rows unconditionally at the start of the run.
+  // Any row still 'creating' with no arc_battle_id right now is from a PREVIOUS
+  // dead run (a serverless timeout killed it mid-mint before the catch could
+  // release the claim) - this run hasn't claimed anything yet, so there is no
+  // live claim to protect. The old timestamp-gated self-heal never fired because
+  // the mark-update below refreshes arc_claimed_at every run, resetting the age
+  // clock, so stranded rows never aged past the cutoff and piled up forever.
+  // Unconditional reclaim at run-start is safe (proven: drains fully even when
+  // every run times out) and cannot double-mint (the per-run mark-update below
+  // is atomic - two overlapping runs can't both claim the same row).
+  const deadRunCutoff = new Date(Date.now() - 90 * 1000).toISOString()
   await supabase
     .from('battles')
     .update({ arc_status: 'pending', arc_claimed_at: null })
     .is('arc_battle_id', null)
     .eq('arc_status', 'creating')
-    .lt('arc_claimed_at', staleCutoff)
+    .or(`arc_claimed_at.is.null,arc_claimed_at.lt.${deadRunCutoff}`)
 
   const { data: candidates } = await supabase
     .from('battles')
