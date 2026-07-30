@@ -13,7 +13,7 @@ const supabase = createClient(
 // tx.wait() could not finish inside the 60s function and every run was
 // killed mid-loop. dRPC answers the same call in 1.5s.
 const ARC_RPC     = process.env.ARC_RPC_URL || 'https://arc-testnet.drpc.org'
-const BATCH_SIZE  = 3
+const BATCH_SIZE  = 8
 const PREDARENA   = '0x45b26ABB170064727a5102Ac816A6f201b63D904'  // v3 Design C internal-balance
 
 const KEEPER_ABI = [
