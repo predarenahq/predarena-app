@@ -663,12 +663,12 @@ function DesktopHeader({
               e.stopPropagation();
               onLogoClick();
             }}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-sm font-bold text-white"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]"
             style={{ background: "var(--brand-grad)" }}
           >
-            P
+            <img src="/preda-mark-white.png" alt="" className="h-7 w-7" />
           </motion.div>
-          {expanded && <span className="text-lg font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>}
+          {expanded && <span className="text-lg font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>predarena</span>}
         </button>
 
         <div className="flex items-center flex-1 px-5 gap-3">
@@ -1567,10 +1567,10 @@ function MobileShell({
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center justify-between w-full gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "var(--brand-grad)" }}>
-            P
+          <div className="flex h-10 w-10 items-center justify-center rounded-[14px]" style={{ background: "var(--brand-grad)" }}>
+            <img src="/preda-mark-white.png" alt="" className="h-6 w-6" />
           </div>
-          <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>
+          <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>predarena</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={onOpenBetCode} aria-label="Enter booking code" className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
@@ -1588,10 +1588,10 @@ function MobileShell({
             <motion.aside initial={{ x: -320 }} animate={{ x: 0 }} exit={{ x: -320 }} className="h-full w-[300px] border-r bg-[var(--panel)]" style={{ borderColor: "var(--border)" }}>
               <div className="flex items-center justify-between border-b px-4 py-4" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center justify-between w-full gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px] text-sm font-bold text-white" style={{ background: "var(--brand-grad)" }}>
-                    P
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[14px]" style={{ background: "var(--brand-grad)" }}>
+                    <img src="/preda-mark-white.png" alt="" className="h-6 w-6" />
                   </div>
-                  <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDA</span>
+                  <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>predarena</span>
                 </div>
                 <button onClick={() => setOpen(false)} className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
                   <X className="h-4 w-4" />

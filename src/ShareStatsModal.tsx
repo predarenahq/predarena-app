@@ -89,7 +89,7 @@ export default function ShareStatsModal({
           border: "1px solid #2a2e37",
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ color: "#34D399", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>PREDARENA</span>
+            <span style={{ color: "#34D399", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>predarena</span>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ color: "#9ca3af", fontSize: 14 }}>{handle}</span>
               <Avatar seed={username} size={36} uploadedUrl={avatarUrl} />

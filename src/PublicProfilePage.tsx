@@ -57,7 +57,7 @@ export default function PublicProfilePage() {
             </button>
             <button onClick={() => nav("/")} className="flex items-center gap-2 transition-opacity hover:opacity-80">
               <div className="flex h-8 w-8 items-center justify-center rounded-[10px] text-xs font-bold text-white" style={{ background: "var(--brand-grad)" }}>P</div>
-              <span className="font-display text-[15px]" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>PREDARENA</span>
+              <span className="font-display text-[15px]" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>predarena</span>
             </button>
           </div>
           {state === "ok" && (
