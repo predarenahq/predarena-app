@@ -97,6 +97,19 @@ async function createArcBattles(contract) {
   // gets the function killed mid-loop - which skips the catch and strands every
   // claimed row at 'creating' forever. Three per run finishes comfortably; the
   // cron drains the backlog across runs.
+  // Self-heal: a battle marked 'creating' with no arc_battle_id and a stale
+  // claim timestamp is a dead run (the keeper timed out mid-mint before). The
+  // candidate filter below excludes 'creating', so without this reset those
+  // battles are stuck forever. Reset anything 'creating' for >3 min back to
+  // 'pending' so it gets retried. 3 min is well past a normal create pass.
+  const staleCutoff = new Date(Date.now() - 3 * 60 * 1000).toISOString()
+  await supabase
+    .from('battles')
+    .update({ arc_status: 'pending', arc_claimed_at: null })
+    .is('arc_battle_id', null)
+    .eq('arc_status', 'creating')
+    .lt('arc_claimed_at', staleCutoff)
+
   const { data: candidates } = await supabase
     .from('battles')
     .select('id')
