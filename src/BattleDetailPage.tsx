@@ -175,7 +175,8 @@ export default function BattleDetailPage() {
   }
 
   async function fetchBattle() {
-    const { data } = await supabase.from('battles').select('*').eq('id', id).single()
+    const res = await fetch(`/api/content?type=battle&id=${id}`)
+    const data = res.ok ? (await res.json()).battle : null
     setBattle(data)
     if (data && !baseOdds) {
       try {
@@ -188,7 +189,8 @@ export default function BattleDetailPage() {
 
   async function fetchChart() {
     if (!battle && !id) return
-    const { data: bat } = await supabase.from('battles').select('*').eq('id', id).single()
+    const bres = await fetch(`/api/content?type=battle&id=${id}`)
+    const bat = bres.ok ? (await bres.json()).battle : null
     if (!bat) return
     setBattle(bat)
 

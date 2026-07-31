@@ -63,6 +63,20 @@ async function searchHandler(req, res) {
 // join works after the RLS lockdown dropped the public read on tickets. The
 // client used to query battles+tickets directly with the anon key; that join is
 // now blocked, which silently emptied the list and left the app on mock data.
+// Single battle by id for the detail page. Server-side + service role so it
+// doesn't depend on the client anon key (which broke with 406 when a build
+// didn't inline REACT_APP_SUPABASE_ANON_KEY) and survives a future battles lockdown.
+async function battleHandler(req, res) {
+  const id = req.query?.id
+  if (!id) return res.status(400).json({ error: 'missing_id' })
+  const { data, error } = await supabase.from('battles').select('*').eq('id', id).single()
+  if (error) {
+    console.error('battle fetch error:', error.message)
+    return res.status(error.code === 'PGRST116' ? 404 : 500).json({ error: 'battle_failed' })
+  }
+  return res.status(200).json({ battle: data })
+}
+
 async function battlesHandler(req, res) {
   const { data, error } = await supabase
     .from('battles')
@@ -84,5 +98,6 @@ export default async function handler(req, res) {
   if (type === 'bets')     return betsHandler(req, res)
   if (type === 'search')   return searchHandler(req, res)
   if (type === 'battles')  return battlesHandler(req, res)
+  if (type === 'battle')   return battleHandler(req, res)
   return res.status(400).json({ error: 'invalid_type' })
 }
