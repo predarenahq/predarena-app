@@ -127,9 +127,9 @@ export default function PriceChartModal({
           onClick={onClose}
         >
           <motion.div
-            initial={{ transform: reduceMotion ? 'scale(1)' : 'scale(0.95)', opacity: 0 }}
-            animate={{ transform: 'scale(1)', opacity: 1 }}
-            exit={{ transform: reduceMotion ? 'scale(1)' : 'scale(0.95)', opacity: 0 }}
+            initial={reduceMotion ? { opacity: 0 } : { scale: 0.95, opacity: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { scale: 0.95, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             className="w-full max-w-2xl rounded-2xl p-6"
             style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}

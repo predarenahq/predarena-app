@@ -5,7 +5,6 @@ import { X, Copy, Check, Link as LinkIcon, ArrowUpRight } from 'lucide-react'
 // Aliases only. This file used to carry its own cyan theme, which is why the
 // share flow looked like a different product from the app it shares.
 const COLORS = {
-  bg: 'var(--bg)',
   panel: 'var(--panel)',
   accent: 'var(--accent)',
   lineStrong: 'var(--border-soft)',
@@ -135,12 +134,12 @@ export default function BetShareModal({
           onClick={onClose}
         >
           <motion.div
-            initial={{ transform: reduceMotion ? 'scale(1) translateY(0px)' : 'scale(0.96) translateY(8px)', opacity: 0 }}
-            animate={{ transform: 'scale(1) translateY(0px)', opacity: 1 }}
-            exit={{ transform: reduceMotion ? 'scale(1) translateY(0px)' : 'scale(0.96) translateY(8px)', opacity: 0 }}
+            initial={reduceMotion ? { opacity: 0 } : { scale: 0.96, opacity: 0, y: 8 }}
+            animate={reduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { scale: 0.96, opacity: 0, y: 8 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             className="relative w-full max-w-md rounded-[22px] overflow-hidden"
-            style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}`, boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 24px 60px rgba(0,240,255,0.10)' }}
+            style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}`, boxShadow: '0 1px 3px rgba(0,0,0,0.4), var(--shadow-hover)' }}
             onClick={e => e.stopPropagation()}
           >
             <button
@@ -184,20 +183,20 @@ export default function BetShareModal({
               >
                 <div
                   className="pointer-events-none absolute -right-16 -top-16 h-48 w-48"
-                  style={{ background: 'radial-gradient(circle, rgba(0,240,255,0.16) 0%, rgba(0,240,255,0) 60%)' }}
+                  style={{ background: 'radial-gradient(circle, var(--accent-soft) 0%, transparent 60%)' }}
                 />
 
                 <div className="relative">
-                  <div className="mb-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.lineStrong}` }}>
+                  <div className="mb-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: 'var(--border-soft)', border: `1px solid ${COLORS.lineStrong}` }}>
                     <span className="relative flex h-[6px] w-[6px]">
                       <span className="absolute inline-flex h-full w-full rounded-full" style={{ background: COLORS.accent, opacity: 0.4, transform: 'scale(2.2)' }} />
                       <span className="relative inline-flex h-[6px] w-[6px] rounded-full" style={{ background: COLORS.accent }} />
                     </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.5)' }}>Your booking code</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: 'var(--text-soft)' }}>Your booking code</span>
                   </div>
 
-                  <p className="mb-1 break-all font-mono text-2xl font-bold tracking-widest" style={{ color: '#fff' }}>{code}</p>
-                  <p className="mb-5 text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <p className="mb-1 break-all font-mono text-2xl font-bold tracking-widest" style={{ color: 'var(--text)' }}>{code}</p>
+                  <p className="mb-5 text-[12px]" style={{ color: 'var(--text-soft)' }}>
                     Anyone who enters this code gets the same bet pre-filled.
                   </p>
 
@@ -223,7 +222,7 @@ export default function BetShareModal({
                     <button
                       onClick={() => doCopy(shareUrl, 'link')}
                       className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors"
-                      style={{ background: 'transparent', color: '#fff', border: `1px solid ${COLORS.line}` }}
+                      style={{ background: 'transparent', color: 'var(--text)', border: `1px solid ${COLORS.line}` }}
                     >
                       <AnimatePresence mode="popLayout" initial={false}>
                         {copied === 'link' ? (
@@ -249,7 +248,7 @@ export default function BetShareModal({
               )}
 
               <div className="mt-6">
-                <h3 className="text-[15px] font-bold text-white">Spread the word</h3>
+                <h3 className="text-[15px] font-bold" style={{ color: 'var(--text)' }}>Spread the word</h3>
                 <p className="mb-3.5 text-[12.5px]" style={{ color: COLORS.textSoft }}>
                   Drop your bet in the group chat. Every code copied grows the pool.
                 </p>
@@ -261,7 +260,7 @@ export default function BetShareModal({
                       title={s.label}
                       aria-label={`Share on ${s.label}`}
                       className="flex h-12 flex-1 items-center justify-center rounded-[14px] transition-colors"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.lineStrong}`, color: '#fff' }}
+                      style={{ background: 'var(--border-soft)', border: `1px solid ${COLORS.lineStrong}`, color: 'var(--text)' }}
                     >
                       <s.Icon />
                     </button>
@@ -271,7 +270,7 @@ export default function BetShareModal({
                     title="Open bet"
                     aria-label="Open bet in a new tab"
                     className="flex h-12 flex-1 items-center justify-center rounded-[14px] transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.lineStrong}`, color: '#fff' }}
+                    style={{ background: 'var(--border-soft)', border: `1px solid ${COLORS.lineStrong}`, color: 'var(--text)' }}
                   >
                     <ArrowUpRight size={18} />
                   </button>
