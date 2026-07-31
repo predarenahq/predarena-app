@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Share2, Check, ArrowLeft } from "lucide-react";
 import Avatar from "./Avatar";
+import { motion, AnimatePresence } from "framer-motion";
 
 /**
  * Public, shareable profile at /u/<username>. Standalone - NOT inside the
@@ -66,7 +67,17 @@ export default function PublicProfilePage() {
               className="flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-semibold transition-all active:scale-[0.97]"
               style={{ background: "var(--panel-2)", border: "1px solid var(--border)", color: copied ? "var(--accent)" : "var(--text)" }}
             >
-              {copied ? <Check size={14} /> : <Share2 size={14} />}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {copied ? (
+                  <motion.span key="check" initial={{ opacity: 0, transform: 'scale(0.7)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.7)' }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} className="flex">
+                    <Check size={14} />
+                  </motion.span>
+                ) : (
+                  <motion.span key="share" initial={{ opacity: 0, transform: 'scale(0.7)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.7)' }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} className="flex">
+                    <Share2 size={14} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
               {copied ? "Copied" : "Share"}
             </button>
           )}

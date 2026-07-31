@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ExternalLink } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const COLORS = {
   bg: 'var(--bg)',
@@ -147,22 +148,32 @@ export default function NewsPage() {
               </div>
 
               {/* Expanded summary */}
-              {expanded === item.id && (
-                <div className="mt-3 pt-3 border-t" style={{ borderColor: COLORS.lineStrong }}>
-                  <p className="text-sm leading-relaxed line-clamp-6" style={{ color: COLORS.textSoft }}>
-                    {item.body?.replace(/<[^>]*>/g, '').substring(0, 400)}...
-                  </p>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 mt-3 text-xs font-medium"
-                    style={{ color: COLORS.accent }}
+              <AnimatePresence initial={false}>
+                {expanded === item.id && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                    style={{ overflow: 'hidden' }}
                   >
-                    Read full article <ExternalLink size={12} />
-                  </a>
-                </div>
-              )}
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: COLORS.lineStrong }}>
+                      <p className="text-sm leading-relaxed line-clamp-6" style={{ color: COLORS.textSoft }}>
+                        {item.body?.replace(/<[^>]*>/g, '').substring(0, 400)}...
+                      </p>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-medium"
+                        style={{ color: COLORS.accent }}
+                      >
+                        Read full article <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         ))}
