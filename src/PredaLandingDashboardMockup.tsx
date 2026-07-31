@@ -3230,6 +3230,7 @@ export default function PredaLandingDashboardMockup() {
   const [betCodeSheetOpen, setBetCodeSheetOpen] = useState(false);
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
+  const [solPlacing, setSolPlacing] = useState(false)
   const { signedIn, signIn, token, addresses } = useSession();  // betting gate: bets require a session
   // Solana address from the session (survives refresh) or the live wallet. With
   // autoConnect off the adapter is empty after reload, but the session still
@@ -3762,6 +3763,11 @@ export default function PredaLandingDashboardMockup() {
 
     if (slipChain === 'arc') return handlePlaceTicketArc()
 
+    // Double-tap guard: the Solana place path had no loading state, so a fast
+    // second tap fired a second bet. Bail if one is already in flight.
+    if (solPlacing) return
+    setSolPlacing(true)
+
     // Solana from here. The wallet guard lives INSIDE this branch - it used to
     // sit at the top and would have blocked Arc-only users outright.
     let pk = publicKey
@@ -3898,6 +3904,8 @@ export default function PredaLandingDashboardMockup() {
     } catch (err: any) {
       console.error('Failed to place ticket:', err)
       alert('Failed: ' + (err.message || err))
+    } finally {
+      setSolPlacing(false)
     }
   }
 
@@ -3934,7 +3942,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} placing={arcLoading} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} placing={slipChain === 'arc' ? arcLoading : solPlacing} />
       {shareData && (
         <BetShareModal
           open={shareModalOpen}
