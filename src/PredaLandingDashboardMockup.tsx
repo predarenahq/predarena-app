@@ -1909,12 +1909,6 @@ function MarketCard({
           <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>Entries</span>
           <span className="text-[15px] font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{match.entries}</span>
         </div>
-        {match.pool > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>Pool</span>
-            <span className="text-[15px] font-semibold" style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{`$${match.pool.toLocaleString()}`}</span>
-          </div>
-        )}
         <div className="flex flex-col gap-1.5">
           <span className="text-[10px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--text-muted)" }}>{match.left.ticker}</span>
           <span className="text-[15px] font-semibold" style={{ color: isNeg(match.left.change) ? "var(--neg)" : "var(--pos)", fontVariantNumeric: "tabular-nums" }}>{match.left.change}</span>
@@ -3243,7 +3237,7 @@ export default function PredaLandingDashboardMockup() {
     code: string; coinA: string; coinB: string; side: number; odds: number; stake: number; legCount: number;
   } | null>(null);
   const { matches: supabaseMatches } = useBattles();
-  const [liveMatches, setLiveMatches] = useState<Match[]>(initialMatches);
+  const [liveMatches, setLiveMatches] = useState<Match[]>([]);  // start empty; real battles load from useBattles. Never show mock data to users.
   const wallet = useWallet();
   const { publicKey, connected } = wallet;
   const { ensureConnected } = useWalletConnect();

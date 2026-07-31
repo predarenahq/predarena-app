@@ -59,6 +59,23 @@ async function searchHandler(req, res) {
  * Routed by ?type= rather than by body, because momentum is a GET with a query
  * string (oddsEngine calls it on the pricing path) and news is a plain GET.
  */
+// Battle list for the dashboard. Server-side + service role so the tickets(count)
+// join works after the RLS lockdown dropped the public read on tickets. The
+// client used to query battles+tickets directly with the anon key; that join is
+// now blocked, which silently emptied the list and left the app on mock data.
+async function battlesHandler(req, res) {
+  const { data, error } = await supabase
+    .from('battles')
+    .select('*, tickets(count)')
+    .in('status', ['live', 'upcoming'])
+    .order('start_time', { ascending: true })
+  if (error) {
+    console.error('battles fetch error:', error.message)
+    return res.status(500).json({ error: 'battles_failed' })
+  }
+  return res.status(200).json({ battles: data || [] })
+}
+
 export default async function handler(req, res) {
   const type = req.query?.type
   if (type === 'news')     return newsHandler(req, res)
@@ -66,5 +83,6 @@ export default async function handler(req, res) {
   if (type === 'profile')  return profileHandler(req, res)
   if (type === 'bets')     return betsHandler(req, res)
   if (type === 'search')   return searchHandler(req, res)
+  if (type === 'battles')  return battlesHandler(req, res)
   return res.status(400).json({ error: 'invalid_type' })
 }

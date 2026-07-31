@@ -202,21 +202,23 @@ export function useBattles() {
   }, [])
 
   async function fetchBattles() {
-    const { data, error } = await supabase
-      .from('battles')
-      .select('*, tickets(count)')
-      .in('status', ['live', 'upcoming'])
-      .order('start_time', { ascending: true })
-
-    if (error) {
-      console.error('Error fetching battles:', error)
-      setError(error.message || 'Failed to load battles')
+    // Fetch via the server (service role) instead of a direct client query.
+    // The RLS lockdown dropped the public read on tickets, so the anon-key
+    // battles+tickets(count) join now fails - which silently emptied the list
+    // and left the app showing mock data. The server bypasses RLS.
+    let rows: any[] = []
+    try {
+      const res = await fetch('/api/content?type=battles')
+      if (!res.ok) throw new Error(`battles endpoint ${res.status}`)
+      const json = await res.json()
+      rows = (json.battles as any[]) || []
+      setError(null)
+    } catch (e: any) {
+      console.error('Error fetching battles:', e)
+      setError(e.message || 'Failed to load battles')
       setLoading(false)
       return
     }
-    setError(null)
-
-    const rows = (data as any[]) || []
 
     // Seed starting odds (async, CoinGecko/momentum) for any live battle we
     // haven't cached yet. Only happens here, on the slow clock.
