@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { X, Copy, Check, Link as LinkIcon, ArrowUpRight } from 'lucide-react'
 
 // Aliases only. This file used to carry its own cyan theme, which is why the
@@ -92,6 +92,7 @@ export default function BetShareModal({
 }: BetShareModalProps) {
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const [failed, setFailed] = useState(false)
+  const reduceMotion = useReducedMotion()
 
   const pickLabel = side === 1 ? coinA : side === 2 ? coinB : 'Draw'
   const isCombo = (legCount ?? 1) > 1
@@ -128,14 +129,15 @@ export default function BetShareModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)' }}
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.96, opacity: 0, y: 8 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.96, opacity: 0, y: 8 }}
+            initial={{ transform: reduceMotion ? 'scale(1) translateY(0px)' : 'scale(0.96) translateY(8px)', opacity: 0 }}
+            animate={{ transform: 'scale(1) translateY(0px)', opacity: 1 }}
+            exit={{ transform: reduceMotion ? 'scale(1) translateY(0px)' : 'scale(0.96) translateY(8px)', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             className="relative w-full max-w-md rounded-[22px] overflow-hidden"
             style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}`, boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 24px 60px rgba(0,240,255,0.10)' }}
@@ -205,7 +207,17 @@ export default function BetShareModal({
                       className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors"
                       style={{ background: copied === 'code' ? 'var(--accent-soft)' : COLORS.accent, color: copied === 'code' ? COLORS.accent : 'var(--accent-ink)' }}
                     >
-                      {copied === 'code' ? <Check size={15} /> : <Copy size={15} />}
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {copied === 'code' ? (
+                          <motion.span key="check" initial={{ opacity: 0, transform: 'scale(0.7)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.7)' }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} className="flex">
+                            <Check size={15} />
+                          </motion.span>
+                        ) : (
+                          <motion.span key="copy" initial={{ opacity: 0, transform: 'scale(0.7)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.7)' }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} className="flex">
+                            <Copy size={15} />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                       {copied === 'code' ? 'Copied!' : 'Copy code'}
                     </button>
                     <button
@@ -213,7 +225,17 @@ export default function BetShareModal({
                       className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors"
                       style={{ background: 'transparent', color: '#fff', border: `1px solid ${COLORS.line}` }}
                     >
-                      {copied === 'link' ? <Check size={15} color={COLORS.accent} /> : <LinkIcon size={15} />}
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {copied === 'link' ? (
+                          <motion.span key="check-link" initial={{ opacity: 0, transform: 'scale(0.7)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.7)' }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} className="flex">
+                            <Check size={15} color={COLORS.accent} />
+                          </motion.span>
+                        ) : (
+                          <motion.span key="link" initial={{ opacity: 0, transform: 'scale(0.7)' }} animate={{ opacity: 1, transform: 'scale(1)' }} exit={{ opacity: 0, transform: 'scale(0.7)' }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} className="flex">
+                            <LinkIcon size={15} />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                       {copied === 'link' ? 'Link copied' : 'Copy link'}
                     </button>
                   </div>

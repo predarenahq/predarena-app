@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import { supabase } from '../lib/supabase'
@@ -53,6 +53,7 @@ export default function PriceChartModal({
 }: PriceChartModalProps) {
   const [data, setData] = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(true)
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     if (!open) return
@@ -120,14 +121,16 @@ export default function PriceChartModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            initial={{ transform: reduceMotion ? 'scale(1)' : 'scale(0.95)', opacity: 0 }}
+            animate={{ transform: 'scale(1)', opacity: 1 }}
+            exit={{ transform: reduceMotion ? 'scale(1)' : 'scale(0.95)', opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
             className="w-full max-w-2xl rounded-2xl p-6"
             style={{ background: COLORS.panel, border: `1px solid ${COLORS.lineStrong}` }}
             onClick={e => e.stopPropagation()}
@@ -197,8 +200,8 @@ export default function PriceChartModal({
                     formatter={(value: any, name: any) => [`${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(4)}%`, String(name)]}
                   />
                   <ReferenceLine y={0} stroke={COLORS.entryLine} strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey={coinA} stroke={COLORS.coinA} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                  <Line type="monotone" dataKey={coinB} stroke={COLORS.coinB} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                  <Line type="monotone" dataKey={coinA} stroke={COLORS.coinA} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+                  <Line type="monotone" dataKey={coinB} stroke={COLORS.coinB} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
                   <Legend wrapperStyle={{ color: 'white', fontSize: 12 }} />
                 </LineChart>
               </ResponsiveContainer>
