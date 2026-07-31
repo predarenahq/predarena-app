@@ -6,6 +6,7 @@ const COLORS = {
   bg: 'var(--bg)',
   panel: 'var(--panel)',
   accent: 'var(--accent)',
+  text: 'var(--text)',
   lineStrong: 'var(--border-soft)',
   line: 'var(--border)',
   textSoft: 'var(--text-soft)',
@@ -77,13 +78,13 @@ export default function NewsPage() {
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b sticky top-0 z-10" style={{ borderColor: COLORS.lineStrong, background: COLORS.bg }}>
         <button onClick={() => navigate('/')} className="p-2 rounded-xl" style={{ background: COLORS.panel }}>
-          <ChevronLeft size={20} color="white" />
+          <ChevronLeft size={20} color={COLORS.text} />
         </button>
         <div>
-          <h1 className="text-white text-xl font-bold">Crypto News</h1>
+          <h1 className="text-xl font-bold" style={{ color: COLORS.text }}>Crypto News</h1>
           <p className="text-xs" style={{ color: COLORS.textSoft }}>Live headlines · Powered by CryptoCompare</p>
         </div>
-        <button onClick={fetchNews} disabled={loading} className="ml-auto text-xs px-3 py-2 rounded-xl font-medium" style={{ background: 'rgba(0,240,255,0.1)', color: COLORS.accent, border: `1px solid rgba(0,240,255,0.2)` }}>
+        <button onClick={fetchNews} disabled={loading} className="ml-auto text-xs px-3 py-2 rounded-xl font-medium" style={{ background: 'var(--accent-soft)', color: COLORS.accent, border: '1px solid var(--accent-soft)' }}>
           {loading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
@@ -96,8 +97,8 @@ export default function NewsPage() {
             onClick={() => setSelectedCat(cat)}
             className="rounded-full px-4 py-2 text-sm font-medium shrink-0"
             style={{
-              background: selectedCat === cat ? COLORS.accent : 'rgba(255,255,255,0.05)',
-              color: selectedCat === cat ? 'black' : 'white',
+              background: selectedCat === cat ? COLORS.accent : 'var(--border-soft)',
+              color: selectedCat === cat ? 'var(--accent-ink)' : COLORS.text,
               border: `1px solid ${selectedCat === cat ? COLORS.accent : COLORS.line}`
             }}
           >
@@ -130,13 +131,14 @@ export default function NewsPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,240,255,0.1)', color: COLORS.accent }}>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-soft)', color: COLORS.accent }}>
                       {item.source}
                     </span>
                     <span className="text-xs" style={{ color: COLORS.textSoft }}>{timeAgo(item.publishedAt)}</span>
                   </div>
                   <h3
-                    className="text-white font-semibold text-sm leading-snug cursor-pointer hover:text-cyan-400 transition-colors"
+                    className="font-semibold text-sm leading-snug cursor-pointer hover:text-[var(--accent)] transition-colors"
+                    style={{ color: COLORS.text }}
                     onClick={() => setExpanded(expanded === item.id ? null : item.id)}
                   >
                     {item.title}
