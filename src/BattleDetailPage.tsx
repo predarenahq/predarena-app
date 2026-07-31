@@ -24,9 +24,6 @@ const COLORS = {
   textSoft: 'var(--text-soft)',
   coinA: 'var(--accent)',
   coinB: '#F59E0B',   // amber - clear contrast vs the emerald coinA (was --accent-2, another green)
-  green: 'var(--pos)',
-  red: 'var(--neg)',
-  arc: 'var(--accent)',
 }
 
 function formatTime(iso: string): string {
@@ -588,10 +585,10 @@ export default function BattleDetailPage() {
                   labelStyle={{ color: COLORS.textSoft, fontSize: 11 }}
                   formatter={(value: any, name: any) => [`${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(4)}%`, String(name)]}
                 />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" label={{ value: 'Battle Start', fill: COLORS.textSoft, fontSize: 10, position: 'insideTopLeft' }} />
+                <ReferenceLine y={0} stroke="var(--chart-entry)" strokeDasharray="4 4" label={{ value: 'Battle Start', fill: COLORS.textSoft, fontSize: 10, position: 'insideTopLeft' }} />
                 <Line type="monotone" dataKey={battle.coin_a} stroke={COLORS.coinA} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
                 <Line type="monotone" dataKey={battle.coin_b} stroke={COLORS.coinB} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-                <Legend wrapperStyle={{ color: 'white', fontSize: 12, paddingTop: 12 }} />
+                <Legend wrapperStyle={{ color: 'var(--text)', fontSize: 12, paddingTop: 12 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -643,7 +640,7 @@ export default function BattleDetailPage() {
           )}
 
           {/* Chain selector */}
-          <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.lineStrong}` }}>
+          <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'var(--border-soft)', border: `1px solid ${COLORS.lineStrong}` }}>
             <button
               onClick={() => setChain('solana')}
               className="flex-1 rounded-lg py-2 text-xs font-semibold transition-all"
@@ -670,7 +667,7 @@ export default function BattleDetailPage() {
 
           {/* Arc info banner */}
           {isArc && (
-            <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid var(--chain-arc-soft)' }}>
+            <div className="rounded-xl px-4 py-3 text-xs" style={{ background: 'var(--chain-arc-soft)', border: '1px solid var(--chain-arc-soft)' }}>
               <p style={{ color: 'var(--chain-arc)' }}>
                 ⬡ Betting on Arc. Payouts settle in USDC on-chain. Sub-second finality.
               </p>
@@ -681,7 +678,7 @@ export default function BattleDetailPage() {
           <div className="grid grid-cols-3 gap-3">
             {[
               { side: 1, label: battle.coin_a, odds: oddsA, color: COLORS.coinA },
-              { side: 3, label: 'Draw', odds: oddsDraw, color: 'rgba(255,255,255,0.6)' },
+              { side: 3, label: 'Draw', odds: oddsDraw, color: 'var(--text-soft)' },
               { side: 2, label: battle.coin_b, odds: oddsB, color: COLORS.coinB },
             ].map(({ side, label, odds, color }) => (
               <button
@@ -689,7 +686,7 @@ export default function BattleDetailPage() {
                 onClick={() => !isClosed && setSelectedSide(side)}
                 className="rounded-xl p-3 text-center transition-all"
                 style={{
-                  background: selectedSide === side ? `${color}20` : 'rgba(255,255,255,0.03)',
+                  background: selectedSide === side ? `color-mix(in srgb, ${color} 12%, transparent)` : 'var(--border-soft)',
                   border: `1px solid ${selectedSide === side ? color : COLORS.line}`,
                 }}
               >
@@ -748,7 +745,7 @@ export default function BattleDetailPage() {
                 {isSettling ? 'Waiting for oracle confirmation…' : hasUserBet ? 'Your result is ready to view' : 'This battle has ended'}
               </p>
               {battle?.status === 'settled' && hasUserBet && (
-                <button onClick={() => navigate('/history')} className="mt-3 h-9 px-5 rounded-[10px] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-2))' }}>
+                <button onClick={() => navigate('/history')} className="mt-3 h-9 px-5 rounded-[10px] text-sm font-semibold transition-all hover:opacity-90 active:scale-95" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-2))', color: 'var(--accent-ink)' }}>
                   View your result
                 </button>
               )}
@@ -756,7 +753,7 @@ export default function BattleDetailPage() {
           ) : isArc ? (
             !arcConnected ? (
               <div className="text-center py-3 rounded-xl" style={{ background: 'var(--chain-arc-soft)', border: '1px solid var(--chain-arc-soft)' }}>
-                <button onClick={() => connectWallet()} style={{ background: 'rgba(124,58,237,0.8)', color: 'white', border: 'none', borderRadius: 12, padding: '12px 0', width: '100%', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>Connect Wallet for Arc</button>
+                <button onClick={() => connectWallet()} style={{ background: 'var(--chain-arc)', color: 'var(--chain-arc-ink)', border: 'none', borderRadius: 12, padding: '12px 0', width: '100%', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>Connect Wallet for Arc</button>
               </div>
             ) : (
               <button
@@ -764,8 +761,8 @@ export default function BattleDetailPage() {
                 disabled={arcLoading || !selectedSide || !stake}
                 className="w-full rounded-xl py-3 font-semibold"
                 style={{
-                  background: arcLoading || !selectedSide || !stake ? 'rgba(255,255,255,0.1)' : 'rgba(124,58,237,0.8)',
-                  color: arcLoading || !selectedSide || !stake ? COLORS.textSoft : 'white',
+                  background: arcLoading || !selectedSide || !stake ? 'var(--border-soft)' : 'var(--chain-arc)',
+                  color: arcLoading || !selectedSide || !stake ? COLORS.textSoft : 'var(--chain-arc-ink)',
                 }}
               >
                 {arcLoading ? 'Confirming on Arc...' : '⬡ Place Bet on Arc'}
@@ -775,8 +772,8 @@ export default function BattleDetailPage() {
             !connected ? (
               <button
                 onClick={() => ensureConnected()}
-                className="w-full rounded-xl py-3 font-semibold text-black"
-                style={{ background: COLORS.accent }}
+                className="w-full rounded-xl py-3 font-semibold"
+                style={{ background: COLORS.accent, color: 'var(--accent-ink)' }}
               >
                 Connect Solana Wallet
               </button>
@@ -784,8 +781,8 @@ export default function BattleDetailPage() {
               <button
                 onClick={() => handlePlaceBet(requoteOdds ?? undefined)}
                 disabled={loading || !selectedSide || !stake}
-                className="w-full rounded-xl py-3 font-semibold text-black"
-                style={{ background: loading || !selectedSide || !stake ? 'rgba(255,255,255,0.1)' : COLORS.accent, color: loading || !selectedSide || !stake ? COLORS.textSoft : 'black' }}
+                className="w-full rounded-xl py-3 font-semibold"
+                style={{ background: loading || !selectedSide || !stake ? 'var(--border-soft)' : COLORS.accent, color: loading || !selectedSide || !stake ? COLORS.textSoft : 'var(--accent-ink)' }}
               >
                 {loading ? 'Placing...' : requoteOdds !== null ? `Confirm at ${requoteOdds.toFixed(2)}` : 'Place Bet'}
               </button>
