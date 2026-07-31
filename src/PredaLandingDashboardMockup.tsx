@@ -219,6 +219,9 @@ const coinIcons: Record<string, string> = {
   FET: "https://assets.coingecko.com/coins/images/5681/standard/Fetch.jpg",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const initialMatches: Match[] = [
   {
     id: "1",
