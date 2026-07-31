@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback } from "react";
 import { toPng } from "html-to-image";
 import Avatar from "./Avatar";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 /**
  * Shareable P&L card. Opens from "Share my stats" on the private profile.
@@ -20,6 +21,7 @@ export default function ShareStatsModal({
   // Default: show P&L only if positive (flex wins, hide losses unless chosen).
   const [showPnl, setShowPnl] = useState(stats.pnl > 0);
   const [busy, setBusy] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const pnlUp = stats.pnl >= 0;
   const pnlStr = `${pnlUp ? "+" : "-"}$${Math.abs(stats.pnl).toFixed(2)}`;
@@ -56,13 +58,27 @@ export default function ShareStatsModal({
     window.open(url, "_blank");
   }, [showPnl, stats, pnlStr, profileUrl]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-         style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
-      <div className="w-full max-w-md rounded-[20px] p-6" style={{ background: "var(--panel)" }}
-           onClick={(e) => e.stopPropagation()}>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={onClose}
+        >
+          <motion.div
+            initial={reduceMotion ? { opacity: 0 } : { scale: 0.96, opacity: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { scale: 0.96, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            className="w-full max-w-md rounded-[20px] p-6"
+            style={{ background: "var(--panel)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Share your stats</h3>
           <button onClick={onClose} className="text-sm" style={{ color: "var(--text-soft)" }}>Close</button>
@@ -141,7 +157,9 @@ export default function ShareStatsModal({
         <p className="mt-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
           X can't auto-attach images - download first, then attach it to the pre-filled post.
         </p>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
