@@ -122,8 +122,6 @@ const COLORS = {
   accentSoft: "var(--accent-soft)",
   accentGlow: "var(--accent-soft)",
   textSoft: "var(--text-soft)",
-  accent2: "var(--accent)",
-  gradient: "linear-gradient(120deg, var(--accent), var(--accent-2))",
 };
 
 const boardTabs: MatchBoard[] = ["Live", "Upcoming"];
@@ -376,8 +374,8 @@ function TokenMark({ ticker }: { ticker: string }) {
   if (!src) {
     return (
       <div
-        className="flex h-6 w-6 items-center justify-center rounded-full border bg-[var(--panel)]/5 text-[10px] font-semibold text-white"
-        style={{ borderColor: COLORS.line }}
+        className="flex h-6 w-6 items-center justify-center rounded-full border bg-[var(--panel)]/5 text-[10px] font-semibold"
+        style={{ borderColor: COLORS.line, color: "var(--text)" }}
       >
         {ticker.slice(0, 1)}
       </div>
@@ -474,13 +472,13 @@ function AuthButton({
 }) {
   return (
     <button className="flex w-full items-center justify-between rounded-2xl border bg-[var(--panel)]/5 px-4 py-3 text-left transition hover:bg-[var(--panel)]/[0.07]" style={{ borderColor: COLORS.line }}>
-      <div className="flex items-center gap-3 text-sm font-medium text-white">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border bg-black/20 text-slate-200" style={{ borderColor: COLORS.line }}>
+      <div className="flex items-center gap-3 text-sm font-medium" style={{ color: "var(--text)" }}>
+        <span className="flex h-8 w-8 items-center justify-center rounded-full border" style={{ borderColor: COLORS.line, background: "var(--border-soft)", color: "var(--text-soft)" }}>
           {icon || badge}
         </span>
         {label}
       </div>
-      <ArrowRight className="h-4 w-4 text-slate-400" />
+      <ArrowRight className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
     </button>
   );
 }
@@ -543,7 +541,7 @@ function BreakingNewsPopup() {
                 </a>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="rounded-full border p-2 text-slate-400 shrink-0" style={{ borderColor: COLORS.line }}>
+            <button onClick={() => setOpen(false)} className="rounded-full border p-2 shrink-0" style={{ borderColor: COLORS.line, color: "var(--text-muted)" }}>
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -775,7 +773,7 @@ function Toast() {
         <div key={toast.id} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-xl"
           style={{ 
             background: toast.type === 'success' ? COLORS.accent : 'var(--neg)',
-            color: toast.type === 'success' ? '#000' : '#fff'
+            color: toast.type === 'success' ? 'var(--accent-ink)' : '#fff'
           }}>
           {toast.message}
         </div>
@@ -1413,7 +1411,7 @@ function UserBalancePanel() {
             <button
               onClick={() => { setShowArcWithdraw(true); setArcWithdrawAmount((usdc / 1e6).toFixed(2)) }}
               className="mt-2 w-full rounded-[10px] py-2 text-xs font-semibold"
-              style={{ background: COLORS.accent, color: '#000' }}
+              style={{ background: COLORS.accent, color: 'var(--accent-ink)' }}
             >
               Withdraw USDC
             </button>
@@ -1439,7 +1437,7 @@ function UserBalancePanel() {
                   onClick={handleArcWithdraw}
                   disabled={arcWithdrawing}
                   className="flex-1 rounded-[10px] py-2 text-xs font-semibold disabled:opacity-50"
-                  style={{ background: COLORS.accent, color: '#000' }}
+                  style={{ background: COLORS.accent, color: 'var(--accent-ink)' }}
                 >{arcWithdrawing ? 'Withdrawing...' : 'Confirm'}</button>
                 <button
                   onClick={() => { setShowArcWithdraw(false); setArcWithdrawAmount('') }}
@@ -1498,8 +1496,8 @@ function UserBalancePanel() {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => { setShowDeposit(!showDeposit); setShowWithdraw(false) }}
-          className="rounded-xl py-2 text-xs font-semibold text-black"
-          style={{ background: COLORS.accent }}
+          className="rounded-xl py-2 text-xs font-semibold"
+          style={{ background: COLORS.accent, color: 'var(--accent-ink)' }}
         >
           Deposit
         </button>
@@ -1743,11 +1741,11 @@ function SelectionButton({
   ticker: string;
 }) {
   return (
-    <motion.div whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.16 }} className={cx("rounded-[20px] border px-3 py-3 text-left transition", active ? "ring-1" : "")} style={{ borderColor: active ? COLORS.lineStrong : COLORS.line, background: active ? COLORS.accentSoft : "rgba(255,255,255,0.03)", boxShadow: active ? `0 0 0 1px ${COLORS.accentGlow} inset` : "none" }}>
+    <motion.div whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.16 }} className={cx("rounded-[20px] border px-3 py-3 text-left transition", active ? "ring-1" : "")} style={{ borderColor: active ? COLORS.lineStrong : COLORS.line, background: active ? COLORS.accentSoft : "var(--border-soft)", boxShadow: active ? `0 0 0 1px ${COLORS.accentGlow} inset` : "none" }}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center justify-between w-full gap-3">
           {ticker === "DRAW" ? (
-            <div className="flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold text-white" style={{ borderColor: COLORS.line }}>
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold" style={{ borderColor: COLORS.line, color: "var(--text)" }}>
               D
             </div>
           ) : (
@@ -1827,7 +1825,7 @@ function MarketCard({
         onClick={(e) => { e.stopPropagation(); if(!locked) onPick(match, side); }}
         style={{ opacity: locked ? 0.4 : 1, cursor: locked ? "not-allowed" : "pointer",
           flex: 1, textAlign: "center", padding: "16px 8px", borderRadius: 18,
-          background: sel ? `linear-gradient(150deg, ${leagueColor}22, ${leagueColor}0d)` : "var(--panel-2)",
+          background: sel ? `linear-gradient(150deg, color-mix(in srgb, ${leagueColor} 13%, transparent), color-mix(in srgb, ${leagueColor} 5%, transparent))` : "var(--panel-2)",
           boxShadow: sel ? `inset 0 0 0 1.5px ${leagueColor}` : "none",
           border: "none", transition: "background 0.18s",
         }}
@@ -1869,7 +1867,7 @@ function MarketCard({
             <motion.span
               className="inline-block w-[6px] h-[6px] rounded-full"
               style={{ background: leagueColor }}
-              animate={{ boxShadow: [`0 0 0 0 ${leagueColor}66`, `0 0 0 6px ${leagueColor}00`, `0 0 0 0 ${leagueColor}00`] }}
+              animate={{ boxShadow: [`0 0 0 0 color-mix(in srgb, ${leagueColor} 40%, transparent)`, `0 0 0 6px transparent`, `0 0 0 0 transparent`] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
             />
           )}
@@ -2797,7 +2795,7 @@ function StatusPill({ battle, side }: { battle: any; side: number }) {
   const { label, tone, Icon } = legStatus(battle, side)
   return (
     <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold"
-      style={{ background: 'rgba(255,255,255,0.05)', color: tone }}>
+      style={{ background: 'var(--border-soft)', color: tone }}>
       <Icon className="h-3 w-3" /> {label}
     </span>
   )
@@ -2887,11 +2885,11 @@ function ComboTicketCard({ legs }: { legs: any[] }) {
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
           <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Combined Odds</p>
-          <p className="text-white font-semibold">{comboOdds.toFixed(2)}x</p>
+          <p className="font-semibold" style={{ color: COLORS.accent }}>{comboOdds.toFixed(2)}x</p>
         </div>
         <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
           <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>Stake</p>
-          <p className="text-white font-semibold">${stake}</p>
+          <p className="font-semibold" style={{ color: COLORS.accent }}>${stake}</p>
         </div>
         <div className="rounded-xl p-3" style={{ background: COLORS.accentSoft }}>
           <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>To Win</p>
@@ -3038,7 +3036,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
                 </div>
                 <span className="text-sm px-3 py-1 rounded-full font-semibold" style={{
                   background: outcome.kind === 'won' ? 'var(--accent-soft)'
-                            : outcome.kind === 'void' ? 'rgba(255,255,255,0.06)'
+                            : outcome.kind === 'void' ? 'var(--border-soft)'
                             : 'var(--neg-soft)',
                   color: outcome.tone,
                 }}>
