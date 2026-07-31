@@ -4,9 +4,8 @@ import { supabase } from './lib/supabase'
 
 const COLORS = {
   bg: 'var(--bg)',
-  panel: 'var(--panel)',
   accent: 'var(--accent)',
-  lineStrong: 'var(--border-soft)',
+  text: 'var(--text)',
   textSoft: 'var(--text-soft)',
 }
 
@@ -51,12 +50,12 @@ export default function BetSharePage() {
             <div className="mb-4 flex justify-center">
               <span className="h-10 w-10 rounded-full border-2 animate-spin" style={{ borderColor: COLORS.accent, borderTopColor: 'transparent' }} />
             </div>
-            <p className="text-white text-lg font-semibold">Loading bet…</p>
+            <p className="text-lg font-semibold" style={{ color: COLORS.text }}>Loading bet…</p>
             <p className="text-sm mt-2" style={{ color: COLORS.textSoft }}>Rebuilding the ticket from your code</p>
           </>
         ) : (
           <>
-            <p className="text-white text-lg font-semibold mb-2">{error}</p>
+            <p className="text-lg font-semibold mb-2" style={{ color: COLORS.text }}>{error}</p>
             <button
               onClick={() => navigate('/')}
               className="mt-4 px-6 py-2 rounded-xl font-semibold"
