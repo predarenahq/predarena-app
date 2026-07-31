@@ -794,7 +794,7 @@ export default function BattleDetailPage() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: toast.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(244,63,94,0.95)',
+          background: toast.type === 'success' ? 'rgba(4,120,87,0.95)' : 'rgba(220,38,38,0.95)',
           color: 'white', padding: '12px 24px', borderRadius: 12, fontWeight: 600,
           fontSize: 14, zIndex: 9999, boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
           maxWidth: '90vw', textAlign: 'center',
