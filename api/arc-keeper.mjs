@@ -162,13 +162,20 @@ async function createArcBattles(contract) {
       }
       if (realId == null) throw new Error('no BattleCreated event in receipt')
 
-      await supabase.from('battles').update({
+      const { data: wrote, error: wbErr } = await supabase.from('battles').update({
         arc_battle_id:     Number(realId),
         arc_status:        'live',
         arc_claimed_at:    null,
         arc_start_price_a: b.start_price_a,
         arc_start_price_b: b.start_price_b,
-      }).eq('id', b.id)
+      }).eq('id', b.id).select('id')
+
+      // The mint SUCCEEDED on-chain (gas spent, realId assigned). If the DB
+      // write-back fails or matches no row, we must NOT report success - the
+      // battle exists on-chain but the app can't see it, and blindly created++
+      // would hide the orphan. Surface it loudly so it stops silently re-minting.
+      if (wbErr) throw new Error(`on-chain OK (id ${realId}) but DB write-back FAILED: ${wbErr.message}`)
+      if (!wrote?.length) throw new Error(`on-chain OK (id ${realId}) but DB write-back matched 0 rows for battle ${b.id}`)
 
       created++
       console.log(`Arc battle ${realId} created: ${b.coin_a} vs ${b.coin_b}`)
