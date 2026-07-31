@@ -98,12 +98,12 @@ export default function ShareStatsModal({
 
           <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
             <div>
-              <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em" }}>Win Rate</div>
+              <div style={{ color: "#8b93a3", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em" }}>Win Rate</div>
               <div style={{ color: "#fff", fontSize: 40, fontWeight: 800, lineHeight: 1 }}>{stats.winRate}</div>
             </div>
             {showPnl && (
               <div>
-                <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em" }}>Net P&L</div>
+                <div style={{ color: "#8b93a3", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em" }}>Net P&L</div>
                 <div style={{ color: pnlUp ? "#34D399" : "#f87171", fontSize: 40, fontWeight: 800, lineHeight: 1 }}>{pnlStr}</div>
               </div>
             )}
@@ -113,7 +113,7 @@ export default function ShareStatsModal({
             <div style={{ color: "#9ca3af", fontSize: 13 }}>
               {stats.won}W · {stats.lost}L · {stats.total} bets
             </div>
-            <div style={{ color: "#6b7280", fontSize: 12 }}>{profileUrl}</div>
+            <div style={{ color: "#8b93a3", fontSize: 12 }}>{profileUrl}</div>
           </div>
         </div>
         </div>
