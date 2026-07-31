@@ -1451,47 +1451,67 @@ function UserBalancePanel() {
         </div>
       )}
 
-      {showDeposit && (
-        <div className="space-y-2">
-          <input
-            type="number"
-            placeholder="Amount in SOL"
-            value={depositAmount}
-            onChange={e => setDepositAmount(e.target.value)}
-            className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
-            style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)" }}
-          />
-          <button
-            onClick={handleDeposit}
-            disabled={loading}
-            className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
-            style={{ background: "var(--brand-grad)" }}
+      <AnimatePresence initial={false}>
+        {showDeposit && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            style={{ overflow: 'hidden' }}
           >
-            {loading ? 'Processing...' : 'Confirm Deposit'}
-          </button>
-        </div>
-      )}
+            <div className="space-y-2">
+              <input
+                type="number"
+                placeholder="Amount in SOL"
+                value={depositAmount}
+                onChange={e => setDepositAmount(e.target.value)}
+                className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
+                style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)" }}
+              />
+              <button
+                onClick={handleDeposit}
+                disabled={loading}
+                className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
+                style={{ background: "var(--brand-grad)" }}
+              >
+                {loading ? 'Processing...' : 'Confirm Deposit'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {showWithdraw && (
-        <div className="space-y-2">
-          <input
-            type="number"
-            placeholder="Amount in SOL"
-            value={withdrawAmount}
-            onChange={e => setWithdrawAmount(e.target.value)}
-            className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
-            style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)" }}
-          />
-          <button
-            onClick={handleWithdraw}
-            disabled={loading}
-            className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
-            style={{ background: "var(--brand-grad)" }}
+      <AnimatePresence initial={false}>
+        {showWithdraw && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            style={{ overflow: 'hidden' }}
           >
-            {loading ? 'Processing...' : 'Confirm Withdraw'}
-          </button>
-        </div>
-      )}
+            <div className="space-y-2">
+              <input
+                type="number"
+                placeholder="Amount in SOL"
+                value={withdrawAmount}
+                onChange={e => setWithdrawAmount(e.target.value)}
+                className="w-full rounded-[10px] px-3 py-2.5 text-sm outline-none"
+                style={{ background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)" }}
+              />
+              <button
+                onClick={handleWithdraw}
+                disabled={loading}
+                className="w-full rounded-[10px] py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99]"
+                style={{ background: "var(--brand-grad)" }}
+              >
+                {loading ? 'Processing...' : 'Confirm Withdraw'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-2 gap-2">
         <button
