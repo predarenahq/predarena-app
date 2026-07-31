@@ -49,6 +49,7 @@
      at a glance. */
   --chain-arc:      #6D28D9;
   --chain-arc-soft: rgba(109,40,217,0.12);
+  --chain-arc-ink:  var(--accent-ink);  /* readable ON --chain-arc, same two-weight problem as --accent */
 
   /* Chart series — two hues that must stay apart at a glance. */
   --chart-a:        #14532D;
@@ -101,6 +102,7 @@
 
   --chain-arc:      #A78BFA;
   --chain-arc-soft: rgba(167,139,250,0.15);
+  --chain-arc-ink:  var(--accent-ink);  /* near-black here, since #A78BFA is a light fill unlike light theme's #6D28D9 */
 
   --chart-a:        #34D399;
   --chart-a-soft:   rgba(52,211,153,0.08);

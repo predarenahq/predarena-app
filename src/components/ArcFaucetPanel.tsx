@@ -95,7 +95,7 @@ export default function ArcFaucetPanel({
           <p className="text-[14px] font-semibold" style={{ color: 'var(--text)' }}>
             {done ? '2 USDC sent' : 'You need test USDC'}
           </p>
-          <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'var(--text-soft)' }}>
             {done
               ? 'It covers your stake and the gas. Your balance updates in a moment.'
               : 'Arc uses USDC for bets and for gas. Tap below and we will send you some.'}
@@ -108,8 +108,8 @@ export default function ArcFaucetPanel({
           <button
             onClick={claim}
             disabled={claiming || done}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-xs font-semibold text-white transition-transform active:scale-[0.99] disabled:opacity-60"
-            style={{ background: 'var(--chain-arc)' }}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-xs font-semibold transition-transform active:scale-[0.99] disabled:opacity-60"
+            style={{ background: 'var(--chain-arc)', color: 'var(--chain-arc-ink)' }}
           >
             {claiming && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {done && <Check className="h-3.5 w-3.5" />}
@@ -119,7 +119,7 @@ export default function ArcFaucetPanel({
           <button
             onClick={() => window.open(CIRCLE_FAUCET, '_blank', 'noopener,noreferrer')}
             className="mt-2 inline-flex items-center gap-1 text-[10px] transition-opacity hover:opacity-80"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Need more? Circle's faucet gives 20 every 2 hours
             <ExternalLink className="h-2.5 w-2.5" />

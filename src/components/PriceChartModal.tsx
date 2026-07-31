@@ -9,6 +9,7 @@ const COLORS = {
   panel: 'var(--panel)',
   accent: 'var(--accent)',
   lineStrong: 'var(--border-soft)',
+  text: 'var(--text)',
   textSoft: 'var(--text-soft)',
   coinA: 'var(--chart-a)',
   coinB: 'var(--chart-b)',
@@ -137,13 +138,13 @@ export default function PriceChartModal({
           >
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-white text-xl font-bold">{coinA} vs {coinB}</h2>
+                <h2 className="text-xl font-bold" style={{ color: COLORS.text }}>{coinA} vs {coinB}</h2>
                 <p className="text-xs mt-1" style={{ color: COLORS.textSoft }}>
                   Settlement price chart · Powered by Pyth Network
                 </p>
               </div>
               <button onClick={onClose} className="p-2 rounded-xl" style={{ background: COLORS.lineStrong }}>
-                <X size={18} color="white" />
+                <X size={18} color={COLORS.text} />
               </button>
             </div>
 
@@ -155,7 +156,7 @@ export default function PriceChartModal({
                 </p>
               </div>
               <div className="flex items-center">
-                <span className="text-white font-bold text-sm">VS</span>
+                <span className="font-bold text-sm" style={{ color: COLORS.text }}>VS</span>
               </div>
               <div className="flex-1 rounded-xl p-3 text-center" style={{ background: COLORS.coinBSoft, border: `1px solid ${COLORS.coinBLine}` }}>
                 <p className="text-xs mb-1" style={{ color: COLORS.textSoft }}>{coinB}</p>
@@ -202,7 +203,7 @@ export default function PriceChartModal({
                   <ReferenceLine y={0} stroke={COLORS.entryLine} strokeDasharray="4 4" />
                   <Line type="monotone" dataKey={coinA} stroke={COLORS.coinA} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
                   <Line type="monotone" dataKey={coinB} stroke={COLORS.coinB} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
-                  <Legend wrapperStyle={{ color: 'white', fontSize: 12 }} />
+                  <Legend wrapperStyle={{ color: COLORS.text, fontSize: 12 }} />
                 </LineChart>
               </ResponsiveContainer>
             )}
