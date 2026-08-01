@@ -53,6 +53,8 @@ export default async function handler(req, res) {
   if (action === 'set_avatar')   return setAvatar(req, res)
   if (action === 'capture_referral') return captureReferral(req, res)
   if (action === 'gate') return gate(req, res)
+  if (action === 'check_code') return checkCode(req, res)
+  if (action === 'redeem') return redeem(req, res)
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -88,6 +90,57 @@ async function gate(req, res) {
     .maybeSingle()
   if (error) return res.status(500).json({ error: 'allowlist_check_failed' })
   if (!data) return res.status(403).json({ error: 'not_allowlisted', email })
+
+  return res.status(200).json({ ok: true, email })
+}
+
+async function checkCode(req, res) {
+  const { code } = req.body || {}
+  if (!code) return res.status(400).json({ error: 'no_code' })
+  const c = String(code).trim().toUpperCase()
+  const { data } = await supabase
+    .from('invite_codes').select('code, used').eq('code', c).maybeSingle()
+  if (!data)     return res.status(404).json({ error: 'invalid_code' })
+  if (data.used) return res.status(409).json({ error: 'code_used' })
+  return res.status(200).json({ ok: true })
+}
+
+async function redeem(req, res) {
+  const { privyToken, code } = req.body || {}
+  if (!privyToken || !code) return res.status(400).json({ error: 'missing_fields' })
+
+  let email
+  try {
+    const claims = await privy.verifyAuthToken(privyToken)
+    const user = await privy.getUser(claims.userId)
+    email = user?.email?.address?.toLowerCase() || null
+  } catch { return res.status(401).json({ error: 'bad_token' }) }
+  if (!email) return res.status(403).json({ error: 'no_email' })
+
+  const c = String(code).trim().toUpperCase()
+
+  const { data: already } = await supabase
+    .from('allowlist').select('email').eq('email', email).maybeSingle()
+  if (already) return res.status(200).json({ ok: true, email, already: true })
+
+  const { data: claimed, error: claimErr } = await supabase
+    .from('invite_codes')
+    .update({ used: true, used_by_email: email, used_at: new Date().toISOString() })
+    .eq('code', c).eq('used', false)
+    .select('code')
+  if (claimErr) return res.status(500).json({ error: 'redeem_failed' })
+  if (!claimed?.length) {
+    const { data: exists } = await supabase
+      .from('invite_codes').select('used').eq('code', c).maybeSingle()
+    if (!exists) return res.status(404).json({ error: 'invalid_code' })
+    return res.status(409).json({ error: 'code_used' })
+  }
+
+  const { error: allowErr } = await supabase
+    .from('allowlist').insert({ email, note: 'redeemed ' + c })
+  if (allowErr && allowErr.code !== '23505') {
+    return res.status(500).json({ error: 'allowlist_failed' })
+  }
 
   return res.status(200).json({ ok: true, email })
 }
