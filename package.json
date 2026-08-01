@@ -6,6 +6,7 @@
     "@chainlink/solana-sdk": "^0.2.2",
     "@coral-xyz/anchor": "^0.32.1",
     "@privy-io/react-auth": "^3.18.0",
+    "@privy-io/server-auth": "^1.32.5",
     "@pythnetwork/price-service-client": "^1.10.0",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",

@@ -3,6 +3,12 @@ import { randomBytes, createHash } from 'crypto'
 import nacl from 'tweetnacl'
 import { PublicKey } from '@solana/web3.js'
 import { verifyMessage, getAddress } from 'viem'
+import { PrivyClient } from '@privy-io/server-auth'
+
+const privy = new PrivyClient(
+  process.env.REACT_APP_PRIVY_APP_ID,
+  process.env.PRIVY_APP_SECRET
+)
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 
@@ -46,7 +52,44 @@ export default async function handler(req, res) {
   if (action === 'set_username') return setUsername(req, res)
   if (action === 'set_avatar')   return setAvatar(req, res)
   if (action === 'capture_referral') return captureReferral(req, res)
+  if (action === 'gate') return gate(req, res)
   return res.status(400).json({ error: 'invalid_action' })
+}
+
+// Email allowlist gate. The REAL wall: verify the Privy access token against
+// Privy's keys server-side (unforgeable), read the email from Privy's verified
+// user record (never from the client), and check it against the allowlist table
+// (service role — the anon key cannot read allowlist). A non-allowlisted person
+// cannot pass even with a valid Privy login.
+async function gate(req, res) {
+  const { privyToken } = req.body || {}
+  if (!privyToken) return res.status(401).json({ error: 'no_token' })
+
+  let claims
+  try {
+    claims = await privy.verifyAuthToken(privyToken)
+  } catch {
+    return res.status(401).json({ error: 'bad_token' })
+  }
+
+  let email
+  try {
+    const user = await privy.getUser(claims.userId)
+    email = user?.email?.address?.toLowerCase() || null
+  } catch {
+    return res.status(500).json({ error: 'user_lookup_failed' })
+  }
+  if (!email) return res.status(403).json({ error: 'no_email' })
+
+  const { data, error } = await supabase
+    .from('allowlist')
+    .select('email')
+    .eq('email', email)
+    .maybeSingle()
+  if (error) return res.status(500).json({ error: 'allowlist_check_failed' })
+  if (!data) return res.status(403).json({ error: 'not_allowlisted', email })
+
+  return res.status(200).json({ ok: true, email })
 }
 
 async function issueNonce(req, res) {
