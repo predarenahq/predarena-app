@@ -175,6 +175,9 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
               >
                 {busy ? "Checking..." : "Continue"}
               </button>
+              <button onClick={login} style={linkBtn}>
+                Already have access? Sign in
+              </button>
             </Step>
           )}
 
@@ -407,6 +410,19 @@ const primaryBtn: React.CSSProperties = {
   fontWeight: 600,
   cursor: "pointer",
   transition: "transform 140ms cubic-bezier(0.23,1,0.32,1), filter 140ms ease",
+};
+
+const linkBtn: React.CSSProperties = {
+  marginTop: 18,
+  width: "100%",
+  background: "transparent",
+  border: "none",
+  color: SOFT,
+  fontSize: 13.5,
+  fontWeight: 500,
+  cursor: "pointer",
+  padding: 4,
+  transition: "color 140ms ease",
 };
 
 const ghostBtn: React.CSSProperties = {
