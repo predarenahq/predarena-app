@@ -1140,6 +1140,9 @@ function MobileThemeToggle() {
 function UserBalancePanel() {
   const { publicKey, connected, sendTransaction, signMessage } = useWallet()
   const { ensureConnected } = useWalletConnect()
+  const { connectWallet } = usePrivy()
+  const { wallets: privyWallets } = useWallets()
+  const evmAddress = privyWallets.find((w) => w.chainId?.startsWith("eip155:"))?.address || null
   const session = useSession()
   const [balance, setBalance] = React.useState<number>(0)
   const [usdc, setUsdc] = React.useState<number>(0)  // Arc winnings, mirrored from internalBalance (6dp)
@@ -1171,10 +1174,12 @@ function UserBalancePanel() {
   }, [session])
 
   React.useEffect(() => {
-    if (!walletAddr) return
+    // Fire on session (either chain signed in), not a Solana address - an
+    // EVM-only user has no Solana walletAddr but still has a balance to show.
+    if (!session.signedIn) return
     fetchBalance()
     fetchSolPrice()
-  }, [walletAddr, fetchBalance])
+  }, [session.signedIn, fetchBalance])
 
   React.useEffect(() => {
     const handler = () => fetchBalance()
@@ -1361,11 +1366,49 @@ function UserBalancePanel() {
   const balanceSol = balance / 1_000_000_000
   const balanceUsd = solPrice != null ? balanceSol * solPrice : null
 
-  if (!connected) {
+  if (!session.signedIn) {
     return (
-      <div className="rounded-2xl border p-3" style={{ borderColor: COLORS.line }}>
-        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>User Profile</p>
-        <p className="mt-1 text-xs" style={{ color: COLORS.textSoft }}>Connect wallet to see balance</p>
+      <div className="rounded-2xl border p-3 space-y-2.5" style={{ borderColor: COLORS.line }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Connect a wallet</p>
+        <p className="text-xs" style={{ color: COLORS.textSoft }}>
+          Connect a wallet to see your balance and start betting.
+        </p>
+
+        {/* EVM: connected via Privy? show it. Otherwise offer connect. */}
+        {evmAddress ? (
+          <div className="flex items-center justify-between rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
+            <span className="text-xs font-medium" style={{ color: COLORS.accent }}>EVM wallet connected</span>
+            <span className="text-xs" style={{ color: COLORS.textSoft }}>{evmAddress.slice(0, 4)}...{evmAddress.slice(-4)}</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => connectWallet()}
+            className="w-full rounded-xl py-2 text-xs font-semibold transition-all active:scale-[0.98]"
+            style={{ background: COLORS.accentSoft, color: COLORS.accent }}
+          >
+            Connect EVM wallet
+          </button>
+        )}
+
+        {/* Solana: always offered (custodial adapter). */}
+        <button
+          onClick={async () => { const pk = await ensureConnected(); if (pk) await session.signIn() }}
+          className="w-full rounded-xl py-2 text-xs font-semibold transition-all active:scale-[0.98]"
+          style={{ background: COLORS.accentSoft, color: COLORS.accent }}
+        >
+          Connect Solana wallet
+        </button>
+
+        {/* EVM connected but no wallet session yet -> one tap signs in + loads balance. */}
+        {evmAddress && (
+          <button
+            onClick={() => session.signIn()}
+            className="w-full rounded-xl py-2 text-xs font-semibold transition-all active:scale-[0.98]"
+            style={{ background: COLORS.accent, color: 'var(--accent-ink)' }}
+          >
+            Sign in to load balance
+          </button>
+        )}
       </div>
     )
   }
