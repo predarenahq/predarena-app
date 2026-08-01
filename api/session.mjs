@@ -55,6 +55,7 @@ export default async function handler(req, res) {
   if (action === 'gate') return gate(req, res)
   if (action === 'check_code') return checkCode(req, res)
   if (action === 'redeem') return redeem(req, res)
+  if (action === 'link_email') return linkEmail(req, res)
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -338,6 +339,78 @@ async function setUsername(req, res) {
     return res.status(500).json({ error: 'username_failed' })
   }
   return res.status(200).json(data)
+}
+
+// Link the verified Privy email onto the profile that owns a signature-proven
+// wallet. Dual proof: Privy token -> verified email (+ allowlisted), AND
+// nonce+signature -> wallet ownership. get_or_create_profile handles a brand-new
+// wallet (creates its profile); set_profile_email stamps the email with its own
+// guards (wallet already emailed / email on another profile). This is how an
+// existing wallet-user's email attaches to their REAL profile, so their data
+// (username, avatar, bets, balances) surfaces on future email-only logins.
+async function linkEmail(req, res) {
+  const { privyToken, nonce, signature } = req.body || {}
+  if (!privyToken || !nonce || !signature)
+    return res.status(400).json({ error: 'missing_params' })
+
+  let email
+  try {
+    const claims = await privy.verifyAuthToken(privyToken)
+    const user = await privy.getUser(claims.userId)
+    email = user?.email?.address?.toLowerCase() || null
+  } catch { return res.status(401).json({ error: 'bad_token' }) }
+  if (!email) return res.status(403).json({ error: 'no_email' })
+
+  const { data: allowed } = await supabase
+    .from('allowlist').select('email').eq('email', email).maybeSingle()
+  if (!allowed) return res.status(403).json({ error: 'not_allowlisted' })
+
+  const { data: claimed } = await supabase
+    .from('auth_nonces')
+    .update({ used_at: new Date().toISOString() })
+    .eq('nonce', nonce)
+    .is('used_at', null)
+    .gte('created_at', new Date(Date.now() - NONCE_TTL_MS).toISOString())
+    .select()
+    .single()
+  if (!claimed) return res.status(401).json({ error: 'nonce_invalid_or_used' })
+
+  const message = signMessage(nonce)
+  let ok = false
+  try {
+    if (claimed.chain === 'solana') {
+      ok = nacl.sign.detached.verify(
+        new TextEncoder().encode(message),
+        Buffer.from(signature, 'base64'),
+        new PublicKey(claimed.address).toBytes()
+      )
+    } else {
+      ok = await verifyMessage({ address: claimed.address, message, signature })
+    }
+  } catch (err) {
+    console.error('link_email verify error:', err.message)
+    ok = false
+  }
+  if (!ok) return res.status(401).json({ error: 'bad_signature' })
+
+  // ensure a profile exists for this wallet (creates one for a brand-new wallet)
+  await supabase.rpc('get_or_create_profile', {
+    p_address: claimed.address,
+    p_chain: claimed.chain,
+  })
+
+  // stamp the verified email onto that wallet's profile
+  const { data, error } = await supabase.rpc('set_profile_email', {
+    p_address: claimed.address,
+    p_email: email,
+  })
+  if (error) {
+    console.error('set_profile_email error:', error.message)
+    return res.status(500).json({ error: 'link_email_failed' })
+  }
+  if (!data?.ok) return res.status(409).json({ error: data?.error || 'link_email_rejected' })
+
+  return res.status(200).json({ ok: true, email, profile_id: data.profile_id })
 }
 
 async function link(req, res) {
