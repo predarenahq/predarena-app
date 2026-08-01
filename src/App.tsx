@@ -7,6 +7,7 @@ import NewsPage from "./NewsPage";
 import BetSharePage from "./BetSharePage";
 import AdminPage from "./AdminPage";
 import { PrivyProvider } from "@privy-io/react-auth";
+import AccessGate from "./AccessGate";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
@@ -109,6 +110,7 @@ function App() {
           <WalletModalProvider>
             <SessionProvider>
             <SlipProvider>
+            <AccessGate>
             <BrowserRouter>
               <Routes>
                 <Route path="/battle/:id" element={<BattleDetailPage />} />
@@ -119,6 +121,7 @@ function App() {
                 <Route path="*" element={<PredaLandingDashboardMockup />} />
               </Routes>
             </BrowserRouter>
+            </AccessGate>
             </SlipProvider>
             </SessionProvider>
           </WalletModalProvider>
