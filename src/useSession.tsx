@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useWallets } from "@privy-io/react-auth";
+import { useWallets, usePrivy } from "@privy-io/react-auth";
 
 /**
  * One session for the whole app: the token minted by /api/session, held in
@@ -25,6 +25,8 @@ type SessionValue = {
   addresses: string[];
   username: string | null;
   signedIn: boolean;
+  readToken: string | null;
+  recognized: boolean;
   signIn: () => Promise<boolean>;
   signOut: () => void;
   linkWallet: () => Promise<{ ok: boolean; error?: string }>;
@@ -36,7 +38,7 @@ type SessionValue = {
 };
 
 const SessionCtx = createContext<SessionValue>({
-  token: null, addresses: [], username: null, signedIn: false,
+  token: null, readToken: null, addresses: [], username: null, signedIn: false, recognized: false,
   signIn: async () => false, signOut: () => {},
   linkWallet: async () => ({ ok: false }),
   setUsernameFor: async () => ({ ok: false }),
@@ -111,6 +113,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { publicKey, signMessage } = useWallet();
   const { wallets: privyWallets } = useWallets();
+  const { authenticated, getAccessToken } = usePrivy();
+  const [emailToken, setEmailToken] = useState<string | null>(null);
   // First connected EVM wallet (eip155:*), if any. Address is lowercase from
   // Privy; the server checksums it in verify, so signing is unaffected.
   const evmAddress = privyWallets.find((w) => w.chainId?.startsWith("eip155:"))?.address || null;
@@ -298,12 +302,47 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Privy email token = the READ identity for users who logged in via email and
+  // have not signed a wallet this session. my-data resolves it -> verified email
+  // -> profile -> their data, so an email login shows the account immediately.
+  React.useEffect(() => {
+    if (!authenticated) { setEmailToken(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const t = await getAccessToken();
+        if (!cancelled) setEmailToken(t || null);
+      } catch { if (!cancelled) setEmailToken(null); }
+    })();
+    return () => { cancelled = true; };
+  }, [authenticated, getAccessToken]);
+
+  // Read identity: the wallet-session token if present, else the email token.
+  const readToken = token || emailToken;
+
+  // Email-only rehydration: no wallet token but email-authed -> load the
+  // profile + addresses via the email token so the account panel populates.
+  React.useEffect(() => {
+    if (token || !emailToken) return;
+    (async () => {
+      const res = await fetch("/api/my-data?type=me", { headers: { Authorization: `Bearer ${emailToken}` } });
+      if (!res.ok) return;
+      const me = await res.json();
+      if (me) {
+        setAddresses(me.addresses || []);
+        setUsername(me.username ?? null);
+        setAvatarUrl(me.avatar_url ?? null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailToken, token]);
+
   const myData = useCallback((type: "tickets" | "balance" | "me" | "referrals" | "referrals") =>
-    myDataInternal(type, token), [myDataInternal, token]);
+    myDataInternal(type, readToken), [myDataInternal, readToken]);
 
   return (
     <SessionCtx.Provider value={{
-      token, addresses, username, signedIn: !!token,
+      token, readToken, addresses, username, signedIn: !!token, recognized: !!token || !!emailToken,
       signIn, signOut, linkWallet, setUsernameFor, avatarUrl, uploadAvatar, unlinkedWallet, myData,
     }}>
       {children}

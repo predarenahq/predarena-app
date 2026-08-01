@@ -804,7 +804,7 @@ function Toast() {
  * to add a Solana wallet, connect it first, then tap Add.
  */
 function SettingsWallets() {
-  const { signedIn, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, avatarUrl, uploadAvatar } = useSession();
+  const { signedIn, recognized, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, avatarUrl, uploadAvatar } = useSession();
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = React.useState(false);
   const [avatarMsg, setAvatarMsg] = React.useState<string | null>(null);
@@ -858,7 +858,7 @@ function SettingsWallets() {
   const short = (a: string) => a.length > 12 ? `${a.slice(0, 6)}...${a.slice(-4)}` : a;
   const chainOf = (a: string) => a.startsWith("0x") ? "EVM (Ethereum / Arc)" : "Solana";
 
-  if (!signedIn) return (
+  if (!recognized) return (
     <div className="rounded-[18px] p-6 mb-6" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
       <h3 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Your account</h3>
       <p className="mt-1 text-sm" style={{ color: "var(--text-soft)" }}>
@@ -1161,7 +1161,7 @@ function UserBalancePanel() {
   const fetchBalance = React.useCallback(async () => {
     // Through the session (my-data, service-role) so it survives the RLS lockdown.
     // total_lamports sums the session's addresses - the combined custodial balance.
-    if (!session.signedIn) { setBalance(0); return }
+    if (!session.recognized) { setBalance(0); return }
     try {
       const bal = await session.myData('balance')
       if (bal) { setBalance(bal.total_lamports || 0); setUsdc(bal.total_usdc || 0) }
@@ -2323,13 +2323,13 @@ function SettingsPage() {
  * Same trap that rendered one combo as four cards in History.
  */
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
-  const { signedIn, myData, username, avatarUrl } = useSession();
+  const { signedIn, recognized, myData, username, avatarUrl } = useSession();
   const [shareOpen, setShareOpen] = React.useState(false);
   const [refStats, setRefStats] = React.useState<{ referred_count: number; usd_earned: number; points: number } | null>(null);
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
-    if (!signedIn) { setRefStats(null); return }
+    if (!recognized) { setRefStats(null); return }
     (async () => {
       try { const r = await myData('referrals'); if (r) setRefStats(r); } catch {}
     })();
@@ -2347,7 +2347,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     // Reads go through /api/my-data, scoped SERVER-SIDE to the session's proven
     // addresses. walletAddress/evmAddresses props stay but no longer drive the
     // query - the session is the source of truth for whose bets these are.
-    if (!signedIn) { setTickets([]); setLoading(false); return }
+    if (!recognized) { setTickets([]); setLoading(false); return }
     (async () => {
       try {
         const res = await myData('tickets');
@@ -2947,7 +2947,7 @@ function betOutcome(legs: any[]): { kind: 'won' | 'lost' | 'void'; label: string
 }
 
 function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
-  const { signedIn, signIn, myData } = useSession()
+  const { signedIn, recognized, signIn, myData } = useSession()
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -2956,7 +2956,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     // session's addresses (every linked wallet, not just the connected one).
     // walletAddress/evmAddresses props are left in place but no longer drive the
     // query - the session is the source of truth for whose bets these are.
-    if (!signedIn) { setLoading(false); return }
+    if (!recognized) { setLoading(false); return }
     async function fetchHistory() {
       try {
         const res = await myData('tickets')
@@ -3131,7 +3131,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
 }
 
 function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
-  const { signedIn, signIn, myData } = useSession()
+  const { signedIn, recognized, signIn, myData } = useSession()
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -3140,7 +3140,7 @@ function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: 
     // addresses. The old query filtered claimed=false in SQL; my-data returns
     // ALL tickets newest-first, so that filter moves client-side below (same
     // meaning), and no reordering is needed.
-    if (!signedIn) { setTickets([]); setLoading(false); return }
+    if (!recognized) { setTickets([]); setLoading(false); return }
     async function fetchTickets() {
       try {
         const res = await myData('tickets')
@@ -3161,7 +3161,7 @@ function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: 
     return () => clearInterval(interval)
   }, [signedIn]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!signedIn) return (
+  if (!recognized) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <p className="text-lg font-semibold" style={{ color: "var(--text)" }}>Sign in to see your bets</p>
       <p className="mt-2 text-sm max-w-xs" style={{ color: COLORS.textSoft }}>A quick wallet signature - no transaction, no fee - proves these bets are yours.</p>
