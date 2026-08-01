@@ -804,7 +804,7 @@ function Toast() {
  * to add a Solana wallet, connect it first, then tap Add.
  */
 function SettingsWallets() {
-  const { signedIn, recognized, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, avatarUrl, uploadAvatar } = useSession();
+  const { recognized, addresses, username, signIn, signOut, linkWallet, setUsernameFor, unlinkedWallet, avatarUrl, uploadAvatar } = useSession();
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [avatarBusy, setAvatarBusy] = React.useState(false);
   const [avatarMsg, setAvatarMsg] = React.useState<string | null>(null);
@@ -2366,7 +2366,7 @@ function SettingsPage() {
  * Same trap that rendered one combo as four cards in History.
  */
 function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: string; evmAddresses?: string[] }) {
-  const { signedIn, recognized, myData, username, avatarUrl } = useSession();
+  const { recognized, myData, username, avatarUrl } = useSession();
   const [shareOpen, setShareOpen] = React.useState(false);
   const [refStats, setRefStats] = React.useState<{ referred_count: number; usd_earned: number; points: number } | null>(null);
   const [copied, setCopied] = React.useState(false);
@@ -2376,7 +2376,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
     (async () => {
       try { const r = await myData('referrals'); if (r) setRefStats(r); } catch {}
     })();
-  }, [signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recognized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refLink = username ? `predarena-app.vercel.app/?ref=${username}` : null;
   function copyRefLink() {
@@ -2403,7 +2403,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
         setLoading(false);
       }
     })();
-  }, [signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recognized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = React.useMemo(() => {
     // One entry per BET. Combo legs collapse into their combo_id.
@@ -2990,7 +2990,7 @@ function betOutcome(legs: any[]): { kind: 'won' | 'lost' | 'void'; label: string
 }
 
 function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
-  const { signedIn, recognized, signIn, myData } = useSession()
+  const { recognized, signIn, myData } = useSession()
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -3017,7 +3017,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
       }
     }
     fetchHistory()
-  }, [signedIn]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recognized]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // One card per BET, not per row. A 4-leg combo is 4 ticket rows sharing a
   // combo_id, and rendering them individually showed one bet as four cards -
@@ -3174,7 +3174,7 @@ function HistoryPage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
 }
 
 function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: string, evmAddresses?: string[] }) {
-  const { signedIn, recognized, signIn, myData } = useSession()
+  const { recognized, signIn, myData } = useSession()
   const [tickets, setTickets] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -3202,7 +3202,7 @@ function RunningBetsPage({ walletAddress, evmAddresses = [] }: { walletAddress: 
     fetchTickets()
     const interval = setInterval(fetchTickets, 30000)
     return () => clearInterval(interval)
-  }, [signedIn]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recognized]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!recognized) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
