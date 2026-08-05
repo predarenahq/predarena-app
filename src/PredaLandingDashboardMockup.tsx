@@ -2081,6 +2081,8 @@ function SlipDrawer({
   slipChain,
   setSlipChain,
   arcConnected,
+  unlinkedEvm,
+  onLinkWallet,
   placing,
 }: {
   open: boolean;
@@ -2095,8 +2097,11 @@ function SlipDrawer({
   slipChain: 'solana' | 'arc';
   setSlipChain: (c: 'solana' | 'arc') => void;
   arcConnected: boolean;
+  unlinkedEvm?: string | null;
+  onLinkWallet?: () => Promise<{ ok: boolean; error?: string }>;
   placing?: boolean;
 }) {
+  const [linking, setLinking] = useState(false);
   const totalOdds = useMemo(() => calculateTotalOdds(items), [items]);
   const projected = useMemo(() => calculatePotentialPayout(Number(stake || 0), totalOdds), [stake, totalOdds]);
   // arcBattleId is null until the keeper mirrors a battle. Every leg needs one,
@@ -2239,11 +2244,25 @@ function SlipDrawer({
             {((!allOnArc && items.length > 0) || (slipChain === 'arc' && !arcConnected)) && (
               <p className="mb-2 text-[10px] leading-tight" style={{ color: slipChain === 'arc' && !arcConnected ? 'var(--neg)' : 'var(--text-muted)' }}>
                 {slipChain === 'arc' && !arcConnected
-                  ? 'Connect an EVM wallet to bet on Arc'
+                  ? (unlinkedEvm
+                      ? 'Link your wallet to bet on Arc - it needs to be on your account so the bet shows in your history'
+                      : 'Connect an EVM wallet to bet on Arc')
                   : notOnArc === items.length
                     ? 'Not on Arc yet, still being mirrored'
                     : `${notOnArc} of ${items.length} not on Arc yet`}
               </p>
+            )}
+            {/* One tap to link, in context. Sending the user to Settings to find
+                this was the difference between a usable slip and a dead end. */}
+            {slipChain === 'arc' && !arcConnected && unlinkedEvm && onLinkWallet && (
+              <button
+                onClick={async () => { setLinking(true); try { await onLinkWallet() } finally { setLinking(false) } }}
+                disabled={linking}
+                className="mb-2 w-full rounded-[10px] py-2 text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+              >
+                {linking ? 'Linking...' : `Link ${unlinkedEvm.slice(0, 6)}...${unlinkedEvm.slice(-4)}`}
+              </button>
             )}
             <div className="flex items-center gap-2 rounded-[12px] px-4 py-3" style={{ background: "var(--panel)", border: "1px solid var(--border)" }}>
               <CircleDollarSign className="h-4 w-4" style={{ color: "var(--text-muted)" }} />
@@ -3317,7 +3336,7 @@ export default function PredaLandingDashboardMockup() {
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
   const [solPlacing, setSolPlacing] = useState(false)
-  const { signedIn, signIn, token, addresses } = useSession();  // betting gate: bets require a session
+  const { signedIn, signIn, token, addresses, linkWallet } = useSession();  // betting gate: bets require a session
   // Solana address from the session (survives refresh) or the live wallet. With
   // autoConnect off the adapter is empty after reload, but the session still
   // holds the proven address - so the UI shows connected and reads stay scoped.
@@ -3359,8 +3378,21 @@ export default function PredaLandingDashboardMockup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [privyWallets.map((w) => w.address).join(",")]);
 
-  // Arc needs an EVM wallet - either Privy's embedded one or MetaMask.
-  const arcConnected = evmAddresses.length > 0;
+  // Arc needs an EVM wallet that is LINKED to the profile, not merely connected.
+  // place-bet-arc records from the on-chain BetPlaced event and has NO session,
+  // so it resolves the ticket's owner via profile_wallets. An unlinked wallet
+  // means profile_id lands null - and since history is profile-scoped, the bet
+  // would take real money on-chain and never appear in the user's history.
+  // Gating on linked is what makes that impossible.
+  const linkedEvm = useMemo(
+    () => evmAddresses.filter((a) => addresses.some((x) => x.toLowerCase() === a.toLowerCase())),
+    [evmAddresses, addresses]
+  );
+  const arcConnected = linkedEvm.length > 0;
+  // Connected but not on the profile yet - the slip offers a one-tap link.
+  const unlinkedEvm = evmAddresses.find(
+    (a) => !addresses.some((x) => x.toLowerCase() === a.toLowerCase())
+  ) || null;
 
 
   useEffect(() => {
@@ -4028,7 +4060,7 @@ export default function PredaLandingDashboardMockup() {
       />
 
       <SlipHandle open={slipOpen} setOpen={setSlipOpen} count={slipSelections.length} />
-      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} placing={slipChain === 'arc' ? arcLoading : solPlacing} />
+      <SlipDrawer open={slipOpen} items={slipSelections} stake={stake} setStake={setStake} onRemove={handleRemoveSelection} onPlaceTicket={handlePlaceTicket} onClose={() => setSlipOpen(false)} requoteReady={requoteReady} oddsFlash={oddsFlash} slipChain={slipChain} setSlipChain={setSlipChain} arcConnected={arcConnected} unlinkedEvm={unlinkedEvm} onLinkWallet={linkWallet} placing={slipChain === 'arc' ? arcLoading : solPlacing} />
       {shareData && (
         <BetShareModal
           open={shareModalOpen}
