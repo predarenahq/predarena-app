@@ -1426,8 +1426,35 @@ function UserBalancePanel() {
         </button>
       </div>
       <p className="text-xs" style={{ color: COLORS.textSoft }}>
-        {walletAddr.slice(0, 4)}...{walletAddr.slice(-4)}
+        {walletAddr ? walletAddr.slice(0, 4) + '...' + walletAddr.slice(-4) : (evmAddress ? evmAddress.slice(0, 4) + '...' + evmAddress.slice(-4) : '')}
       </p>
+
+      {/* Connect the OTHER chain. The connect hub only shows when signed OUT,
+          so once you sign in on one chain there was no path left to add the
+          other - which stranded Solana users with "connect an EVM wallet to bet
+          on Arc" and no button anywhere to do it. */}
+      {(!evmAddress || !publicKey) && (
+        <div className="space-y-1.5">
+          {!evmAddress && (
+            <button
+              onClick={() => connectWallet()}
+              className="w-full rounded-xl py-2 text-xs font-semibold transition-all active:scale-[0.98]"
+              style={{ background: COLORS.accentSoft, color: COLORS.accent }}
+            >
+              Connect EVM wallet for Arc
+            </button>
+          )}
+          {!publicKey && (
+            <button
+              onClick={async () => { const pk = await ensureConnected(); if (pk) await session.linkWallet() }}
+              className="w-full rounded-xl py-2 text-xs font-semibold transition-all active:scale-[0.98]"
+              style={{ background: COLORS.accentSoft, color: COLORS.accent }}
+            >
+              Connect Solana wallet
+            </button>
+          )}
+        </div>
+      )}
       {/* SOL balance (Solana custodial) - its own labelled box with the USD/SOL toggle */}
       <div className="rounded-xl p-2" style={{ background: COLORS.accentSoft }}>
         <div className="flex items-center gap-1.5">
