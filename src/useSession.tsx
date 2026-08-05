@@ -159,7 +159,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
     return true;
-  }, [setToken, publicKey, signMessage]);
+  }, [setToken, publicKey, signMessage, authenticated, getAccessToken]);
 
   const signOut = useCallback(() => {
     suppressAutoSign.current = true;   // don't let auto-sign-in refire before disconnect completes
