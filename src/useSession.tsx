@@ -137,7 +137,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       ? await signNonceSolana(publicKey, signMessage)
       : await signNonce();
     if (!signed) return false;
-    const { res, data } = await postSession({ action: "verify", nonce: signed.nonce, signature: signed.signature });
+    // Pass the Privy token so the SAME signature that mints the wallet session
+    // also links the verified email onto this profile. Without it, profiles.email
+    // is never written by anything a user does, and a later email-only login
+    // finds nothing. Non-fatal server-side, so sign-in works with or without it.
+    let pt: string | null = null;
+    try { pt = authenticated ? await getAccessToken() : null; } catch { pt = null; }
+    const { res, data } = await postSession({ action: "verify", nonce: signed.nonce, signature: signed.signature, privyToken: pt });
     if (!res.ok) return false;
     setToken(data.token);
     setAddresses(data.addresses || [data.address]);

@@ -169,7 +169,7 @@ async function issueNonce(req, res) {
 }
 
 async function verify(req, res) {
-  const { nonce, signature } = req.body || {}
+  const { nonce, signature, privyToken } = req.body || {}
   if (!nonce || !signature) return res.status(400).json({ error: 'missing_params' })
 
   // Claim the nonce ATOMICALLY. Filtering on used_at IS NULL inside the UPDATE
@@ -222,6 +222,34 @@ async function verify(req, res) {
   if (pErr) {
     console.error('profile failed:', pErr.message)
     return res.status(500).json({ error: 'profile_failed' })
+  }
+
+  // EMAIL LINK. The wallet is proven (signature above) and the profile exists.
+  // If the caller is also Privy-email-authenticated, stamp that verified email
+  // onto THIS profile - that is what makes a later email-only login find their
+  // data (my-data resolves email -> profiles.email -> profile_wallets).
+  // Deliberately NON-FATAL: a guard rejection (this wallet's profile already
+  // carries someone else's email, or this email is on another profile) must not
+  // block a legitimate wallet sign-in. They keep their session either way.
+  if (privyToken) {
+    try {
+      const claims = await privy.verifyAuthToken(privyToken)
+      const puser = await privy.getUser(claims.userId)
+      const email = puser?.email?.address?.toLowerCase() || null
+      if (email) {
+        const { data: allowed } = await supabase
+          .from('allowlist').select('email').eq('email', email).maybeSingle()
+        if (allowed) {
+          const { data: linkRes } = await supabase.rpc('set_profile_email', {
+            p_address: claimed.address,
+            p_email: email,
+          })
+          if (!linkRes?.ok) console.warn('email link skipped:', linkRes?.error)
+        }
+      }
+    } catch (e) {
+      console.warn('email link skipped (token):', e?.message)
+    }
   }
 
   const token = randomBytes(32).toString('hex')
