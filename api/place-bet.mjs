@@ -220,6 +220,25 @@ export default async function handler(req, res) {
       }
     }
 
+    // Stamp profile_id onto the just-created ticket(s). ADDITIVE ownership key:
+    // wallet_address stays (settlement credits by wallet); profile_id is what
+    // history/stats scope on, so a bet belongs to the EMAIL's profile, not the
+    // raw wallet. The backfill left every existing ticket non-null, and we scope
+    // to this bet's battle_ids + a 30s window, so this only touches rows this
+    // call just inserted. Best-effort: a stamp failure must not fail the bet.
+    if (sess.profileId) {
+      try {
+        await supabase.from('tickets')
+          .update({ profile_id: sess.profileId })
+          .eq('wallet_address', wallet_address)
+          .is('profile_id', null)
+          .in('battle_id', legs.map((l) => l.battle_id))
+          .gt('created_at', new Date(Date.now() - 30000).toISOString())
+      } catch (pErr) {
+        console.error('profile_id stamp failed (bet still placed):', pErr?.message)
+      }
+    }
+
     return res.status(200).json(data)
   } catch (err) {
     if (err.message === 'pyth_unavailable') return res.status(503).json({ error: 'pricing_unavailable' })

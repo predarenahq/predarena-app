@@ -83,13 +83,17 @@ export default async function handler(req, res) {
     }
 
     if (type === 'tickets') {
-      // Every address on the profile. This is why a session carries a profile
-      // and not a bare address: a per-address session would show a fraction of
-      // someone's bets - worse than leaving the table open.
+      // Scoped by PROFILE, not wallet. History belongs to the email's profile:
+      // a bet is stamped with profile_id at placement, and read back here by
+      // profile_id. So connecting a wallet that once belonged to another profile
+      // never surfaces that profile's history - the query never touches wallet.
+      // (Existing tickets were backfilled with profile_id from their wallet's
+      // profile, so nothing is lost.) Balance stays wallet-scoped; money is
+      // per-wallet, history is per-profile.
       const { data, error } = await supabase
         .from('tickets')
         .select('*, battles(*)')
-        .in('wallet_address', sess.addresses)
+        .eq('profile_id', sess.profileId)
         .order('created_at', { ascending: false })
       if (error) throw error
       return res.status(200).json({ tickets: data || [] })
