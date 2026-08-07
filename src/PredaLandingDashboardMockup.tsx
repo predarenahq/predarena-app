@@ -3345,7 +3345,6 @@ export default function PredaLandingDashboardMockup() {
   const location = useLocation();
 
   const [loading, setLoading] = useState(true);
-  const [authOpen, setAuthOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>("ARENA");
