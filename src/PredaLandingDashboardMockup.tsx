@@ -43,6 +43,7 @@ import { useTheme } from "./useTheme";
 import { useSession } from "./useSession";
 import { useSlip } from "./SlipContext";
 import { useWalletConnect } from "./useWalletConnect";
+import ArcFaucetPanel from "./components/ArcFaucetPanel";
 import ShareStatsModal from "./ShareStatsModal";
 import Avatar from "./Avatar";
 import UserSearch from "./UserSearch";
@@ -1015,7 +1016,7 @@ function UserBalancePanel() {
   const session = useSession()
   const [balance, setBalance] = React.useState<number>(0)
   const [usdc, setUsdc] = React.useState<number>(0)  // Arc winnings, mirrored from internalBalance (6dp)
-  const { withdraw: arcWithdraw, loading: arcWithdrawing } = useArcArena()
+  const { withdraw: arcWithdraw, loading: arcWithdrawing, getUSDCBalance } = useArcArena()
   const [showArcWithdraw, setShowArcWithdraw] = React.useState(false)
   const [arcWithdrawAmount, setArcWithdrawAmount] = React.useState('')
   const [solPrice, setSolPrice] = React.useState<number | null>(null)
@@ -1025,6 +1026,12 @@ function UserBalancePanel() {
   const [showWithdraw, setShowWithdraw] = React.useState(false)
   const [currency, setCurrency] = React.useState<'SOL' | 'USD'>('USD')
   const [loading, setLoading] = React.useState(false)
+  const [arcOnChain, setArcOnChain] = React.useState('0.00')
+  const refreshArcOnChain = React.useCallback(async () => {
+    if (!evmAddress) return
+    try { setArcOnChain(await getUSDCBalance(evmAddress as `0x${string}`)) } catch { /* rpc down */ }
+  }, [evmAddress, getUSDCBalance])
+  React.useEffect(() => { refreshArcOnChain() }, [refreshArcOnChain])
 
   // Falls back to the session's Solana address on refresh (autoConnect off leaves
   // the adapter empty, but the session keeps the proven address).
@@ -1391,6 +1398,15 @@ function UserBalancePanel() {
       )}
 
       <AnimatePresence initial={false}>
+        {/* Faucet, where people already come for money. Renders as a small
+            "Get test USDC" link normally, or a full explainer card when the
+            wallet is actually low. */}
+        {evmAddress && (
+          <div className="pt-1">
+            <ArcFaucetPanel address={evmAddress} balance={arcOnChain} onRefresh={refreshArcOnChain} />
+          </div>
+        )}
+
         {showDeposit && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
