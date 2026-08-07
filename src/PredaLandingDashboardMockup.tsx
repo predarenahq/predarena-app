@@ -189,8 +189,8 @@ const showSlides = [
     cta: "Open Arena",
   },
   {
-    title: "SOCIAL + WALLET ACCESS",
-    text: "Connect with X and wallet-first access built for crypto-native users.",
+    title: "INVITE-ONLY PILOT",
+    text: "Sign in with your email. Connect a wallet when you're ready to deposit or bet.",
     cta: "Get Started",
   },
   {
@@ -990,137 +990,6 @@ function SettingsWallets() {
   );
 }
 
-function SessionTestButton() {
-  const [status, setStatus] = React.useState<string>('')
-  const [busy, setBusy] = React.useState(false)
-  const [token, setToken] = React.useState<string>('')
-
-  async function run() {
-    setBusy(true)
-    setStatus('')
-    try {
-      const eth = (window as any).ethereum
-      if (!eth) { setStatus('No EVM wallet found'); return }
-
-      const [addr] = await eth.request({ method: 'eth_requestAccounts' })
-
-      const nRes = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'nonce', address: addr, chain: 'evm' }),
-      })
-      const n = await nRes.json()
-      if (!nRes.ok) { setStatus(`nonce failed: ${n.error}`); return }
-
-      const sig = await eth.request({ method: 'personal_sign', params: [n.message, addr] })
-
-      const vRes = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', nonce: n.nonce, signature: sig }),
-      })
-      const v = await vRes.json()
-      if (!vRes.ok) { setStatus(`verify failed: ${v.error}`); return }
-      setToken(v.token)
-
-      // The nonce must be single-use, or a captured signature is replayable and
-      // the whole mechanism is decorative.
-      const rRes = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', nonce: n.nonce, signature: sig }),
-      })
-      const r = await rRes.json()
-      const replayBlocked = r.error === 'nonce_invalid_or_used'
-
-      // The 401s prove it refuses. This proves it ACCEPTS - and returns the
-      // right rows for every address on the profile, which is the thing the
-      // whole client will depend on.
-      const [meRes, tRes, bRes] = await Promise.all([
-        fetch('/api/my-data?type=me',      { headers: { Authorization: `Bearer ${v.token}` } }),
-        fetch('/api/my-data?type=tickets', { headers: { Authorization: `Bearer ${v.token}` } }),
-        fetch('/api/my-data?type=balance', { headers: { Authorization: `Bearer ${v.token}` } }),
-      ])
-      const me = await meRes.json()
-      const t  = await tRes.json()
-      const b  = await bRes.json()
-
-      setStatus(
-        `OK ${v.address.slice(0, 6)}…${v.address.slice(-4)} · replay ${replayBlocked ? 'blocked' : 'NOT BLOCKED'} · ` +
-        `addresses ${me.addresses?.length ?? '?'} · tickets ${t.tickets?.length ?? t.error} · ` +
-        `balance ${b.total_lamports != null ? (b.total_lamports / 1e9).toFixed(3) + ' SOL' : b.error}`
-      )
-    } catch (e: any) {
-      setStatus(e?.message?.slice(0, 80) || 'failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="mt-3">
-      <button
-        onClick={run}
-        disabled={busy}
-        className="flex w-full items-center justify-center rounded-[12px] px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
-        style={{ background: "var(--accent-soft)", border: "1px solid var(--accent)", color: "var(--accent)" }}
-      >
-        {busy ? 'Check your wallet…' : 'Test wallet sign-in'}
-      </button>
-      {status && (
-        <p className="mt-2 text-[11px] leading-tight" style={{ color: status.startsWith('OK') ? 'var(--pos)' : 'var(--neg)' }}>
-          {status}
-        </p>
-      )}
-      {token && (
-        <button
-          onClick={linkWallet}
-          disabled={busy}
-          className="mt-2 flex w-full items-center justify-center rounded-[12px] px-3 py-2.5 text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
-          style={{ background: "var(--chain-arc-soft)", border: "1px solid var(--chain-arc)", color: "var(--chain-arc)" }}
-        >
-          {busy ? 'Check your wallet…' : 'Link the wallet now active in MetaMask'}
-        </button>
-      )}
-    </div>
-  )
-
-  async function linkWallet() {
-    setBusy(true)
-    try {
-      const eth = (window as any).ethereum
-      // Whatever wallet is CURRENTLY selected in MetaMask - switch it first.
-      const [addr] = await eth.request({ method: 'eth_requestAccounts' })
-
-      const nRes = await fetch('/api/session', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'nonce', address: addr, chain: 'evm' }),
-      })
-      const n = await nRes.json()
-      if (!nRes.ok) { setStatus(`nonce failed: ${n.error}`); return }
-
-      const sig = await eth.request({ method: 'personal_sign', params: [n.message, addr] })
-
-      const lRes = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'link', nonce: n.nonce, signature: sig }),
-      })
-      const l = await lRes.json()
-      if (!lRes.ok) { setStatus(`link failed: ${l.error}`); return }
-
-      // Re-read with the SAME token - addresses and tickets should both jump.
-      const t = await (await fetch('/api/my-data?type=tickets', { headers: { Authorization: `Bearer ${token}` } })).json()
-      const me = await (await fetch('/api/my-data?type=me', { headers: { Authorization: `Bearer ${token}` } })).json()
-      setStatus(`LINKED ${addr.slice(0,6)}…${addr.slice(-4)} · now ${me.addresses?.length} addresses · ${t.tickets?.length} tickets`)
-    } catch (e: any) {
-      setStatus(e?.message?.slice(0, 80) || 'link failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-}
-
 function MobileThemeToggle() {
   const { theme, toggle } = useTheme();
   return (
@@ -1656,16 +1525,16 @@ function MobileShell({
         <button onClick={() => setOpen(true)} className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex items-center justify-between w-full gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[14px]" style={{ background: "var(--brand-grad)" }}>
-            <img src="/preda-mark-white.png" alt="" className="h-6 w-6" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--brand-grad)" }}>
+            <img src="/preda-mark-white.png" alt="" className="h-5 w-5" />
           </div>
-          <span className="text-base font-display" style={{ color: "var(--text)", letterSpacing: "-0.01em" }}>predarena</span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={onOpenBetCode} aria-label="Enter booking code" className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
             <Ticket className="h-5 w-5" />
           </button>
+          <AuthSection compact />
         </div>
       </div>
 
@@ -1698,7 +1567,6 @@ function MobileShell({
                       phones had no way to change theme at all. Same context as
                       the desktop one - one state, two mount points. */}
                   <MobileThemeToggle />
-                  <SessionTestButton />
                 </div>
                 <SidebarAccordion
                   expanded={true}
@@ -2651,7 +2519,7 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
   );
 }
 
-function AuthSection() {
+function AuthSection({ compact = false }: { compact?: boolean }) {
   const { logout, connectWallet } = usePrivy();
   const { theme, toggle } = useTheme();
   const { signedIn, recognized, username, addresses, signIn, signOut, linkWallet } = useSession();
@@ -2708,12 +2576,14 @@ function AuthSection() {
   );
 
   return (
-    <div className="flex items-center justify-end w-full gap-3 px-2">
-      <button onClick={toggle} aria-label="Toggle theme"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border transition-all hover:bg-[var(--panel-2)] active:scale-[0.96]"
-        style={{ background: "var(--panel)", borderColor: "var(--border)", color: "var(--text-2)" }}>
-        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      </button>
+    <div className={compact ? "flex items-center gap-2" : "flex items-center justify-end w-full gap-3 px-2"}>
+      {!compact && (
+        <button onClick={toggle} aria-label="Toggle theme"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border transition-all hover:bg-[var(--panel-2)] active:scale-[0.96]"
+          style={{ background: "var(--panel)", borderColor: "var(--border)", color: "var(--text-2)" }}>
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+      )}
 
       <div className="relative">
         <button onClick={() => setOpen(!open)}
