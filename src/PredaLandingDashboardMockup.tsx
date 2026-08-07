@@ -416,6 +416,7 @@ function LoadingOverlay({ loading }: { loading: boolean }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AuthModal({
   open,
   onClose,
@@ -461,6 +462,7 @@ function AuthModal({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AuthButton({
   label,
   icon,
@@ -647,12 +649,10 @@ function BookingCodeInput() {
 function DesktopHeader({
   expanded,
   onToggleSidebar,
-  onOpenAuth,
   onLogoClick,
 }: {
   expanded: boolean;
   onToggleSidebar: () => void;
-  onOpenAuth: () => void;
   onLogoClick: () => void;
 }) {
   return (
@@ -1636,7 +1636,6 @@ function DesktopSidebar({
 function MobileShell({
   open,
   setOpen,
-  onOpenAuth,
   onOpenBetCode,
   onNavigate,
   openSection,
@@ -1645,7 +1644,6 @@ function MobileShell({
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
-  onOpenAuth: () => void;
   onOpenBetCode: () => void;
   onNavigate: (path: string) => void;
   openSection: string | null;
@@ -1667,9 +1665,6 @@ function MobileShell({
         <div className="flex items-center gap-2">
           <button onClick={onOpenBetCode} aria-label="Enter booking code" className="rounded-xl border p-2" style={{ borderColor: "var(--border)", color: "var(--text)" }}>
             <Ticket className="h-5 w-5" />
-          </button>
-          <button onClick={onOpenAuth} className="rounded-xl px-3 py-2 text-xs font-bold text-[var(--panel)]" style={{ background: "var(--text)" }}>
-            Connect
           </button>
         </div>
       </div>
@@ -2657,77 +2652,115 @@ function Footer({ onNavigate }: { onNavigate: (path: string) => void }) {
 }
 
 function AuthSection() {
-  const { login, authenticated, logout } = usePrivy();
+  const { logout, connectWallet } = usePrivy();
   const { theme, toggle } = useTheme();
-  const { signedIn, username, signIn, signOut } = useSession();
-  const { disconnect: disconnectSolana } = useWallet();
+  const { signedIn, recognized, username, addresses, signIn, signOut, linkWallet } = useSession();
+  const { publicKey, disconnect: disconnectSolana } = useWallet();
+  const { wallets: privyWallets } = useWallets();
+  const { ensureConnected } = useWalletConnect();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  // One logout clears everything: session token, Privy (EVM), and the Solana
-  // adapter. Each used to disconnect independently, so signing out left the
-  // Solana wallet still connected.
+  const evmAddress = privyWallets.find((w) => w.chainId?.startsWith("eip155:"))?.address || null;
+  const solAddress = publicKey?.toBase58() || null;
+  const short = (a: string) => a.slice(0, 4) + "..." + a.slice(-4);
+  const isLinked = (a: string) => addresses.some((x) => x.toLowerCase() === a.toLowerCase());
+
   const logoutAll = async () => {
+    setOpen(false);
     signOut();
     try { await disconnectSolana(); } catch { /* not connected */ }
     try { await logout(); } catch { /* privy already out */ }
   };
 
+  const run = async (key: string, fn: () => Promise<any>) => {
+    setBusy(key);
+    try { await fn(); } finally { setBusy(null); }
+  };
 
+  const label = signedIn && username ? "@" + username
+    : solAddress ? short(solAddress)
+    : evmAddress ? short(evmAddress)
+    : "Connect wallet";
 
+  const row = (chain: string, addr: string | null, onConnect: () => Promise<any>) => (
+    <div className="flex items-center justify-between gap-2 rounded-[10px] px-3 py-2" style={{ background: "var(--bg)" }}>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>{chain}</p>
+        <p className="text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
+          {addr ? (isLinked(addr) ? short(addr) : short(addr) + " - not linked") : "Not connected"}
+        </p>
+      </div>
+      {!addr ? (
+        <button onClick={() => run(chain, onConnect)} disabled={busy === chain}
+          className="shrink-0 rounded-[8px] px-3 py-1.5 text-[11px] font-semibold disabled:opacity-50"
+          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+          {busy === chain ? "..." : "Connect"}
+        </button>
+      ) : !isLinked(addr) ? (
+        <button onClick={() => run(chain, linkWallet)} disabled={busy === chain}
+          className="shrink-0 rounded-[8px] px-3 py-1.5 text-[11px] font-semibold disabled:opacity-50"
+          style={{ background: "var(--accent)", color: "var(--accent-ink)" }}>
+          {busy === chain ? "..." : "Link"}
+        </button>
+      ) : null}
+    </div>
+  );
 
   return (
-    <div className="flex items-center justify-between w-full px-2">
-      {/* LEFT GROUP */}
-      <div className="flex items-center gap-2">
-        {signedIn ? (
-          <>
-            <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-              {username ? `@${username}` : "Signed in"}
-            </div>
-            <button
-              onClick={logoutAll}
-              className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] text-sm font-medium transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[var(--panel-2)] active:scale-[0.98]"
-              style={{ background: "var(--panel-2)", color: "var(--text-2)" }}
-            >
-              Logout
-            </button>
-          </>
-        ) : authenticated ? (
-          // Connected via Privy but the session isn't signed yet - this is the
-          // state that used to render a bogus @User. Nudge them to finish.
-          <button
-            onClick={signIn}
-            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-[var(--panel)] font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
-            style={{ background: "var(--text)" }}
-          >
-            Finish sign-in
-          </button>
-        ) : (
-          <button
-            onClick={login}
-            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[8px] text-[var(--panel)] font-medium text-sm transition-all shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:opacity-90 active:scale-[0.98]"
-            style={{ background: "var(--text)" }}
-          >
-            Login with X
-          </button>
-        )}
-      </div>
+    <div className="flex items-center justify-end w-full gap-3 px-2">
+      <button onClick={toggle} aria-label="Toggle theme"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border transition-all hover:bg-[var(--panel-2)] active:scale-[0.96]"
+        style={{ background: "var(--panel)", borderColor: "var(--border)", color: "var(--text-2)" }}>
+        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
 
-      {/* RIGHT GROUP */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={toggle}
-          aria-label="Toggle theme"
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] border transition-all hover:bg-[var(--panel-2)] active:scale-[0.96]"
-          style={{ background: "var(--panel)", borderColor: "var(--border)", color: "var(--text-2)" }}
-        >
-          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      <div className="relative">
+        <button onClick={() => setOpen(!open)}
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-[8px] text-sm font-medium transition-all active:scale-[0.98]"
+          style={{ background: recognized ? "var(--panel-2)" : "var(--text)", color: recognized ? "var(--text)" : "var(--panel)" }}>
+          {label}
+          <ChevronDown className="h-3.5 w-3.5" />
         </button>
-        {/* The header WalletMultiButton was a third, redundant wallet-connect
-            surface (alongside "Finish sign-in" and the sidebar connect hub).
-            Removed: the sidebar hub is now the single place to connect a
-            wallet, matching the email-primary model (wallet is a tool for
-            balance/transactions, not a second login surface). */}
+
+        <AnimatePresence>
+          {open && (
+            <>
+              <div className="fixed inset-0 z-[58]" onClick={() => setOpen(false)} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: -4 }}
+                transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+                className="absolute right-0 z-[59] mt-2 w-[268px] rounded-[14px] border p-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.18)]"
+                style={{ background: "var(--panel)", borderColor: "var(--border)" }}>
+                <p className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
+                  Wallets
+                </p>
+                <div className="space-y-1.5">
+                  {row("Solana", solAddress, async () => { const pk = await ensureConnected(); if (pk) { signedIn ? await linkWallet() : await signIn(); } })}
+                  {row("EVM / Arc", evmAddress, async () => { await connectWallet(); })}
+                </div>
+
+                {!signedIn && (evmAddress || solAddress) && (
+                  <button onClick={() => run("signin", signIn)} disabled={busy === "signin"}
+                    className="mt-2 w-full rounded-[10px] py-2 text-xs font-semibold disabled:opacity-50"
+                    style={{ background: "var(--accent)", color: "var(--accent-ink)" }}>
+                    {busy === "signin" ? "Signing in..." : "Sign in to load balance"}
+                  </button>
+                )}
+
+                <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border)" }}>
+                  <button onClick={logoutAll}
+                    className="w-full rounded-[10px] py-2 text-xs font-medium transition-all hover:bg-[var(--panel-2)]"
+                    style={{ color: "var(--text-2)" }}>
+                    Log out
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -4034,10 +4067,9 @@ export default function PredaLandingDashboardMockup() {
 
       <Toast />
       <LoadingOverlay loading={loading} />
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
       <BreakingNewsPopup />
 
-      <DesktopHeader expanded={sidebarExpanded} onToggleSidebar={() => setSidebarExpanded(!sidebarExpanded)} onOpenAuth={() => setAuthOpen(true)} onLogoClick={() => navigate("/")} />
+      <DesktopHeader expanded={sidebarExpanded} onToggleSidebar={() => setSidebarExpanded(!sidebarExpanded)} onLogoClick={() => navigate("/")} />
 
       <DesktopSidebar
         expanded={sidebarExpanded}
@@ -4051,7 +4083,6 @@ export default function PredaLandingDashboardMockup() {
       <MobileShell
         open={mobileSidebarOpen}
         setOpen={setMobileSidebarOpen}
-        onOpenAuth={() => setAuthOpen(true)}
         onOpenBetCode={() => setBetCodeSheetOpen(true)}
         onNavigate={(path) => navigate(path)}
         openSection={openSection}
