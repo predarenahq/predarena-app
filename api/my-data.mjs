@@ -62,6 +62,12 @@ export default async function handler(req, res) {
   if (!sess && token) sess = await sessionFromEmailToken(token)
   if (!sess) return res.status(401).json({ error: 'session_invalid' })
 
+  // Per-user authenticated data must never be cached. Vercel's default for
+  // functions is `public, max-age=0, must-revalidate`, which let the browser
+  // revalidate to a 304 and reuse a body from a different session - and worse,
+  // `public` permits a shared cache to hand one user's bets to another.
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0')
+
   const type = req.query?.type
 
   try {

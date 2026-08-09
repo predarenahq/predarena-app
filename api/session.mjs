@@ -62,6 +62,8 @@ const signMessage = (nonce) =>
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0')
+
   const { action } = req.body || {}
   if (action === 'nonce')  return issueNonce(req, res)
   if (action === 'verify') return verify(req, res)
