@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { sessionFromToken } from './session.mjs'
+import { sessionFromToken, tokenFromReq } from './session.mjs'
 import { PrivyClient } from '@privy-io/server-auth'
 
 const privy = new PrivyClient(
@@ -51,8 +51,7 @@ async function sessionFromEmailToken(token) {
 }
 
 export default async function handler(req, res) {
-  const auth = req.headers.authorization || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const token = tokenFromReq(req)
 
   // Two ways to resolve identity:
   //  (a) a wallet-session Bearer token (proven by signature) -> sessionFromToken

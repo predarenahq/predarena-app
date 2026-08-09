@@ -24,6 +24,23 @@ const SESSION_TTL_MS = 24 * 60 * 60 * 1000
 // every live session; hashing costs one line and removes that.
 const hash = (t) => createHash('sha256').update(t).digest('hex')
 
+export const SESSION_COOKIE = 'preda_session'
+
+// Session token from the httpOnly cookie, falling back to Authorization: Bearer
+// for clients that haven't rolled over yet. The cookie is unreadable to JS, so
+// an XSS can no longer lift a live session and place bets or withdraw.
+export function tokenFromReq(req) {
+  const raw = req.headers?.cookie || ''
+  const m = raw.match(/(?:^|;\s*)preda_session=([^;]+)/)
+  if (m) return decodeURIComponent(m[1])
+  const auth = req.headers?.authorization || ''
+  return auth.startsWith('Bearer ') ? auth.slice(7) : null
+}
+
+const cookieHeader = (token, maxAgeSec) =>
+  SESSION_COOKIE + '=' + encodeURIComponent(token) +
+  '; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=' + maxAgeSec
+
 const signMessage = (nonce) =>
   `Sign in to PredArena\n\nThis proves you own this wallet. It costs nothing and sends no transaction.\n\nNonce: ${nonce}`
 
@@ -56,6 +73,10 @@ export default async function handler(req, res) {
   if (action === 'check_code') return checkCode(req, res)
   if (action === 'redeem') return redeem(req, res)
   if (action === 'link_email') return linkEmail(req, res)
+  if (action === 'logout') {
+    res.setHeader('Set-Cookie', cookieHeader('', 0))
+    return res.status(200).json({ ok: true })
+  }
   return res.status(400).json({ error: 'invalid_action' })
 }
 
@@ -265,7 +286,10 @@ async function verify(req, res) {
     return res.status(500).json({ error: 'session_failed' })
   }
 
-  // The raw token is returned ONCE and never stored.
+  // httpOnly cookie is the real carrier now; the body token stays only until
+  // every client has rolled over to cookie auth (then drop it).
+  res.setHeader('Set-Cookie', cookieHeader(token, Math.floor(SESSION_TTL_MS / 1000)))
+
   return res.status(200).json({
     token,
     address: claimed.address,
@@ -286,8 +310,7 @@ async function verify(req, res) {
  * Without (2), anyone could claim someone else's address into their profile.
  */
 async function captureReferral(req, res) {
-  const auth = req.headers.authorization || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const token = tokenFromReq(req)
   const sess = await sessionFromToken(token)
   if (!sess) return res.status(401).json({ error: 'session_invalid' })
 
@@ -308,8 +331,7 @@ async function captureReferral(req, res) {
 }
 
 async function setAvatar(req, res) {
-  const auth = req.headers.authorization || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const token = tokenFromReq(req)
   const sess = await sessionFromToken(token)
   if (!sess) return res.status(401).json({ error: 'session_invalid' })
 
@@ -347,8 +369,7 @@ async function setAvatar(req, res) {
 }
 
 async function setUsername(req, res) {
-  const auth = req.headers.authorization || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const token = tokenFromReq(req)
   const sess = await sessionFromToken(token)
   if (!sess) return res.status(401).json({ error: 'session_invalid' })
 
@@ -442,8 +463,7 @@ async function linkEmail(req, res) {
 }
 
 async function link(req, res) {
-  const auth = req.headers.authorization || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const token = tokenFromReq(req)
   const sess = await sessionFromToken(token)
   if (!sess) return res.status(401).json({ error: 'session_invalid' })
 

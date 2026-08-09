@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { sessionFromToken } from './session.mjs'
+import { sessionFromToken, tokenFromReq } from './session.mjs'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { priceLeg, MAX_SINGLE_ODDS } from '../lib/oddsEngine.mjs'
 
@@ -95,8 +95,7 @@ export default async function handler(req, res) {
   // Verify the session and that the bettor owns the wallet they're betting from.
   // Without this, an unauthenticated request could place a custodial-fund-moving
   // bet attributed to any address. The client sends Authorization: Bearer <token>.
-  const auth = req.headers.authorization || ''
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  const token = tokenFromReq(req)
   const sess = await sessionFromToken(token)
   if (!sess) return res.status(401).json({ error: 'not_signed_in' })
 
