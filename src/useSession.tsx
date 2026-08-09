@@ -3,17 +3,17 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useWallets, usePrivy } from "@privy-io/react-auth";
 
 /**
- * One session for the whole app: the token minted by /api/session, held in
+ * One session for the whole app: the hasSession minted by /api/session, held in
  * localStorage, and a myData() helper every read site calls instead of
  * touching Supabase directly.
  *
  * Why this exists: tickets and user_balances are world-readable via the anon
  * key today. They cannot be RLS-locked while the browser reads them directly,
  * because the database has no identity to key a policy on. The fix is: reads go
- * through /api/my-data with a session token that proves - by signature - which
+ * through /api/my-data with a session hasSession that proves - by signature - which
  * addresses the caller owns. Once all reads use this, RLS goes deny-all.
  *
- * Expiry is handled quietly (option a): a 401 clears the token and callers get
+ * Expiry is handled quietly (option a): a 401 clears the hasSession and callers get
  * an unauthenticated state to render "sign in to see your bets", rather than a
  * wallet popup ambushing the user mid-scroll.
  */
@@ -21,7 +21,6 @@ import { useWallets, usePrivy } from "@privy-io/react-auth";
 const TOKEN_KEY = "preda_session";
 
 type SessionValue = {
-  token: string | null;
   addresses: string[];
   username: string | null;
   signedIn: boolean;
@@ -38,7 +37,7 @@ type SessionValue = {
 };
 
 const SessionCtx = createContext<SessionValue>({
-  token: null, readToken: null, addresses: [], username: null, signedIn: false, recognized: false,
+  readToken: null, addresses: [], username: null, signedIn: false, recognized: false,
   signIn: async () => false, signOut: () => {},
   linkWallet: async () => ({ ok: false }),
   setUsernameFor: async () => ({ ok: false }),
@@ -48,10 +47,11 @@ const SessionCtx = createContext<SessionValue>({
   myData: async () => null,
 });
 
-async function postSession(body: any, token?: string) {
+async function postSession(body: any) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch("/api/session", { method: "POST", headers, body: JSON.stringify(body) });
+  const res = await fetch("/api/session", {
+    method: "POST", headers, credentials: "same-origin", body: JSON.stringify(body),
+  });
   return { res, data: await res.json() };
 }
 
@@ -105,9 +105,10 @@ async function signNonceSolana(
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(() => {
-    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
-  });
+  // The session hasSession now lives in an httpOnly cookie the browser attaches on
+  // its own, so JS never holds it and an XSS cannot lift it. What we track is
+  // whether a session EXISTS - proven by asking the server on mount.
+  const [hasSession, setHasSession] = useState(false);
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -119,12 +120,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Privy; the server checksums it in verify, so signing is unaffected.
   const evmAddress = privyWallets.find((w) => w.chainId?.startsWith("eip155:"))?.address || null;
 
-  const setToken = useCallback((t: string | null) => {
-    try {
-      if (t) localStorage.setItem(TOKEN_KEY, t);
-      else localStorage.removeItem(TOKEN_KEY);
-    } catch { /* private mode */ }
-    setTokenState(t);
+  // One-time cleanup: drop any hasSession the pre-cookie build left behind, so the
+  // old exposure goes away for existing users rather than lingering.
+  React.useEffect(() => {
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ }
   }, []);
 
   const signIn = useCallback(async () => {
@@ -137,7 +136,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       ? await signNonceSolana(publicKey, signMessage)
       : await signNonce();
     if (!signed) return false;
-    // Pass the Privy token so the SAME signature that mints the wallet session
+    // Pass the Privy hasSession so the SAME signature that mints the wallet session
     // also links the verified email onto this profile. Without it, profiles.email
     // is never written by anything a user does, and a later email-only login
     // finds nothing. Non-fatal server-side, so sign-in works with or without it.
@@ -145,7 +144,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try { pt = authenticated ? await getAccessToken() : null; } catch { pt = null; }
     const { res, data } = await postSession({ action: "verify", nonce: signed.nonce, signature: signed.signature, privyToken: pt });
     if (!res.ok) return false;
-    setToken(data.token);
+    setHasSession(true);
     setAddresses(data.addresses || [data.address]);
     setUsername(data.username ?? null);
     // Referral capture: if this user arrived via ?ref=<username> (stored on
@@ -154,23 +153,25 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try {
       const ref = localStorage.getItem("preda_ref");
       if (ref) {
-        await postSession({ action: "capture_referral", ref }, data.token);
+        await postSession({ action: "capture_referral", ref });
         localStorage.removeItem("preda_ref");
       }
     } catch {}
     return true;
-  }, [setToken, publicKey, signMessage, authenticated, getAccessToken]);
+  }, [publicKey, signMessage, authenticated, getAccessToken]);
 
   const signOut = useCallback(() => {
     suppressAutoSign.current = true;   // don't let auto-sign-in refire before disconnect completes
     try { localStorage.setItem("preda_logged_out", "1"); } catch {}
-    setToken(null);
+    // httpOnly means only the server can clear it.
+    postSession({ action: "logout" }).catch(() => { /* best effort */ });
+    setHasSession(false);
     setAddresses([]);
     setUsername(null);
-  }, [setToken]);
+  }, []);
 
   const linkWallet = useCallback(async () => {
-    if (!token) return { ok: false, error: "not_signed_in" };
+    if (!hasSession) return { ok: false, error: "not_signed_in" };
     // Mirror signIn's wallet choice: a connected Solana wallet links via nacl,
     // otherwise EVM. Without this, linkWallet was EVM-only - you could sign IN
     // with Solana but never LINK a Solana address to an existing profile, so
@@ -180,17 +181,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       : await signNonce(true);   // force the account picker for "add wallet"
     if (!signed) return { ok: false, error: "no_wallet" };
     const { res, data } = await postSession(
-      { action: "link", nonce: signed.nonce, signature: signed.signature }, token);
+      { action: "link", nonce: signed.nonce, signature: signed.signature });
     if (!res.ok) return { ok: false, error: data.error };
     // Refresh the address list so reads immediately widen to the new wallet.
-    const me = await myDataInternal("me", token);
+    const me = await myDataInternal("me", null);
     if (me?.addresses) setAddresses(me.addresses);
     return { ok: true };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, publicKey, signMessage]);
+  }, [hasSession, publicKey, signMessage]);
 
   const uploadAvatar = useCallback(async (file: File) => {
-    if (!token) return { ok: false, error: "not_signed_in" };
+    if (!hasSession) return { ok: false, error: "not_signed_in" };
     if (file.size > 2 * 1024 * 1024) return { ok: false, error: "image_too_large" };
     // Read the file as a data URL and send to the authenticated endpoint.
     const image: string = await new Promise((resolve, reject) => {
@@ -199,46 +200,64 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       r.onerror = () => reject(new Error("read_failed"));
       r.readAsDataURL(file);
     });
-    const { res, data } = await postSession({ action: "set_avatar", image }, token);
+    const { res, data } = await postSession({ action: "set_avatar", image });
     if (!res.ok) return { ok: false, error: data.error };
     setAvatarUrl(data.avatar_url);
     return { ok: true };
-  }, [token]);
+  }, [hasSession]);
 
   const setUsernameFor = useCallback(async (name: string) => {
-    if (!token) return { ok: false, error: "not_signed_in" };
-    const { res, data } = await postSession({ action: "set_username", username: name }, token);
+    if (!hasSession) return { ok: false, error: "not_signed_in" };
+    const { res, data } = await postSession({ action: "set_username", username: name });
     if (!res.ok) return { ok: false, error: data.error };
     setUsername(data.username);
     return { ok: true };
-  }, [token]);
+  }, [hasSession]);
 
-  const myDataInternal = useCallback(async (type: string, tok: string | null) => {
-    if (!tok) return null;
-    const res = await fetch(`/api/my-data?type=${type}`, { headers: { Authorization: `Bearer ${tok}` } });
+  // The wallet session rides the httpOnly cookie (credentials). The Privy email
+  // hasSession is a value JS legitimately holds, so it still goes in the header as
+  // the fallback identity for email-only users with no wallet session.
+  const myDataInternal = useCallback(async (type: string, emailTok: string | null) => {
+    const headers: Record<string, string> = {};
+    if (emailTok) headers.Authorization = `Bearer ${emailTok}`;
+    const res = await fetch(`/api/my-data?type=${type}`, { headers, credentials: "same-origin" });
     if (res.status === 401) {
-      // Expired or revoked. Clear quietly; callers render a signed-out state.
-      setToken(null);
+      setHasSession(false);
       setAddresses([]);
       return null;
     }
     if (!res.ok) return null;
     return res.json();
-  }, [setToken]);
+  }, []);
 
-  // Rehydrate profile from the stored token on mount. Without this, a refresh
-  // keeps the token but forgets username + addresses (they reset to empty),
+  // The cookie is httpOnly, so the only way to know a session exists is to ask.
+  // A 200 here IS the proof, and it rehydrates the profile at the same time.
+  React.useEffect(() => {
+    (async () => {
+      const me = await myDataInternal("me", null);
+      if (me) {
+        setHasSession(true);
+        setAddresses(me.addresses || []);
+        setUsername(me.username ?? null);
+        setAvatarUrl(me.avatar_url ?? null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Rehydrate profile from the stored hasSession on mount. Without this, a refresh
+  // keeps the hasSession but forgets username + addresses (they reset to empty),
   // so the account panel looks signed-out-ish until you sign in again.
   // Auto sign-in when a Solana wallet connects. If the address is already linked,
   // signIn() resolves to the full profile; if not, it creates/links per the
   // server rules. Guarded so it fires once per connect, never mid-flight.
-  // Rehydrate the profile from the stored token on mount - without this, a
-  // refresh keeps the token but forgets username/addresses/avatar (they reset
+  // Rehydrate the profile from the stored hasSession on mount - without this, a
+  // refresh keeps the hasSession but forgets username/addresses/avatar (they reset
   // to empty). Loads them from my-data so the account panel and avatar persist.
   React.useEffect(() => {
-    if (!token) return;
+    if (!hasSession) return;
     (async () => {
-      const me = await myDataInternal("me", token);
+      const me = await myDataInternal("me", null);
       if (me) {
         setAddresses(me.addresses || []);
         setUsername(me.username ?? null);
@@ -255,7 +274,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     (() => { try { return localStorage.getItem("preda_logged_out") === "1"; } catch { return false; } })()
   );
   React.useEffect(() => {
-    if (token) { autoSignRef.current = false; return; }   // already signed in
+    if (hasSession) { autoSignRef.current = false; return; }   // already signed in
     if (suppressAutoSign.current) return;                 // just logged out; wait for reconnect
     if (!publicKey || !signMessage) return;               // no solana wallet
     if (autoSignRef.current) return;                      // sign-in in flight
@@ -264,14 +283,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       try { await signIn(); } finally { autoSignRef.current = false; }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicKey, token]);
+  }, [publicKey, hasSession]);
 
   // EVM/Privy auto sign-in - mirror of the Solana effect above, sharing the SAME
   // autoSignRef so the two can never both fire (a user with both wallets
   // connected would otherwise double-prompt). Only runs when there's an EVM
   // address, no Solana wallet took priority, and no session/in-flight sign-in.
   React.useEffect(() => {
-    if (token) { autoSignRef.current = false; return; }
+    if (hasSession) { autoSignRef.current = false; return; }
     if (suppressAutoSign.current) return;   // just logged out; wait for reconnect
     if (publicKey && signMessage) return;   // Solana effect handles this case
     if (!evmAddress) return;
@@ -281,34 +300,34 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       try { await signIn(); } finally { autoSignRef.current = false; }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evmAddress, token]);
+  }, [evmAddress, hasSession]);
 
   // A connected wallet that ISN'T on the profile yet - the cue for a
   // non-blocking "link this wallet?" banner. Detection only; never signs.
   const solAddr = publicKey?.toBase58() || null;
   const unlinkedWallet = React.useMemo(() => {
-    if (!token) return null;
+    if (!hasSession) return null;
     const linked = addresses.map((a) => a.toLowerCase());
     for (const a of [solAddr, evmAddress]) {
       if (a && !linked.includes(a.toLowerCase())) return a;
     }
     return null;
-  }, [token, addresses, solAddr, evmAddress]);
+  }, [hasSession, addresses, solAddr, evmAddress]);
 
   React.useEffect(() => {
-    if (!token) return;
+    if (!hasSession) return;
     (async () => {
-      const me = await myDataInternal("me", token);
+      const me = await myDataInternal("me", null);
       if (me) {
         setAddresses(me.addresses || []);
         setUsername(me.username ?? null);
       }
-      // If me is null, myDataInternal already cleared an expired token.
+      // If me is null, myDataInternal already cleared an expired hasSession.
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Privy email token = the READ identity for users who logged in via email and
+  // Privy email hasSession = the READ identity for users who logged in via email and
   // have not signed a wallet this session. my-data resolves it -> verified email
   // -> profile -> their data, so an email login shows the account immediately.
   React.useEffect(() => {
@@ -323,13 +342,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [authenticated, getAccessToken]);
 
-  // Read identity: the wallet-session token if present, else the email token.
-  const readToken = token || emailToken;
+  // Only the email hasSession is a value we hold; the wallet session is ambient.
+  const readToken = emailToken;
 
-  // Email-only rehydration: no wallet token but email-authed -> load the
-  // profile + addresses via the email token so the account panel populates.
+  // Email-only rehydration: no wallet hasSession but email-authed -> load the
+  // profile + addresses via the email hasSession so the account panel populates.
   React.useEffect(() => {
-    if (token || !emailToken) return;
+    if (hasSession || !emailToken) return;
     (async () => {
       const res = await fetch("/api/my-data?type=me", { headers: { Authorization: `Bearer ${emailToken}` } });
       if (!res.ok) return;
@@ -341,14 +360,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailToken, token]);
+  }, [emailToken, hasSession]);
 
   const myData = useCallback((type: "tickets" | "balance" | "me" | "referrals" | "referrals") =>
-    myDataInternal(type, readToken), [myDataInternal, readToken]);
+    myDataInternal(type, hasSession ? null : readToken), [myDataInternal, readToken, hasSession]);
 
   return (
     <SessionCtx.Provider value={{
-      token, readToken, addresses, username, signedIn: !!token, recognized: !!token || !!emailToken,
+      readToken, addresses, username, signedIn: hasSession, recognized: hasSession || !!emailToken,
       signIn, signOut, linkWallet, setUsernameFor, avatarUrl, uploadAvatar, unlinkedWallet, myData,
     }}>
       {children}

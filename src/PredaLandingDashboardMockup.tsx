@@ -3254,7 +3254,7 @@ export default function PredaLandingDashboardMockup() {
   const [slipChain, setSlipChain] = useState<'solana' | 'arc'>('solana');
   const { placeBet: arcPlaceBet, placeCombo: arcPlaceCombo, loading: arcLoading } = useArcArena();
   const [solPlacing, setSolPlacing] = useState(false)
-  const { signedIn, signIn, token, addresses, linkWallet } = useSession();  // betting gate: bets require a session
+  const { signedIn, signIn, addresses, linkWallet } = useSession();  // betting gate: bets require a session
   // Solana address from the session (survives refresh) or the live wallet. With
   // autoConnect off the adapter is empty after reload, but the session still
   // holds the proven address - so the UI shows connected and reads stay scoped.
@@ -3843,7 +3843,8 @@ export default function PredaLandingDashboardMockup() {
       // server can stamp it onto the tickets (RLS blocks a client-side stamp).
       const res = await fetch('/api/place-bet', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           wallet_address: walletAddr,
           stake: totalStake,
