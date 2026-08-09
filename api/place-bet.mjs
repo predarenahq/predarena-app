@@ -95,6 +95,8 @@ export default async function handler(req, res) {
   // Verify the session and that the bettor owns the wallet they're betting from.
   // Without this, an unauthenticated request could place a custodial-fund-moving
   // bet attributed to any address. The client sends Authorization: Bearer <token>.
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0')
+
   const token = tokenFromReq(req)
   const sess = await sessionFromToken(token)
   if (!sess) return res.status(401).json({ error: 'not_signed_in' })
