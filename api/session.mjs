@@ -237,23 +237,15 @@ async function verify(req, res) {
   // worse than leaving the tables open. The profile is what a session is really
   // for: it carries every address this person has proven.
   //
-  // Called only here, after a signature verifies, so the address is proven.
-  const { data: profile, error: pErr } = await supabase.rpc('get_or_create_profile', {
-    p_address: claimed.address,
-    p_chain: claimed.chain,
-  })
-  if (pErr) {
-    console.error('profile failed:', pErr.message)
-    return res.status(500).json({ error: 'profile_failed' })
-  }
+  // IDENTITY RESOLUTION. The EMAIL owns the data; a signature only proves
+  // wallet ownership. So when the caller is email-authenticated and that email
+  // already has a profile, THAT profile is the identity - even if the signed
+  // wallet is unknown to us. Deriving identity from the wallet alone is what
+  // minted an orphan empty profile for anyone signing in from a new wallet,
+  // making their whole history look gone.
+  let emailForLink = null
+  let profile = null
 
-  // EMAIL LINK. The wallet is proven (signature above) and the profile exists.
-  // If the caller is also Privy-email-authenticated, stamp that verified email
-  // onto THIS profile - that is what makes a later email-only login find their
-  // data (my-data resolves email -> profiles.email -> profile_wallets).
-  // Deliberately NON-FATAL: a guard rejection (this wallet's profile already
-  // carries someone else's email, or this email is on another profile) must not
-  // block a legitimate wallet sign-in. They keep their session either way.
   if (privyToken) {
     try {
       const claims = await privy.verifyAuthToken(privyToken)
@@ -263,15 +255,50 @@ async function verify(req, res) {
         const { data: allowed } = await supabase
           .from('allowlist').select('email').eq('email', email).maybeSingle()
         if (allowed) {
-          const { data: linkRes } = await supabase.rpc('set_profile_email', {
-            p_address: claimed.address,
-            p_email: email,
-          })
-          if (!linkRes?.ok) console.warn('email link skipped:', linkRes?.error)
+          emailForLink = email
+          const { data: pe } = await supabase
+            .from('profiles').select('id, username').eq('email', email).maybeSingle()
+          if (pe) {
+            // The email's profile wins. Load its wallets, and deliberately do
+            // NOT auto-link the signed wallet - linking stays an explicit user
+            // action, so connecting a treasury wallet never silently joins it
+            // to a personal profile.
+            const { data: pws } = await supabase
+              .from('profile_wallets').select('address').eq('profile_id', pe.id)
+            profile = {
+              profile_id: pe.id,
+              username: pe.username,
+              addresses: (pws || []).map((w) => w.address),
+            }
+          }
         }
       }
     } catch (e) {
-      console.warn('email link skipped (token):', e?.message)
+      console.warn('email identity skipped:', e?.message)
+    }
+  }
+
+  if (!profile) {
+    // No profile for this email (or no email at all): fall back to the wallet.
+    // Finds the existing profile for a known wallet, creates one for a
+    // genuinely new user.
+    const { data: wp, error: pErr } = await supabase.rpc('get_or_create_profile', {
+      p_address: claimed.address,
+      p_chain: claimed.chain,
+    })
+    if (pErr) {
+      console.error('profile failed:', pErr.message)
+      return res.status(500).json({ error: 'profile_failed' })
+    }
+    profile = wp
+    // Stamp the verified email on so a later email-only login finds this
+    // profile. Non-fatal: a guard rejection must not block a valid sign-in.
+    if (emailForLink) {
+      const { data: linkRes } = await supabase.rpc('set_profile_email', {
+        p_address: claimed.address,
+        p_email: emailForLink,
+      })
+      if (!linkRes?.ok) console.warn('email link skipped:', linkRes?.error)
     }
   }
 
@@ -281,6 +308,7 @@ async function verify(req, res) {
     token: hash(token),
     address: claimed.address,
     chain: claimed.chain,
+    profile_id: profile.profile_id,
     expires_at: expiresAt.toISOString(),
   })
   if (error) {
@@ -527,12 +555,32 @@ export async function sessionFromToken(token) {
   if (!token) return null
   const { data: sess } = await supabase
     .from('auth_sessions')
-    .select('address, chain, expires_at')
+    .select('address, chain, expires_at, profile_id')
     .eq('token', hash(token))
     .gt('expires_at', new Date().toISOString())
     .single()
   if (!sess) return null
 
+  // The identity was decided once, at verify, and pinned here. Re-deriving it
+  // from the address on every request would undo that decision and re-create
+  // the orphan profile the email resolution exists to prevent.
+  if (sess.profile_id) {
+    const { data: p } = await supabase
+      .from('profiles').select('id, username').eq('id', sess.profile_id).maybeSingle()
+    if (p) {
+      const { data: pws } = await supabase
+        .from('profile_wallets').select('address').eq('profile_id', p.id)
+      return {
+        address:   sess.address,
+        chain:     sess.chain,
+        profileId: p.id,
+        username:  p.username,
+        addresses: (pws || []).map((w) => w.address),
+      }
+    }
+  }
+
+  // Sessions minted before profile_id existed.
   const { data: profile } = await supabase.rpc('get_or_create_profile', {
     p_address: sess.address,
     p_chain: sess.chain,
