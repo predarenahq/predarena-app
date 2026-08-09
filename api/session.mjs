@@ -166,6 +166,22 @@ async function redeem(req, res) {
     return res.status(500).json({ error: 'allowlist_failed' })
   }
 
+  // Redeeming a code IS creating an account. Until now the gate only wrote to
+  // `allowlist` and never touched `profiles`, so an email had no identity until
+  // it signed a wallet - which is why 14 pilot users ended up allowlisted with
+  // their email attached to nothing, and why one person ended up with two
+  // profiles. An email now always has exactly one profile from the moment it
+  // gets in, and a wallet is something attached to it later.
+  // NOT backfilled for existing users: an empty email-profile would win over
+  // their real wallet profile at verify and strand their history.
+  try {
+    const { data: existing } = await supabase
+      .from('profiles').select('id').eq('email', email).maybeSingle()
+    if (!existing) await supabase.from('profiles').insert({ email })
+  } catch (e) {
+    console.warn('profile create at redeem skipped:', e?.message)
+  }
+
   return res.status(200).json({ ok: true, email })
 }
 
@@ -259,12 +275,32 @@ async function verify(req, res) {
           const { data: pe } = await supabase
             .from('profiles').select('id, username').eq('email', email).maybeSingle()
           if (pe) {
-            // The email's profile wins. Load its wallets, and deliberately do
-            // NOT auto-link the signed wallet - linking stays an explicit user
-            // action, so connecting a treasury wallet never silently joins it
-            // to a personal profile.
-            const { data: pws } = await supabase
+            // The email's profile wins.
+            let { data: pws } = await supabase
               .from('profile_wallets').select('address').eq('profile_id', pe.id)
+
+            // A profile with NO wallets yet is one the gate just created, so
+            // there is nothing to protect - attach this first wallet, or the
+            // user signs in on day one and sees no balance with no obvious way
+            // to fix it. A profile that ALREADY has wallets keeps the explicit
+            // Link step, which is what stops a treasury wallet being silently
+            // absorbed into a personal account.
+            if (!pws || pws.length === 0) {
+              const { error: lErr } = await supabase.rpc('link_wallet', {
+                p_profile_id: pe.id,
+                p_address: claimed.address,
+                p_chain: claimed.chain,
+              })
+              if (lErr) {
+                // Belongs to someone else's profile - leave it be, no merging.
+                console.warn('first-wallet link skipped:', lErr.message)
+              } else {
+                const { data: fresh } = await supabase
+                  .from('profile_wallets').select('address').eq('profile_id', pe.id)
+                pws = fresh
+              }
+            }
+
             profile = {
               profile_id: pe.id,
               username: pe.username,
