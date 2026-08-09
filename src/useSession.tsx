@@ -109,6 +109,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // its own, so JS never holds it and an XSS cannot lift it. What we track is
   // whether a session EXISTS - proven by asking the server on mount.
   const [hasSession, setHasSession] = useState(false);
+  // The cookie is httpOnly, so on mount we don't yet know whether a session
+  // exists - only the probe can tell us. Until it answers, auto-sign must hold:
+  // otherwise it sees hasSession=false, assumes signed out, and fires a
+  // signature prompt for a session the browser already has.
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [addresses, setAddresses] = useState<string[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -234,12 +239,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // A 200 here IS the proof, and it rehydrates the profile at the same time.
   React.useEffect(() => {
     (async () => {
-      const me = await myDataInternal("me", null);
-      if (me) {
-        setHasSession(true);
-        setAddresses(me.addresses || []);
-        setUsername(me.username ?? null);
-        setAvatarUrl(me.avatar_url ?? null);
+      try {
+        const me = await myDataInternal("me", null);
+        if (me) {
+          setHasSession(true);
+          setAddresses(me.addresses || []);
+          setUsername(me.username ?? null);
+          setAvatarUrl(me.avatar_url ?? null);
+        }
+      } finally {
+        setSessionChecked(true);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,6 +283,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     (() => { try { return localStorage.getItem("preda_logged_out") === "1"; } catch { return false; } })()
   );
   React.useEffect(() => {
+    if (!sessionChecked) return;                          // probe still in flight
     if (hasSession) { autoSignRef.current = false; return; }   // already signed in
     if (suppressAutoSign.current) return;                 // just logged out; wait for reconnect
     if (!publicKey || !signMessage) return;               // no solana wallet
@@ -283,13 +293,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       try { await signIn(); } finally { autoSignRef.current = false; }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicKey, hasSession]);
+  }, [publicKey, hasSession, sessionChecked]);
 
   // EVM/Privy auto sign-in - mirror of the Solana effect above, sharing the SAME
   // autoSignRef so the two can never both fire (a user with both wallets
   // connected would otherwise double-prompt). Only runs when there's an EVM
   // address, no Solana wallet took priority, and no session/in-flight sign-in.
   React.useEffect(() => {
+    if (!sessionChecked) return;                          // probe still in flight
     if (hasSession) { autoSignRef.current = false; return; }
     if (suppressAutoSign.current) return;   // just logged out; wait for reconnect
     if (publicKey && signMessage) return;   // Solana effect handles this case
@@ -300,7 +311,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       try { await signIn(); } finally { autoSignRef.current = false; }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evmAddress, hasSession]);
+  }, [evmAddress, hasSession, sessionChecked]);
 
   // A connected wallet that ISN'T on the profile yet - the cue for a
   // non-blocking "link this wallet?" banner. Detection only; never signs.
