@@ -158,7 +158,7 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
                   if (codeError) setCodeError(null);
                 }}
                 onKeyDown={(e) => e.key === "Enter" && submitCode()}
-                placeholder="PREDA-XXXX"
+                placeholder="PREDA-XXXXXXXX"
                 autoFocus
                 spellCheck={false}
                 autoCapitalize="characters"
