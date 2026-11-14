@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase, Battle } from '../lib/supabase'
-import { getStartingOdds, getInPlayOdds, OddsResult } from '../services/oddsEngine'
+import { getStartingOdds, getInPlayOdds, applyMargin, OddsResult } from '../services/oddsEngine'
 import { getPythPrices } from '../services/pythPrices'
 
 type MatchCategory = "Major" | "Altcoins" | "L1" | "L2" | "DeFi" | "Meme" | "AI"
@@ -220,13 +220,20 @@ export function useBattles() {
       return
     }
 
-    // Seed starting odds (async, CoinGecko/momentum) for any live battle we
-    // haven't cached yet. Only happens here, on the slow clock.
+    // Seed the prior from the BATTLE ROW. base_prob_a/b/draw is what the
+    // server priced this battle with and what it will price every quote
+    // against; recomputing our own here from CoinGecko meant the screen and
+    // the server disagreed, and anything past the 5% tolerance came back as
+    // odds_changed. The local engine is now only a fallback for a row that
+    // predates the column.
     await Promise.all(
       rows
         .filter((b) => b.status === 'live' && !oddsCache[b.id])
         .map(async (b) => {
-          oddsCache[b.id] = await getStartingOdds(b.coin_a, b.coin_b)
+          oddsCache[b.id] =
+            b.base_prob_a != null && b.base_prob_b != null && b.base_prob_draw != null
+              ? applyMargin(Number(b.base_prob_a), Number(b.base_prob_b), Number(b.base_prob_draw))
+              : await getStartingOdds(b.coin_a, b.coin_b)
         })
     )
 

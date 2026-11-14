@@ -8,6 +8,10 @@ const COINGECKO_IDS: Record<string, string> = {
   BONK: 'bonk', XRP: 'ripple',
 }
 
+// Mirror of lib/oddsEngine.mjs. Keep the two in step: this is only reached
+// as a fallback now, but a fallback that disagrees with the server is how
+// the requote loop started.
+const MOMENTUM_WEIGHT = 0
 const HOUSE_MARGIN = 1.30  // 30% overround — heavy SportyBet-style house edge
 const MIN_ODDS = 1.10
 const MAX_ODDS = 30.00
@@ -89,7 +93,7 @@ async function get24hMomentum(coin: string): Promise<number> {
   return bias
 }
 
-function applyMargin(probA: number, probB: number, probDraw: number): OddsResult {
+export function applyMargin(probA: number, probB: number, probDraw: number): OddsResult {
   const total = probA + probB + probDraw
   const nA = probA / total
   const nB = probB / total
@@ -127,10 +131,10 @@ export async function getStartingOdds(coinA: string, coinB: string): Promise<Odd
 
   const diff = changeA - changeB
   const edge = Math.tanh(diff / 8)
-  const volEdge = (volB - volA) / 20
-  const volSpread = Math.abs(volA - volB) / 10
-
-  const totalEdge = (edge * 0.20 + volEdge + volSpread * Math.sign(edge) * 0.10) * volDampening
+  // Momentum only, and weighted 0 by default. See lib/oddsEngine.mjs: the
+  // volatility gap was being used to pick a favourite, which is not
+  // something variance can tell you.
+  const totalEdge = edge * MOMENTUM_WEIGHT * volDampening
 
   const probA    = Math.max(0.10, Math.min(0.80, 0.40 + totalEdge))
   const probB    = Math.max(0.10, Math.min(0.80, 0.40 - totalEdge))

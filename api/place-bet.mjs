@@ -13,8 +13,12 @@ const supabase = createClient(
 )
 
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com'
-const PROGRAM_ID = new PublicKey('3mA18tJXtbTcp7eK3W7xENmqEjxReqCcBsBmUnHTg8RB')
-const [VAULT_PDA] = PublicKey.findProgramAddressSync([Buffer.from('platform_vault')], PROGRAM_ID)
+// Custodial vault hot wallet - the single address deposits land in and
+// withdrawals pay from. Same env var as lib/depositHandler.mjs, on purpose:
+// these two reading different accounts is what silently deleted deposits.
+const VAULT_ADDRESS = new PublicKey(
+  process.env.PLATFORM_VAULT_ADDRESS || '5GD6YvnQeTLC1W1xYCD6jPzvg5vcn4wC5JZvKV4nsD3V'
+)
 
 const SOL_FEED = '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d'
 
@@ -86,7 +90,7 @@ async function getSolPrice() {
 
 async function getVaultLamports() {
   const connection = new Connection(RPC_URL, 'confirmed')
-  return await connection.getBalance(VAULT_PDA)
+  return await connection.getBalance(VAULT_ADDRESS)
 }
 
 export default async function handler(req, res) {

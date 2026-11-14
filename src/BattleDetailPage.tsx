@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceL
 import { supabase } from './lib/supabase'
 import { createBetShare } from './utils/betShare'
 import ArcFaucetPanel from './components/ArcFaucetPanel'
-import { getStartingOdds, getInPlayOdds, OddsResult } from './services/oddsEngine'
+import { getStartingOdds, getInPlayOdds, applyMargin, OddsResult } from './services/oddsEngine'
 import BetShareModal from './components/BetShareModal'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWallets, usePrivy } from '@privy-io/react-auth'
@@ -178,7 +178,12 @@ export default function BattleDetailPage() {
     setBattle(data)
     if (data && !baseOdds) {
       try {
-        const base = await getStartingOdds(data.coin_a, data.coin_b)
+        // Same rule as the homepage: the row's stored prior is the one the
+        // server quotes against, so quote against it here too.
+        const base =
+          data.base_prob_a != null && data.base_prob_b != null && data.base_prob_draw != null
+            ? applyMargin(Number(data.base_prob_a), Number(data.base_prob_b), Number(data.base_prob_draw))
+            : await getStartingOdds(data.coin_a, data.coin_b)
         setBaseOdds(base)
         setEngineOdds(base)
       } catch(e) { console.error('Engine odds error:', e) }

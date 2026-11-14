@@ -90,6 +90,29 @@ async function battlesHandler(req, res) {
   return res.status(200).json({ battles: data || [] })
 }
 
+// Public leaderboard: profit on settled bets, this week (Monday 00:00 UTC) and
+// all time. Usernames and avatars only, never wallets or emails. Cached for a
+// minute at the edge since it is the same for everyone.
+async function leaderboardHandler(req, res) {
+  const now = new Date()
+  const sinceMonday = (now.getUTCDay() + 6) % 7
+  const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - sinceMonday))
+  const [w, a] = await Promise.all([
+    supabase.rpc('leaderboard_points', { p_since: weekStart.toISOString(), p_limit: 100 }),
+    supabase.rpc('leaderboard_points', { p_since: null, p_limit: 100 }),
+  ])
+  if (w.error || a.error) {
+    console.error('leaderboard error:', (w.error || a.error).message)
+    return res.status(500).json({ error: 'leaderboard_failed' })
+  }
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+  return res.status(200).json({
+    week_start: weekStart.toISOString(),
+    weekly: w.data || [],
+    all_time: a.data || [],
+  })
+}
+
 export default async function handler(req, res) {
   const type = req.query?.type
   if (type === 'news')     return newsHandler(req, res)
@@ -99,5 +122,6 @@ export default async function handler(req, res) {
   if (type === 'search')   return searchHandler(req, res)
   if (type === 'battles')  return battlesHandler(req, res)
   if (type === 'battle')   return battleHandler(req, res)
+  if (type === 'leaderboard') return leaderboardHandler(req, res)
   return res.status(400).json({ error: 'invalid_type' })
 }

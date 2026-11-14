@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { settleBattles as settleBattlesFixed } from '../lib/settlement.mjs'
 import { getStartingProbs } from '../lib/oddsEngine.mjs'
-import { sweepPendingDeposits, assertSolvency, getVaultLamports } from '../lib/cronHelpers.mjs'
+import { sweepPendingDeposits, assertSolvency, getVaultLamports, get24hMomentum } from '../lib/cronHelpers.mjs'
 import { verifyDeposit } from '../lib/verifyDeposit.mjs'
 
 // The anon-key fallback is deliberately removed. Once RLS blocks client writes,
@@ -534,6 +534,9 @@ async function createBattles() {
   const now = new Date()
   const tickers = [...new Set(BATTLE_PAIRS.flatMap(p => [p.coinA, p.coinB]))]
   const prices = await getPythPrices(tickers)
+  // Real 24h momentum for the starting prior. Hardcoding 0,0 here is what
+  // left the volatility gap as the only thing moving the line.
+  const momentum = await get24hMomentum(supabase, tickers)
 
   for (const pair of BATTLE_PAIRS) {
     const { data: existing } = await supabase
@@ -551,8 +554,12 @@ async function createBattles() {
     if (!startPriceA || !startPriceB) continue
 
     // Base probabilities stored on the battle so in-play pricing is
-    // deterministic. Volatility-aware even with neutral momentum.
-    const baseProbs = getStartingProbs(pair.coinA, pair.coinB, 0, 0)
+    // deterministic, and so the browser can quote the same line we will.
+    const baseProbs = getStartingProbs(
+      pair.coinA, pair.coinB,
+      momentum[pair.coinA] || 0,
+      momentum[pair.coinB] || 0,
+    )
 
     const durationMs = DURATION_MS[pair.duration] || 3600000
     const startTime = new Date(now.getTime() + 2 * 60 * 1000)
