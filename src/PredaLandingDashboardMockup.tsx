@@ -176,7 +176,6 @@ const sidebarSections = [
   {
     title: "PRODUCT",
     items: [
-      { label: "Leaderboard", path: "/leaderboard" },
       { label: "How to Play", path: "/how-to-play" },
       { label: "Support", path: "/support" },
     ],
@@ -699,6 +698,36 @@ function SidebarAccordion({
 }) {
   return (
     <>
+      {/* Pinned above the accordion on purpose. The sections below are
+          one-at-a-time, so anything filed inside one is invisible until the
+          user happens to open that section. A live points race has to be
+          reachable without hunting for it. Rendered here rather than in the
+          two shells so the desktop sidebar and the mobile drawer cannot
+          drift apart. */}
+      <div className="mb-5">
+        <button
+          onClick={() => onNavigate("/leaderboard")}
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--panel-2)]"
+          style={{
+            background: currentPath === "/leaderboard" ? "var(--accent-soft)" : "transparent",
+            justifyContent: expanded ? "flex-start" : "center",
+          }}
+        >
+          <Trophy
+            className="h-4 w-4 shrink-0"
+            style={{ color: currentPath === "/leaderboard" ? "var(--text)" : "var(--text-2)" }}
+          />
+          {expanded ? (
+            <span
+              className="text-sm font-semibold"
+              style={{ color: currentPath === "/leaderboard" ? "var(--text)" : "var(--text-2)" }}
+            >
+              Leaderboard
+            </span>
+          ) : null}
+        </button>
+      </div>
+
       {sidebarSections.map((section) => (
         <div key={section.title} className="mb-5">
           <button
@@ -3665,7 +3694,6 @@ export default function PredaLandingDashboardMockup() {
       "/running": "MY BETS",
       "/history": "MY BETS",
       "/news": "PRODUCT",
-      "/leaderboard": "PRODUCT",
       "/how-to-play": "PRODUCT",
       "/support": "PRODUCT",
       // /profile was the only MY BETS route missing from this map, so it never
