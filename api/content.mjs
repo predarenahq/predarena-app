@@ -1,6 +1,7 @@
 import { newsHandler }     from '../lib/newsHandler.mjs'
 import { momentumHandler } from '../lib/momentumHandler.mjs'
 import { createClient } from '@supabase/supabase-js'
+import { hermesGet } from '../lib/pyth.mjs'
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
@@ -113,6 +114,28 @@ async function leaderboardHandler(req, res) {
   })
 }
 
+// Browser price reads proxy through here. The Hermes key is a server secret and
+// a CRA bundle is public, so a key shipped to the browser is a published key.
+// ids are validated and capped so this cannot be used as an open relay.
+async function pricesHandler(req, res) {
+  const ids = String(req.query?.ids || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => /^0x[0-9a-f]{64}$/i.test(s))
+    .slice(0, 16)
+  if (!ids.length) return res.status(400).json({ error: 'no_ids' })
+  try {
+    const r = await hermesGet(ids.map((id) => `ids[]=${id}`).join('&'))
+    if (!r.ok) return res.status(502).json({ error: 'pyth_unavailable', status: r.status })
+    const data = await r.json()
+    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30')
+    return res.status(200).json(data)
+  } catch (e) {
+    console.error('prices proxy failed:', e.message)
+    return res.status(502).json({ error: 'pyth_unavailable' })
+  }
+}
+
 export default async function handler(req, res) {
   const type = req.query?.type
   if (type === 'news')     return newsHandler(req, res)
@@ -123,5 +146,6 @@ export default async function handler(req, res) {
   if (type === 'battles')  return battlesHandler(req, res)
   if (type === 'battle')   return battleHandler(req, res)
   if (type === 'leaderboard') return leaderboardHandler(req, res)
+  if (type === 'prices')   return pricesHandler(req, res)
   return res.status(400).json({ error: 'invalid_type' })
 }

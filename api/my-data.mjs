@@ -29,7 +29,7 @@ const supabase = createClient(
 // Resolve a Privy email token into the same { addresses, profileId } shape a
 // wallet session has. Verified email -> profile (by email) -> its wallets.
 // Returns null on any failure so the caller falls through to 401.
-async function sessionFromEmailToken(token) {
+export async function sessionFromEmailToken(token) {
   let email
   try {
     const claims = await privy.verifyAuthToken(token)

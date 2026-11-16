@@ -3,6 +3,7 @@ import { settleBattles as settleBattlesFixed } from '../lib/settlement.mjs'
 import { getStartingProbs } from '../lib/oddsEngine.mjs'
 import { sweepPendingDeposits, assertSolvency, getVaultLamports, get24hMomentum } from '../lib/cronHelpers.mjs'
 import { verifyDeposit } from '../lib/verifyDeposit.mjs'
+import { hermesGet } from '../lib/pyth.mjs'
 
 // The anon-key fallback is deliberately removed. Once RLS blocks client writes,
 // falling back to anon means settlement silently credits nobody while logging
@@ -146,8 +147,7 @@ async function getPythPrices(tickers) {
   await Promise.all(validTickers.map(async (ticker) => {
     const feedId = PYTH_FEEDS[ticker]
     try {
-      const url = `https://hermes.pyth.network/v2/updates/price/latest?ids[]=${feedId}`
-      const res = await fetch(url)
+      const res = await hermesGet(`ids[]=${feedId}`)
       if (!res.ok) return
       const data = await res.json()
       const parsed = data?.parsed?.[0]
@@ -559,6 +559,7 @@ async function createBattles() {
       pair.coinA, pair.coinB,
       momentum[pair.coinA] || 0,
       momentum[pair.coinB] || 0,
+      pair.duration,
     )
 
     const durationMs = DURATION_MS[pair.duration] || 3600000

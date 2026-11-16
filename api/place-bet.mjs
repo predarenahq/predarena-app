@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sessionFromToken, tokenFromReq } from './session.mjs'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { priceLeg, MAX_SINGLE_ODDS } from '../lib/oddsEngine.mjs'
+import { hermesGet } from '../lib/pyth.mjs'
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
@@ -66,7 +67,7 @@ async function getPythPrices(tickers) {
   const valid = [...new Set(tickers)].filter((t) => PYTH_FEEDS[t])
   await Promise.all(valid.map(async (ticker) => {
     try {
-      const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${PYTH_FEEDS[ticker]}`)
+      const res = await hermesGet(`ids[]=${PYTH_FEEDS[ticker]}`)
       if (!res.ok) return
       const parsed = (await res.json())?.parsed?.[0]
       if (!parsed) return
@@ -79,7 +80,7 @@ async function getPythPrices(tickers) {
 }
 
 async function getSolPrice() {
-  const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${SOL_FEED}`)
+  const res = await hermesGet(`ids[]=${SOL_FEED}`)
   if (!res.ok) throw new Error('pyth_unavailable')
   const p = (await res.json())?.parsed?.[0]?.price
   if (!p || typeof p.price === 'undefined') throw new Error('pyth_unavailable')

@@ -1094,7 +1094,7 @@ function UserBalancePanel() {
 
   async function fetchSolPrice() {
     try {
-      const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
+      const res = await fetch('/api/content?type=prices&ids=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
       const data = await res.json()
       const parsed = data?.parsed?.[0]
       const p = parsed ? Number(parsed.price.price) * Math.pow(10, parsed.price.expo) : NaN

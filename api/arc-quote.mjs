@@ -3,6 +3,7 @@ import { createPublicClient, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { randomBytes } from 'crypto'
 import { priceLeg, MAX_SINGLE_ODDS } from '../lib/oddsEngine.mjs'
+import { hermesGet } from '../lib/pyth.mjs'
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
@@ -75,7 +76,7 @@ async function getPythPrices(tickers) {
   const valid = [...new Set(tickers)].filter((t) => PYTH_FEEDS[t])
   await Promise.all(valid.map(async (ticker) => {
     try {
-      const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${PYTH_FEEDS[ticker]}`)
+      const res = await hermesGet(`ids[]=${PYTH_FEEDS[ticker]}`)
       if (!res.ok) return
       const parsed = (await res.json())?.parsed?.[0]
       if (!parsed) return

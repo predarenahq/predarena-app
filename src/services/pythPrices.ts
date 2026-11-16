@@ -29,10 +29,12 @@ export const BATTLE_PAIRS = [
   { coinA: 'ETH', coinB: 'SOL', league: 'L1', duration: '4h' },
 ]
 
-const HERMES_BASE = 'https://hermes.pyth.network/v2/updates/price/latest'
+// Hermes needs an API key since the Pyth Core upgrade, and a key in a CRA
+// bundle is a published key, so the browser asks our own server instead.
+// Same Hermes response shape comes back, so the parse below is unchanged.
+const PRICE_API = '/api/content?type=prices'
 
-// Single REST call to Hermes for a batch of tickers. Returns ticker -> USD price.
-// Uses the same endpoint/parse as the bet flow — no SDK, no module-interop issues.
+// Single REST call for a batch of tickers. Returns ticker -> USD price.
 export async function getPythPrices(tickers: string[]): Promise<Record<string, number>> {
   const results: Record<string, number> = {}
 
@@ -44,12 +46,12 @@ export async function getPythPrices(tickers: string[]): Promise<Record<string, n
     if (!feed) continue
     const bare = feed.replace(/^0x/, '').toLowerCase()
     feedToTicker[bare] = t
-    params.push(`ids[]=${feed}`)
+    params.push(feed)
   }
   if (params.length === 0) return results
 
   try {
-    const res = await fetch(`${HERMES_BASE}?${params.join('&')}`)
+    const res = await fetch(`${PRICE_API}&ids=${params.join(',')}`)
     if (!res.ok) return results
     const data = await res.json()
     const parsed = data?.parsed || []

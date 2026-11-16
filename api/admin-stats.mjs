@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { hermesGet } from '../lib/pyth.mjs'
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 
@@ -11,7 +12,7 @@ const SOL_FEED = '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280
 
 async function getSolPrice() {
   try {
-    const res = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${SOL_FEED}`)
+    const res = await hermesGet(`ids[]=${SOL_FEED}`)
     if (!res.ok) return null
     const p = (await res.json())?.parsed?.[0]
     if (!p) return null

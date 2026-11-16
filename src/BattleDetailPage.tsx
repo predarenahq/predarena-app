@@ -246,7 +246,7 @@ export default function BattleDetailPage() {
       if (bal) setUserBalance(bal.total_lamports || 0)
     } catch { /* leave prior balance */ }
     try {
-      const res = await fetch('https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
+      const res = await fetch('/api/content?type=prices&ids=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d')
       const json = await res.json()
       const p = json?.parsed?.[0]
       if (p) setSolPrice(Number(p.price.price) * Math.pow(10, p.price.expo))

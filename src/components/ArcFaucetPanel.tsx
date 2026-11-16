@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
 import { Droplet, ExternalLink, Loader2, Check } from 'lucide-react'
+import { useSession } from '../useSession'
 
 const CIRCLE_FAUCET = 'https://faucet.circle.com'
-const LOW_BALANCE = 2
+// One number the copy reads from. The strings used to hardcode "2 USDC" in
+// three places, so raising the drip silently left the button promising the
+// old amount while the server sent the new one.
+const DRIP_USDC = 10
+const LOW_BALANCE = DRIP_USDC
 
 const ERRORS: Record<string, string> = {
+  not_signed_in:     'Sign in to claim test USDC',
+  address_not_linked:'Link this wallet to your account first, then claim',
   already_claimed:   'You already claimed in the last 24 hours',
   daily_cap_reached: 'The faucet has hit its daily limit - try again tomorrow',
   faucet_empty:      'The faucet is out of funds right now',
@@ -14,12 +21,12 @@ const ERRORS: Record<string, string> = {
 
 /**
  * Arc runs on real testnet USDC, and USDC is also the gas - so a user with an
- * empty wallet can do nothing at all, not even approve. This dispenses 2 USDC
+ * empty wallet can do nothing at all, not even approve. This dispenses DRIP_USDC
  * from our faucet wallet with one tap.
  *
  * One NATIVE transfer covers both: on Arc the native balance and the USDC
  * ERC-20 interface are the same underlying balance, so a plain send lands as
- * gas AND as bettable USDC. Verified: 2.0 native / 2000000 ERC-20 from one tx.
+ * gas AND as bettable USDC. Verified: one native send lands as both.
  *
  * Circle's faucet stays as the fallback for when ours is dry or capped.
  */
@@ -32,6 +39,7 @@ export default function ArcFaucetPanel({
   balance: string
   onRefresh?: () => void
 }) {
+  const { readToken } = useSession()
   const [claiming, setClaiming] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
@@ -41,9 +49,15 @@ export default function ArcFaucetPanel({
     setClaiming(true)
     setError('')
     try {
+      // The wallet session rides the httpOnly cookie, so credentials must be
+      // sent; the Privy token is the fallback identity for an email-only user
+      // who has not signed with a wallet this session. Same pair as my-data.
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (readToken) headers.Authorization = `Bearer ${readToken}`
       const res = await fetch('/api/arc-faucet', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
+        credentials: 'same-origin',
         body: JSON.stringify({ address }),
       })
       const data = await res.json()
@@ -74,7 +88,7 @@ export default function ArcFaucetPanel({
         {claiming
           ? <Loader2 className="h-3 w-3 animate-spin" />
           : done ? <Check className="h-3 w-3" /> : <Droplet className="h-3 w-3" />}
-        {claiming ? 'Sending…' : done ? 'Sent 2 USDC' : 'Get test USDC'}
+        {claiming ? 'Sending…' : done ? `Sent ${DRIP_USDC} USDC` : 'Get test USDC'}
       </button>
     )
   }
@@ -93,7 +107,7 @@ export default function ArcFaucetPanel({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold" style={{ color: 'var(--text)' }}>
-            {done ? '2 USDC sent' : 'You need test USDC'}
+            {done ? `${DRIP_USDC} USDC sent` : 'You need test USDC'}
           </p>
           <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'var(--text-soft)' }}>
             {done
@@ -113,7 +127,7 @@ export default function ArcFaucetPanel({
           >
             {claiming && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {done && <Check className="h-3.5 w-3.5" />}
-            {claiming ? 'Sending…' : done ? 'Sent' : 'Send me 2 USDC'}
+            {claiming ? 'Sending…' : done ? 'Sent' : `Send me ${DRIP_USDC} USDC`}
           </button>
 
           <button

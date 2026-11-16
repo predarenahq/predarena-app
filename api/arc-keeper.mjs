@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { ethers } from 'ethers'
+import { hermesGet } from '../lib/pyth.mjs'
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ async function getPythPrices(tickers) {
   const results = {}
   await Promise.all(tickers.filter(t => PYTH_FEEDS[t]).map(async (ticker) => {
     try {
-      const res  = await fetch(`https://hermes.pyth.network/v2/updates/price/latest?ids[]=${PYTH_FEEDS[ticker]}`)
+      const res  = await hermesGet(`ids[]=${PYTH_FEEDS[ticker]}`)
       const data = await res.json()
       const p    = data?.parsed?.[0]
       if (p) results[ticker] = Number(p.price.price) * Math.pow(10, p.price.expo)
@@ -210,12 +211,20 @@ async function settleArcBattles(contract) {
   let settled = 0
   for (const b of battles) {
     try {
-      const twapCutoff = new Date(Date.now() - 90 * 1000).toISOString()
+      // Anchored to the battle's END, matching lib/settlement.mjs. Anchoring
+      // to Date.now() meant the window moved with whenever the keeper
+      // happened to run - up to two minutes after the battle ended - so the
+      // two chains could read different prices for the same battle and
+      // disagree on the winner from timing alone.
+      const twapFrom = new Date(new Date(b.end_time).getTime() - 90 * 1000).toISOString()
+      const twapTo = new Date(b.end_time).toISOString()
       const [twapA, twapB] = await Promise.all([
         supabase.from('price_history').select('price').eq('coin', b.coin_a)
-          .gte('recorded_at', twapCutoff).order('recorded_at', { ascending: false }).limit(10),
+          .gte('recorded_at', twapFrom).lte('recorded_at', twapTo)
+          .order('recorded_at', { ascending: false }).limit(10),
         supabase.from('price_history').select('price').eq('coin', b.coin_b)
-          .gte('recorded_at', twapCutoff).order('recorded_at', { ascending: false }).limit(10),
+          .gte('recorded_at', twapFrom).lte('recorded_at', twapTo)
+          .order('recorded_at', { ascending: false }).limit(10),
       ])
 
       const finalPriceA = twapA.data?.length >= 2

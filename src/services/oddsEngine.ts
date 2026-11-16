@@ -12,6 +12,16 @@ const COINGECKO_IDS: Record<string, string> = {
 // as a fallback now, but a fallback that disagrees with the server is how
 // the requote loop started.
 const MOMENTUM_WEIGHT = 0
+
+// Mirror of lib/oddsEngine.mjs. Only reached as a fallback for rows with no
+// base_prob_*, but a fallback that disagrees with the server is how the
+// requote loop started.
+const DRAW_RATE: Record<string, number> = {
+  '30m': 0.248,
+  '1h': 0.297,
+  '4h': 0.179,
+}
+const DEFAULT_DRAW_RATE = 0.179
 const HOUSE_MARGIN = 1.30  // 30% overround — heavy SportyBet-style house edge
 const MIN_ODDS = 1.10
 const MAX_ODDS = 30.00
@@ -114,7 +124,7 @@ export function applyMargin(probA: number, probB: number, probDraw: number): Odd
 // STARTING ODDS
 // Fix: high-volatility pairs are dampened toward 50/50
 // e.g. DOGE vs PEPE should be much closer to evens than BTC vs ETH
-export async function getStartingOdds(coinA: string, coinB: string): Promise<OddsResult> {
+export async function getStartingOdds(coinA: string, coinB: string, duration?: string): Promise<OddsResult> {
   const [changeA, changeB] = await Promise.all([
     get24hMomentum(coinA),
     get24hMomentum(coinB),
@@ -138,7 +148,8 @@ export async function getStartingOdds(coinA: string, coinB: string): Promise<Odd
 
   const probA    = Math.max(0.10, Math.min(0.80, 0.40 + totalEdge))
   const probB    = Math.max(0.10, Math.min(0.80, 0.40 - totalEdge))
-  const probDraw = Math.max(0.05, 0.20 - Math.abs(totalEdge) * 0.08)
+  const drawRate = (duration && DRAW_RATE[duration]) || DEFAULT_DRAW_RATE
+  const probDraw = drawRate
 
   return applyMargin(probA, probB, probDraw)
 }

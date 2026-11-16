@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { createWalletClient, createPublicClient, http, parseEther, formatEther, getAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
+import { sessionFromToken, tokenFromReq } from './session.mjs'
+import { sessionFromEmailToken } from './my-data.mjs'
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 if (!process.env.ARC_FAUCET_PRIVATE_KEY)    throw new Error('ARC_FAUCET_PRIVATE_KEY is required')
@@ -15,8 +17,8 @@ const ARC_CHAIN_ID = 5042002
 
 // Arc's NATIVE token is 18dp (the ERC-20 interface is 6dp). parseEther is the
 // right unit here: this is a native send.
-const DRIP_WEI      = parseEther('2')   // 2 USDC per claim
-const DAILY_CAP_WEI = parseEther('20')  // total across ALL claimants per 24h
+const DRIP_WEI      = parseEther('10')    // 10 USDC per claim
+const DAILY_CAP_WEI = parseEther('1000')  // total across ALL claimants per 24h
 const COOLDOWN_MS   = 24 * 60 * 60 * 1000
 const RESERVE_WEI   = parseEther('0.5') // keep enough to pay our own gas
 
@@ -38,14 +40,18 @@ const walletClient = createWalletClient({ account, chain: arcChain, transport: h
  * ERC-20 interface at 0x3600... are the same underlying balance, so a plain
  * send gives the recipient gas AND bettable USDC. No approve, no token call.
  *
- * Two limits:
- *   1. per address    - one claim per 24h
- *   2. global per day - the one that actually matters. A per-address cooldown
- *      alone is free money to anyone generating addresses in a loop; the daily
- *      ceiling bounds the worst case to a single refill of testnet funds.
+ * Three limits, in the order they matter:
+ *   1. a session      - the caller must be signed in, and the address must be
+ *      one their profile has linked. Without this the other two are theatre:
+ *      a per-address cooldown costs an attacker nothing when addresses are
+ *      free to generate, and the daily cap just becomes their daily budget.
+ *   2. per profile    - one claim per 24h, checked across EVERY address on
+ *      the profile, so linking a second wallet is not a second claim.
+ *   3. global per day - the backstop, bounding a bad day to one refill.
  *
- * The signing key holds ~20 USDC and NOTHING else: it is not admin, not keeper,
- * not the quoter. If this endpoint is ever exploited, the loss is the wallet.
+ * The signing key holds testnet funds and NOTHING else: it is not admin, not
+ * keeper, not the quoter. If this endpoint is ever exploited, the loss is the
+ * wallet. Keep it funded above the daily cap or users hit faucet_empty.
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
@@ -60,17 +66,34 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 2. Who is asking? Same two routes as /api/my-data: a wallet-session
+    //    cookie, or a Privy email token for someone who has not signed with
+    //    a wallet this session.
+    const token = tokenFromReq(req)
+    let sess = await sessionFromToken(token)
+    if (!sess && token) sess = await sessionFromEmailToken(token)
+    if (!sess) return res.status(401).json({ error: 'not_signed_in' })
+
+    // 3. The address has to be one THIS profile has linked. This is the
+    //    check that gives the cooldown any force: an address nobody owns
+    //    cannot claim, so generating them in a loop buys nothing.
+    const owned = (sess.addresses || []).some(
+      (a) => String(a).toLowerCase() === address.toLowerCase()
+    )
+    if (!owned) return res.status(403).json({ error: 'address_not_linked' })
+
     const since = new Date(Date.now() - COOLDOWN_MS).toISOString()
 
-    // 2. Per-address cooldown.
+    // 4. Per-PROFILE cooldown: every address on the profile, not just the
+    //    one being claimed to, or a second linked wallet doubles the drip.
     const { data: addrClaims } = await supabase
       .from('arc_faucet_claims').select('created_at')
-      .eq('address', address).gte('created_at', since).limit(1)
+      .in('address', sess.addresses).gte('created_at', since).limit(1)
     if (addrClaims?.length) {
       return res.status(429).json({ error: 'already_claimed', retry_after_hours: 24 })
     }
 
-    // 3. Global daily cap.
+    // 5. Global daily cap.
     const { data: recent } = await supabase
       .from('arc_faucet_claims').select('amount_wei').gte('created_at', since)
     const spent = (recent || []).reduce((t, r) => t + BigInt(r.amount_wei), BigInt(0))
@@ -78,7 +101,7 @@ export default async function handler(req, res) {
       return res.status(429).json({ error: 'daily_cap_reached' })
     }
 
-    // 4. Can we actually pay? Say so before promising anything.
+    // 6. Can we actually pay? Say so before promising anything.
     const balance = await publicClient.getBalance({ address: account.address })
     if (balance < DRIP_WEI + RESERVE_WEI) {
       return res.status(503).json({
@@ -87,7 +110,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // 5. Send, wait, then record. Recording only after confirmation means a
+    // 7. Send, wait, then record. Recording only after confirmation means a
     //    failed send never burns the user's 24h window.
     const hash = await walletClient.sendTransaction({ to: address, value: DRIP_WEI })
     const receipt = await publicClient.waitForTransactionReceipt({ hash })
