@@ -544,7 +544,11 @@ export default function BattleDetailPage() {
                 <p className="text-[11px] mb-1.5 font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Leading</p>
                 <p className="text-[19px] font-semibold tracking-[-0.02em]" style={{ color: "var(--text)" }}>{leadingCoin}</p>
                 <p className="text-xs mt-1 font-semibold" style={{ color: leadingCoin === battle.coin_a ? COLORS.coinA : COLORS.coinB, fontVariantNumeric: "tabular-nums" }}>
-                  +{Math.abs(latestA - latestB).toFixed(4)}%
+                  {/* This is the MARGIN between the two coins, not the
+                      leader's own move - the card beside it already shows
+                      that, and a bare percentage here read as a second,
+                      contradictory figure for the same coin. */}
+                  ahead by {Math.abs(latestA - latestB).toFixed(4)}%
                 </p>
               </>
             ) : (
@@ -600,7 +604,7 @@ export default function BattleDetailPage() {
             </ResponsiveContainer>
           )}
           <p className="text-center text-xs mt-3" style={{ color: COLORS.textSoft }}>
-            % change from battle start · Updates every 5 min · Settlement decided by Pyth oracle prices
+            % change from battle start · Updates every minute · Settlement decided by Pyth oracle prices
           </p>
         </div>
 

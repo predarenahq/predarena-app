@@ -227,11 +227,16 @@ async function settleArcBattles(contract) {
           .order('recorded_at', { ascending: false }).limit(10),
       ])
 
-      const finalPriceA = twapA.data?.length >= 2
+      // >= 1 to match lib/settlement.mjs. At a 60s cron cadence a 90s
+      // window holds 1 or 2 rows, and requiring 2 sent half of all
+      // battles to a live price fetched at this keeper's own run time -
+      // a different moment from the Solana settler, which is exactly the
+      // divergence the end_time anchor was meant to remove.
+      const finalPriceA = twapA.data?.length >= 1
         ? twapA.data.reduce((s, r) => s + r.price, 0) / twapA.data.length
         : livePrices[b.coin_a]
 
-      const finalPriceB = twapB.data?.length >= 2
+      const finalPriceB = twapB.data?.length >= 1
         ? twapB.data.reduce((s, r) => s + r.price, 0) / twapB.data.length
         : livePrices[b.coin_b]
 
