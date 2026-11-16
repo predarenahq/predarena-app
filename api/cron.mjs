@@ -108,7 +108,7 @@ const PYTH_FEEDS = {
   SOL: '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
   AVAX: '0x93da3352f9f1d105fdfe4971cfa80e9dd777bfc5d0f683ebb6e1294b92137bb7',
   BNB: '0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f',
-  XRP: '0xec5d399846a9209f3fe5881d70aae9268c7b040d3ce7b657b5af68ee9e46cd07',
+  XRP: '0xec5d399846a9209f3fe5881d70aae9268c94339ff9817e8d18ff19fa05eea1c8',
   DOGE: '0xdcef50dd0a4cd2dcc17e45df1676dcb336a11a61c69df7a0299b0150c672d25c',
   LINK: '0x8ac0c70fff57e9aefdf5edf44b51d62c2d433653cbb2cf5cc06bb115af04d221',
   UNI: '0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501',
@@ -118,7 +118,19 @@ const PYTH_FEEDS = {
   BONK: '0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419',
 }
 
-const BATTLE_PAIRS = [
+// Feeds the current Pyth plan actually serves. Verified 2026-11-16 by calling
+// each one individually: everything outside this set comes back 403, and a
+// batch containing even one unserved id fails whole, so do not merge these
+// into a single request while the gap exists.
+//
+// A pair touching an unserved feed is skipped with no price and simply never
+// appears in the Arena. That is the same silent-failure shape that hid the
+// August outage for 82 days, so the gap is declared here instead.
+//
+// WHEN YOUR PLAN GROWS: add the ticker here. That is the whole change.
+const AVAILABLE_FEEDS = new Set(['BTC', 'ETH', 'SOL', 'BNB', 'DOGE', 'XRP'])
+
+const ALL_BATTLE_PAIRS = [
   { coinA: 'BTC', coinB: 'ETH', league: 'Major', duration: '1h' },
   { coinA: 'SOL', coinB: 'AVAX', league: 'L1', duration: '4h' },
   { coinA: 'BTC', coinB: 'SOL', league: 'Major', duration: '1h' },
@@ -130,6 +142,20 @@ const BATTLE_PAIRS = [
   { coinA: 'SOL', coinB: 'JUP', league: 'L1', duration: '1h' },
   { coinA: 'ETH', coinB: 'SOL', league: 'L1', duration: '4h' },
 ]
+
+const BATTLE_PAIRS = ALL_BATTLE_PAIRS.filter(
+  (p) => AVAILABLE_FEEDS.has(p.coinA) && AVAILABLE_FEEDS.has(p.coinB)
+)
+
+{
+  const parked = ALL_BATTLE_PAIRS.filter((p) => !BATTLE_PAIRS.includes(p))
+  if (parked.length) {
+    console.warn(
+      `${parked.length} pair(s) parked - feed not on the current Pyth plan: ` +
+      parked.map((p) => `${p.coinA}/${p.coinB}`).join(', ')
+    )
+  }
+}
 
 const DURATION_MS = {
   '5m': 5 * 60 * 1000,
@@ -668,9 +694,33 @@ export default async function handler(req, res) {
     console.error('solvency check failed:', e.message)
   }
 
-  res.status(200).json({ 
-    ok: results.errors.length === 0, 
-    timestamp: new Date().toISOString(), 
+  // Heartbeat. One row per run, so "when did this last actually work?" is a
+  // query rather than an archaeology project. The August outage was invisible
+  // for 82 days precisely because every run returned 200 with an empty body of
+  // work and nothing recorded that it had done nothing.
+  try {
+    await supabase.from('cron_runs').insert({
+      ok: results.errors.length === 0,
+      prices_saved: results.pricesSaved,
+      battles_created: results.battlesCreated,
+      battles_settled: results.battlesSettled,
+      errors: results.errors.length ? results.errors : null,
+    })
+  } catch (e) {
+    console.error('heartbeat insert failed:', e.message)
+  }
+
+  // A run that saved no prices did nothing useful, whatever else it logged.
+  // With CRON_STRICT_STATUS=1 that becomes a non-2xx so the scheduler's own
+  // failure alert fires - the alert this app never had. Opt-in because a free
+  // cron-job.org account disables a job after repeated failures, which is the
+  // right trade only once someone is watching the mailbox.
+  const didNothing = !results.pricesSaved
+  const strict = process.env.CRON_STRICT_STATUS === '1'
+
+  res.status(didNothing && strict ? 503 : 200).json({
+    ok: results.errors.length === 0 && !didNothing,
+    timestamp: new Date().toISOString(),
     prices,
     ...results
   })

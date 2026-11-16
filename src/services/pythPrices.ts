@@ -5,7 +5,7 @@ export const PYTH_FEEDS: Record<string, string> = {
   SOL: '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
   AVAX: '0x93da3352f9f1d105fdfe4971cfa80e9dd777bfc5d0f683ebb6e1294b92137bb7',
   BNB: '0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f',
-  XRP: '0x50c67b3fd225db8912a424dd4baed60ffdde625ed2feeff2d13323997f4a4349',
+  XRP: '0xec5d399846a9209f3fe5881d70aae9268c94339ff9817e8d18ff19fa05eea1c8',
   DOGE: '0xdcef50dd0a4cd2dcc17e45df1676dcb336a11a61c69df7a0299b0150c672d25c',
   LINK: '0x8ac0c70fff57e9aefdf5edf44b51d62c2d433653cbb2cf5cc06bb115af04d221',
   UNI: '0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501',
@@ -16,7 +16,19 @@ export const PYTH_FEEDS: Record<string, string> = {
 }
 
 // Battle pairs - every major pair that has a chart
-export const BATTLE_PAIRS = [
+// Feeds the current Pyth plan actually serves. Verified 2026-11-16 by calling
+// each one individually: everything outside this set comes back 403, and a
+// batch containing even one unserved id fails whole, so do not merge these
+// into a single request while the gap exists.
+//
+// A pair touching an unserved feed is skipped with no price and simply never
+// appears in the Arena. That is the same silent-failure shape that hid the
+// August outage for 82 days, so the gap is declared here instead.
+//
+// WHEN YOUR PLAN GROWS: add the ticker here. That is the whole change.
+const AVAILABLE_FEEDS = new Set(['BTC', 'ETH', 'SOL', 'BNB', 'DOGE', 'XRP'])
+
+const ALL_BATTLE_PAIRS = [
   { coinA: 'BTC', coinB: 'ETH', league: 'Major', duration: '1h' },
   { coinA: 'SOL', coinB: 'AVAX', league: 'L1', duration: '4h' },
   { coinA: 'BTC', coinB: 'SOL', league: 'Major', duration: '1h' },
@@ -28,6 +40,10 @@ export const BATTLE_PAIRS = [
   { coinA: 'SOL', coinB: 'JUP', league: 'L1', duration: '1h' },
   { coinA: 'ETH', coinB: 'SOL', league: 'L1', duration: '4h' },
 ]
+
+export const BATTLE_PAIRS = ALL_BATTLE_PAIRS.filter(
+  (p) => AVAILABLE_FEEDS.has(p.coinA) && AVAILABLE_FEEDS.has(p.coinB)
+)
 
 // Hermes needs an API key since the Pyth Core upgrade, and a key in a CRA
 // bundle is a published key, so the browser asks our own server instead.
