@@ -209,7 +209,7 @@ export default function PriceChartModal({
             )}
 
             <p className="text-center text-xs mt-4" style={{ color: COLORS.textSoft }}>
-              % change from battle start · Updates every 5 min · Settled via Pyth Network
+              % change from battle start · Updates every minute · Settled via Pyth Network
             </p>
           </motion.div>
         </motion.div>

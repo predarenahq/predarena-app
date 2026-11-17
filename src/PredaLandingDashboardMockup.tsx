@@ -2448,21 +2448,26 @@ function HowToPlayPage() {
         </p>
       </RuleBlock>
 
-      {/* ---- HOUSE EDGE ---------------------------------------------------
-          Delete this block if you would rather not publish the number. It is
-          here because every other rule on this page is disclosed, and a rules
-          page that is candid about everything except what it charges you reads
-          worse than one that says nothing at all. */}
-      <RuleBlock title="What the house takes">
+      <RuleBlock title="Inviting other players">
         <p>
-          The three prices on a battle are set to total more than 100% of the
-          implied chances &mdash; the book is priced at a <strong>1.30 overround</strong>.
-          On an even match where each coin is a true 41% chance, a fair price
-          would be about 2.44; you are offered 1.88.
+          Invite someone with your referral link and you earn <strong>2%</strong>{" "}
+          of every losing bet they settle, credited straight to your balance. You
+          earn nothing from their winning bets, and each of their tickets credits
+          you once.
         </p>
-        <p className="mt-3">
-          That is the margin, and it is the same on every battle. Nothing is taken
-          from a winning payout on top of it.
+      </RuleBlock>
+
+      {/* The exact house edge is deliberately not published, by the operator's
+          decision. What is said below is true and checkable and nothing here
+          misstates it. For whoever maintains this next: the figure is a 1.30
+          overround, which on an even match turns a fair 2.44 into the 1.88 on
+          screen. Publish it or do not, but do not let this page imply the
+          margin is smaller than it is. */}
+      <RuleBlock title="How the prices are set">
+        <p>
+          The three prices on a battle add up to more than 100% of the implied
+          chances. That difference is the house margin. It is the same on every
+          battle, and nothing further is deducted from a winning payout.
         </p>
       </RuleBlock>
 
