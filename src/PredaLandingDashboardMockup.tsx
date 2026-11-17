@@ -2869,7 +2869,7 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
       {/* REFERRALS */}
       <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--border)" }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Refer friends, earn rewards</h3>
-        <p className="text-sm mb-4" style={{ color: "var(--text-soft)" }}>Share your link. Earn USDC and points when the people you invite play.</p>
+        <p className="text-sm mb-4" style={{ color: "var(--text-soft)" }}>Share your link. You earn 2% of every bet the people you invite lose.</p>
 
         {refLink ? (
           <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -2890,7 +2890,16 @@ function ProfilePage({ walletAddress, evmAddresses = [] }: { walletAddress: stri
         <div className="grid gap-4 md:grid-cols-3">
           <InfoCard label="Friends Referred" value={String(refStats?.referred_count ?? 0)} />
           <InfoCard label="USDC Earned" value={`$${(refStats?.usd_earned ?? 0).toFixed(2)}`} tone={(refStats?.usd_earned ?? 0) > 0 ? 'pos' : undefined} />
-          <InfoCard label="Points" value={String(refStats?.points ?? 0)} />
+          {/* Named specifically because the Leaderboard shows a DIFFERENT
+              quantity under the bare word "Points": volume/100 + profit/10
+              + referral count. This one is floor(loss_usd) summed over the
+              losing tickets of people you invited. Two numbers, one word,
+              both on screen for the same user. */}
+          <InfoCard
+            label="Referral Points"
+            value={String(refStats?.points ?? 0)}
+            sub="1 per $1 lost by players you invited"
+          />
         </div>
       </div>
     </div>
