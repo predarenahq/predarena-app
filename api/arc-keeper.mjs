@@ -523,5 +523,45 @@ export default async function handler(req, res) {
   try { results.claimArcCombos    = await claimArcCombos(contract)    } catch (e) { results.comboClaimError = e.message }
   try { results.creditArcReferrals = await creditArcReferrals()      } catch (e) { results.referralError = e.message }
 
-  res.status(200).json(results)
+  // Heartbeat. Same table as /api/cron, told apart by `job`. This endpoint had
+  // the identical blind spot cron had for 82 days, and one worse: `ok` above
+  // was a literal true that no error path touched, so a run where all five
+  // stages threw still answered {"ok":true} with HTTP 200.
+  const errors = [
+    results.createError      && 'create: '   + results.createError,
+    results.settleError      && 'settle: '   + results.settleError,
+    results.claimError       && 'claim: '    + results.claimError,
+    results.comboClaimError  && 'combo: '    + results.comboClaimError,
+    results.referralError    && 'referral: ' + results.referralError,
+  ].filter(Boolean)
+
+  results.ok = errors.length === 0
+
+  try {
+    await supabase.from('cron_runs').insert({
+      job: 'arc-keeper',
+      ok: results.ok,
+      battles_created: results.createArcBattles?.created ?? null,
+      battles_settled: results.settleArcBattles?.settled ?? null,
+      errors: errors.length ? errors : null,
+      details: {
+        attempted:          results.createArcBattles?.attempted ?? null,
+        create_failures:    results.createArcBattles?.failures ?? null,
+        claimed:            results.claimArcWinners?.claimed ?? null,
+        battles_swept:      results.claimArcWinners?.battlesSwept ?? null,
+        combos_claimed:     results.claimArcCombos?.combosClaimed ?? null,
+        referrals_credited: results.creditArcReferrals?.referralsCredited ?? null,
+      },
+    })
+  } catch (e) {
+    console.error('arc-keeper heartbeat insert failed:', e.message)
+  }
+
+  // Deliberately NOT the same strict rule as /api/cron. There, a run that
+  // saved no prices did nothing useful, so emptiness is the alarm. Here, a run
+  // with nothing to settle or claim is the normal case most minutes - alarming
+  // on that would cry wolf every 60 seconds until the job got disabled. The
+  // signal that matters for the keeper is a stage that THREW.
+  const strict = process.env.CRON_STRICT_STATUS === '1'
+  res.status(errors.length && strict ? 503 : 200).json(results)
 }

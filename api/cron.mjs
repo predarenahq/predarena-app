@@ -700,6 +700,7 @@ export default async function handler(req, res) {
   // work and nothing recorded that it had done nothing.
   try {
     await supabase.from('cron_runs').insert({
+      job: 'cron',
       ok: results.errors.length === 0,
       prices_saved: results.pricesSaved,
       battles_created: results.battlesCreated,
