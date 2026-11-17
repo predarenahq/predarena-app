@@ -2284,6 +2284,196 @@ function BottomNav({
   );
 }
 
+/**
+ * The rules. Betting is open, so these have to be published somewhere a user
+ * can be pointed at when they dispute a settlement - which, in a fixed-odds
+ * book, is the whole reason a rules page exists.
+ *
+ * Every figure here is read from lib/oddsEngine.mjs and lib/settlement.mjs. If
+ * you change a constant there, change it here in the same commit, or this page
+ * becomes the most expensive kind of documentation: the confident wrong kind.
+ */
+function RuleBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-8 first:mt-0">
+      <h3 className="text-[15px] font-semibold tracking-[-0.01em]" style={{ color: "var(--text)" }}>
+        {title}
+      </h3>
+      <div className="mt-2 max-w-2xl text-sm leading-7" style={{ color: "var(--text-soft)" }}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function HowToPlayPage() {
+  const cell = "px-3 py-2 text-left";
+  return (
+    <div
+      className="rounded-[24px] bg-[var(--panel)] p-6 sm:p-8"
+      style={{ boxShadow: "0 1px 3px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.05)" }}
+    >
+      <h2 className="font-display text-[30px]" style={{ color: "var(--text)" }}>How to Play</h2>
+
+      <div
+        className="mt-4 rounded-[14px] px-4 py-3 text-sm font-medium"
+        style={{ background: "var(--accent-soft)", color: "var(--text)" }}
+      >
+        PredArena runs on Solana devnet and Arc testnet. Every balance, stake and
+        payout is test currency with no monetary value.
+      </div>
+
+      <RuleBlock title="The bet">
+        <p>
+          Two coins are matched for a fixed window. Whichever moves further in
+          percentage terms from its starting price wins &mdash; the direction does not
+          matter, only the relative move. A coin that falls 2% beats a coin that
+          falls 5%.
+        </p>
+        <p className="mt-3">
+          Three outcomes: the first coin, the second coin, or a draw.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="The draw is not a technicality">
+        <p>
+          If the two coins finish within <strong>0.1%</strong> of each other, the
+          battle is a draw. Backing the leader loses. This band is fixed in the
+          settlement contract and cannot be changed per battle.
+        </p>
+        <p className="mt-3">
+          A 0.1% band sounds narrow, but over 9,497 settled battles it produced
+          draws this often:
+        </p>
+        <div className="mt-3 overflow-hidden rounded-[12px] border" style={{ borderColor: "var(--border)" }}>
+          <table className="w-full text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <thead>
+              <tr style={{ background: "var(--panel-2)", color: "var(--text-muted)" }}>
+                <th className={cell + " font-semibold"}>Battle length</th>
+                <th className={cell + " font-semibold"}>Ended in a draw</th>
+              </tr>
+            </thead>
+            <tbody style={{ color: "var(--text-2)" }}>
+              <tr><td className={cell}>30 minutes</td><td className={cell}>24.8%</td></tr>
+              <tr><td className={cell}>1 hour</td><td className={cell}>29.7%</td></tr>
+              <tr><td className={cell}>4 hours</td><td className={cell}>17.9%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3">
+          Roughly one battle in four. Price the draw accordingly.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="Betting closes before the battle ends">
+        <p>
+          The book shuts at <strong>80% of the duration</strong>, not at the final
+          whistle. A 1-hour battle stops taking bets at 48 minutes; a 4-hour
+          battle at 3 hours 12 minutes. The last fifth runs with the book closed.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="How a battle is settled">
+        <p>
+          Prices come from the Pyth oracle. At the battle&rsquo;s end time we take
+          every price recorded in the final <strong>90 seconds</strong> and average
+          them, rather than reading a single instant &mdash; a one-tick spike cannot
+          decide a battle. If no price was recorded in that window, a single live
+          price is used instead.
+        </p>
+        <p className="mt-3">
+          The same prices settle both chains, so a battle cannot pay one result on
+          Solana and another on Arc.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="Your odds are locked when you bet">
+        <p>
+          The price you accept is the price you are paid at. The displayed line
+          keeps moving after you bet, but your ticket does not change.
+        </p>
+        <p className="mt-3">Three things move the line while a battle runs:</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <strong>The scoreline.</strong> As one coin pulls ahead, its price
+            shortens and the other lengthens.
+          </li>
+          <li>
+            <strong>Time.</strong> The leader&rsquo;s odds decay toward 1.01 as the
+            clock runs down, and the draw lengthens as the gap widens.
+          </li>
+          <li>
+            <strong>Where the money is.</strong> Once a battle has more than $50
+            matched, a side holding over 60% of the two-way pool has its price
+            shortened. The adjustment is capped, so it nudges the line rather than
+            setting it.
+          </li>
+        </ul>
+      </RuleBlock>
+
+      <RuleBlock title="Limits">
+        <p>
+          No price is shorter than <strong>1.10</strong> or longer than{" "}
+          <strong>30.00</strong> on a single. A parlay pays at most{" "}
+          <strong>100.00</strong>, however many legs it has. A winning ticket priced
+          above those caps is paid at the cap.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="Parlays">
+        <p>
+          Combine legs across battles and the odds multiply. Every leg must win &mdash;
+          one loss voids the ticket. If a leg&rsquo;s battle is voided, the whole
+          parlay is refunded rather than being settled on the remaining legs.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="Voids and refunds">
+        <p>
+          If a battle cannot be settled fairly it is voided and every stake on it
+          is returned in full. Voided battles do not count as a win or a loss in
+          your record.
+        </p>
+      </RuleBlock>
+
+      <RuleBlock title="Where your stake sits">
+        <p>
+          <strong>Solana.</strong> Stakes are held in a custodial vault operated by
+          PredArena. Your balance is a claim on that vault, not coins in your own
+          wallet &mdash; you are trusting the operator to honour it.
+        </p>
+        <p className="mt-3">
+          <strong>Arc.</strong> Stakes are held by the PredArena contract on-chain.
+          Settlement and payout are executed by the contract.
+        </p>
+      </RuleBlock>
+
+      {/* ---- HOUSE EDGE ---------------------------------------------------
+          Delete this block if you would rather not publish the number. It is
+          here because every other rule on this page is disclosed, and a rules
+          page that is candid about everything except what it charges you reads
+          worse than one that says nothing at all. */}
+      <RuleBlock title="What the house takes">
+        <p>
+          The three prices on a battle are set to total more than 100% of the
+          implied chances &mdash; the book is priced at a <strong>1.30 overround</strong>.
+          On an even match where each coin is a true 41% chance, a fair price
+          would be about 2.44; you are offered 1.88.
+        </p>
+        <p className="mt-3">
+          That is the margin, and it is the same on every battle. Nothing is taken
+          from a winning payout on top of it.
+        </p>
+      </RuleBlock>
+
+      <p className="mt-10 text-xs" style={{ color: "var(--text-muted)" }}>
+        These rules describe the system as deployed. Where this page and the
+        settlement contract disagree, the contract decides.
+      </p>
+    </div>
+  );
+}
+
 function PlaceholderPage({
   title,
   body,
@@ -3822,7 +4012,7 @@ export default function PredaLandingDashboardMockup() {
       case "/leaderboard":
         return <LeaderboardPage />;
       case "/how-to-play":
-        return <PlaceholderPage title="How to Play" body="Pick left, draw, or right. Build parlays. Relative performance over the selected period decides the winner." />;
+        return <HowToPlayPage />;
       case "/support":
         return <PlaceholderPage title="Support" body="Help center, FAQs, contact, and user support tools will live here." />;
       case "/settings":
